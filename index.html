@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Common Ground, a strategic card game about UN field coordination. Lead the team. Earn the trust. Leave no one behind." />
-  <meta name="theme-color" content="#1a8fe3" />
-  <title>Common Ground, UN Field Coordination Card Game</title>
+  <meta name="description" content="Common Ground: The Long Road. A cinematic field-coordination Snakes and Ladders. Roll two dice, climb funding and agreements, dodge the crises, and race to a finished mandate." />
+  <meta name="theme-color" content="#0a1220" />
+  <title>Common Ground: The Long Road</title>
 
   <!-- Professional typography (loads online; degrades to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,44 +14,26 @@
 
   <!-- Styles (relative path so it works on GitHub Pages and from file://) -->
   <link rel="stylesheet" href="styles/styles.css" />
-  <link rel="stylesheet" href="styles/studio.css" />
 
   <!-- Inline favicon (no external asset) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◆</text></svg>" />
 </head>
 <body>
   <noscript>
-    <div style="padding:40px;text-align:center;font-family:sans-serif">
-      <h1>Common Ground</h1>
+    <div style="padding:40px;text-align:center;font-family:sans-serif;color:#eaf2ff">
+      <h1>Common Ground: The Long Road</h1>
       <p>This game needs JavaScript enabled in your browser. Please enable it and reload.</p>
     </div>
   </noscript>
 
   <div id="app" aria-live="polite"></div>
 
-  <!-- DATA layer (designers edit only these to add cards/events/text) -->
-  <script src="data/strings.js"></script>
-  <script src="data/roles.js"></script>
-  <script src="data/cards.js"></script>
-  <script src="data/events.js"></script>
-  <script src="data/story.js"></script>
+  <!-- DATA: all flavour text, board layout, and decks -->
+  <script src="data/content.js"></script>
 
-  <!-- CONTENT translations (full flavour text per language; en is canonical) -->
-  <script src="data/content.en.js"></script>
-  <script src="data/content.fr.js"></script>
-  <script src="data/content.es.js"></script>
-  <script src="data/content.zh.js"></script>
-  <script src="data/content.ru.js"></script>
-  <script src="data/content.ar.js"></script>
-
-  <!-- LOGIC layer -->
-  <script src="src/engine.js"></script>
-  <script src="src/ai.js"></script>
+  <!-- LOGIC + RENDER: audio, narration, and the game itself -->
   <script src="src/audio.js"></script>
   <script src="src/narrate.js"></script>
-
-  <!-- RENDER layer -->
-  <script src="src/ui.js"></script>
-  <script src="src/main.js"></script>
+  <script src="src/game.js"></script>
 </body>
 </html>
