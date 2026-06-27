@@ -7,7 +7,7 @@ runs fully without anything here.
 
 Drop optional extras in this folder if you like:
 
-- `screenshot.png` — referenced by the README's screenshot section.
+- `screenshot.png`, referenced by the README's screenshot section.
 - Custom fonts, icons, or replacement art if you fork the visual direction.
 
 Anything you add here is loaded with **relative paths**, so it keeps working

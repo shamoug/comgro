@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — main.js
+ * COMMON GROUND, main.js
  * Bootstrap, menu screens, mode/role/difficulty selection, country briefing,
  * tutorial, glossary, credits, settings application, and game lifecycle.
  * ========================================================================= */
@@ -14,7 +14,7 @@
   // ---- boot --------------------------------------------------------------
   CG.state = {
     lang: "en",
-    settings: { hints: true, fieldNotes: false, reducedMotion: false, highContrast: false, muted: false, textSize: 100, apiKey: "" },
+    settings: { hints: true, fieldNotes: false, reducedMotion: false, highContrast: false, muted: false, narrate: false, textSize: 100, apiKey: "" },
   };
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -140,7 +140,7 @@
         <div class="role-portrait" style="background:${r.color}">${r.icon}</div>
         <h3>${loc(r, "name")}</h3>
         <p class="role-desc">${loc(r, "desc")}</p>
-        <div class="role-ability"><strong>⚡ ${r.ability}</strong><span>${loc(r, "abilityDesc")}</span></div>
+        <div class="role-ability"><strong>⚡ ${loc(r, "ability")}</strong><span>${loc(r, "abilityDesc")}</span></div>
       </button>`);
       c.addEventListener("click", () => { flow.cfg.players = [{ name: "You", roleId: r.id, isAI: false }]; showDifficulty(); });
       grid.appendChild(c);
@@ -218,8 +218,8 @@
         </div>
         <div class="start-cond">
           <div class="cond-tag">Starting situation</div>
-          <h3>${cond.name}</h3>
-          <p>${cond.desc}</p>
+          <h3>${loc(cond, "name")}</h3>
+          <p>${loc(cond, "desc")}</p>
           <button class="btn btn-ghost small" id="reroll">🎲 ${t("restart")} situation</button>
         </div>
         <div class="briefing-roster"></div>
@@ -286,17 +286,17 @@
     flow.cfg.aiPartners.push(pool[(d.getMonth()) % pool.length], pool[(d.getDate()) % pool.length]);
     flow.cfg.aiPartners = flow.cfg.aiPartners.filter((v, i, a) => a.indexOf(v) === i);
     if (CG.Audio && !CG.state.settings.muted) CG.Audio.start();
-    CG.UI.toast && setTimeout(() => CG.UI.toast("📅 " + t("dailyChallenge") + " — " + t("seed") + ": " + key), 400);
+    CG.UI.toast && setTimeout(() => CG.UI.toast("📅 " + t("dailyChallenge") + ", " + t("seed") + ": " + key), 400);
     launchGame();
   }
 
   // ---- tutorial ----------------------------------------------------------
   function startTutorial() {
     const steps = [
-      { ic: "🧭", title: t("tutWelcome"), body: "You are the Resident Coordinator in Sahelia. You have no command authority — your power is to align people, data, and resources. Let's learn by doing." },
-      { ic: "🤝", title: t("trust") + " is everything", body: "Watch the Trust meter (top-left). It gates your biggest moves. If it hits zero, your term ends. Build it with community visits, dialogue, and honesty." },
-      { ic: "📊", title: "The five strategies", body: "Each national milestone maps to one UN 2.0 strategy: Data, Digital, Innovation, Foresight, Behavioural Science. Fill a pillar to 100% to complete its milestone. Balance all five." },
-      { ic: "⚡", title: "Play, then react", body: "Spend 🔋 Capacity to play Action cards. Use your role's ⚡ ability once a month. The world throws shocks and openings — coordinate under pressure. Ready?" },
+      { ic: "🧭", title: CG.tc("tut.0.title"), body: CG.tc("tut.0.body") },
+      { ic: "🤝", title: CG.tc("tut.1.title"), body: CG.tc("tut.1.body") },
+      { ic: "📊", title: CG.tc("tut.2.title"), body: CG.tc("tut.2.body") },
+      { ic: "⚡", title: CG.tc("tut.3.title"), body: CG.tc("tut.3.body") },
     ];
     let i = 0;
     function show() {
@@ -330,15 +330,15 @@
   function showCredits() {
     const body = h(`<div class="credits-modal">
       <h2>${t("credits")}</h2>
-      <p><strong>${t("appTitle")}</strong> — a strategic card game about UN field coordination, built for the UN 2.0 Quintet of Change.</p>
+      <p>${CG.tc("credits.intro")}</p>
       <ul>
-        <li><strong>Design & code:</strong> Common Ground project.</li>
-        <li><strong>Music & sound:</strong> Original, procedurally synthesised in-browser (Web Audio API) — royalty-free.</li>
-        <li><strong>Art:</strong> CSS + SVG + system emoji. No external assets.</li>
-        <li><strong>Setting:</strong> Sahelia is fictional and composite — any resemblance to a real nation is coincidental.</li>
-        <li><strong>Optional AI narration:</strong> Anthropic Messages API (claude-sonnet-4-6), only if you supply your own key.</li>
+        <li>${CG.tc("credits.l1")}</li>
+        <li>${CG.tc("credits.l2")}</li>
+        <li>${CG.tc("credits.l3")}</li>
+        <li>${CG.tc("credits.l4")}</li>
+        <li>${CG.tc("credits.l5")}</li>
       </ul>
-      <p class="credits-foot">Lead the team. Earn the trust. Leave no one behind.</p>
+      <p class="credits-foot">${t("tagline")}</p>
     </div>`);
     CG.UI.modal(body);
   }

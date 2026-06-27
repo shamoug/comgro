@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — cards.js
+ * COMMON GROUND, cards.js
  * Action cards (42), Partnership cards (16), Milestone cards (5).
  *
  * Effect schema (interpreted by src/engine.js -> resolveEffect):
@@ -55,7 +55,7 @@
       cost: { coordination: 2, capacity: 1 },
       effect: { progress: 13, trust: 3, impact: 2 },
       flavor: "Rules for data make people willing to share it.",
-      fieldNote: "Privacy and protection are not red tape — they are why people trust you with their information." },
+      fieldNote: "Privacy and protection are not red tape, they are why people trust you with their information." },
 
     // ---------- DIGITAL ----------
     { id: "digiservice", name: "Launch Digital Service", pillar: "digital", icon: "📱",
@@ -77,7 +77,7 @@
       cost: { funding: 2, data: 1, trust: 1, capacity: 1 },
       effect: { progress: 14, trust: 2, impact: 2 },
       flavor: "Proof you exist, so the system can include you.",
-      fieldNote: "Done right, digital ID unlocks services; done wrong, it excludes — design matters." },
+      fieldNote: "Done right, digital ID unlocks services; done wrong, it excludes, design matters." },
     { id: "egov", name: "e-Government Portal", pillar: "digital", icon: "💻",
       cost: { funding: 2, coordination: 1, capacity: 1 },
       effect: { progress: 13, gain: { coordination: 1 }, impact: 2 },
@@ -87,7 +87,7 @@
       cost: { data: 1, capacity: 1 },
       effect: { progress: 9, trust: 1, crisisFix: 1, impact: 2 },
       flavor: "Practise the bad day before it arrives.",
-      fieldNote: "A platform people depend on is critical infrastructure — protect it like one." },
+      fieldNote: "A platform people depend on is critical infrastructure, protect it like one." },
 
     // ---------- INNOVATION ----------
     { id: "pilotlab", name: "Pilot Lab", pillar: "innovation", icon: "🧪",
@@ -99,7 +99,7 @@
       cost: { funding: 3, coordination: 1, data: 1, capacity: 1 },
       effect: { progress: 22, impact: 4 },
       flavor: "The pilot worked. Now reach a million.",
-      fieldNote: "Most good pilots die in the gap between proof and scale — mind that gap." },
+      fieldNote: "Most good pilots die in the gap between proof and scale, mind that gap." },
     { id: "challengefund", name: "Challenge Fund", pillar: "innovation", icon: "🏆",
       cost: { funding: 2, coordination: 1, capacity: 1 },
       effect: { progress: 13, gain: { coordination: 1 }, impact: 3 },
@@ -173,7 +173,7 @@
       cost: { data: 1, coordination: 1, capacity: 1 },
       effect: { progress: 12, trust: 2, crisisFix: 1, impact: 3 },
       flavor: "Hear the whisper before it becomes a shout.",
-      fieldNote: "In an outbreak, the rumour spreads faster than the virus — track both." },
+      fieldNote: "In an outbreak, the rumour spreads faster than the virus, track both." },
     { id: "incentives", name: "Behavioural Incentives", pillar: "behavioural", icon: "🎁",
       cost: { funding: 1, data: 1, capacity: 1 },
       effect: { progress: 13, trust: 1, impact: 2 },
@@ -183,14 +183,14 @@
       cost: { coordination: 1, capacity: 1 },
       effect: { progress: 10, trust: 4, impact: 3 },
       flavor: "Bring the seldom-asked to the front of the room.",
-      fieldNote: "Nothing about us without us — design with the people most affected." },
+      fieldNote: "Nothing about us without us, design with the people most affected." },
 
     // ---------- COORDINATION (cross-cutting) ----------
     { id: "convene", name: "Convene Partners", pillar: "coordination", icon: "🪑",
       cost: { capacity: 1 },
       effect: { gain: { coordination: 3 }, trust: 2, impact: 2 },
       flavor: "Get everyone in one room and let the agenda do the work.",
-      fieldNote: "The RC's superpower is the table itself — who sits at it, and why." },
+      fieldNote: "The RC's superpower is the table itself, who sits at it, and why." },
     { id: "jointprog", name: "Joint Programme", pillar: "coordination", icon: "🧩",
       cost: { coordination: 2, funding: 1, capacity: 1 },
       effect: { progress: 12, pillarChoice: true, gain: { coordination: 1 }, impact: 4 },
@@ -220,12 +220,12 @@
       cost: { coordination: 1, data: 1, capacity: 1 },
       effect: { gain: { funding: 3, coordination: 1 }, impact: 2 },
       flavor: "A good case, well evidenced, opens wallets.",
-      fieldNote: "Donors fund credibility — show results, not just need." },
+      fieldNote: "Donors fund credibility, show results, not just need." },
     { id: "volunteers", name: "Mobilise UN Volunteers", pillar: "coordination", icon: "🙋",
       cost: { funding: 1, capacity: 1 },
       effect: { gain: { capacity: 1 }, trust: 2, impact: 2, special: "extraCapacity" },
       flavor: "Willing hands, local knowledge, real reach.",
-      fieldNote: "Volunteers are not free labour — they are community trust made visible." },
+      fieldNote: "Volunteers are not free labour, they are community trust made visible." },
     { id: "south", name: "South-South Exchange", pillar: "coordination", icon: "🌍",
       cost: { coordination: 1, data: 1, capacity: 1 },
       effect: { progress: 11, pillarChoice: true, gain: { data: 1 }, impact: 2 },
@@ -236,10 +236,10 @@
       effect: { gain: { data: 2 }, trust: 1, crisisFix: 1, impact: 2 },
       flavor: "Go and see. Then go and fix.",
       fieldNote: "What gets monitored together gets improved together." },
-    { id: "humdev", name: "Humanitarian–Development Bridge", pillar: "coordination", icon: "🌉",
+    { id: "humdev", name: "Humanitarian, Development Bridge", pillar: "coordination", icon: "🌉",
       cost: { coordination: 2, funding: 1, capacity: 1 },
       effect: { progress: 13, pillarChoice: true, trust: 2, crisisFix: 1, impact: 4 },
-      flavor: "Relief today, resilience tomorrow — plan for both at once.",
+      flavor: "Relief today, resilience tomorrow, plan for both at once.",
       fieldNote: "The nexus means not rebuilding the same wall every flood season." },
   ];
 
@@ -274,7 +274,7 @@
     { id: "women", name: "Gender Equality Agency", archetype: "UN entity", icon: "♀️", synergyPillar: "behavioural",
       bonus: { progress: 6, trust: 2 }, cost: { coordination: 1, capacity: 1 },
       flavor: "Half the population, fully counted.",
-      fieldNote: "Gender-blind programmes are not neutral — they miss half the picture." },
+      fieldNote: "Gender-blind programmes are not neutral, they miss half the picture." },
     { id: "envagency", name: "Environment Agency", archetype: "UN entity", icon: "🌳", synergyPillar: "foresight",
       bonus: { progress: 6, crisisFix: 1 }, cost: { data: 1, capacity: 1 },
       flavor: "The climate is the context for everything.",
@@ -302,7 +302,7 @@
     { id: "diaspora", name: "Diaspora Network", archetype: "Partner", icon: "✈️", synergyPillar: "innovation",
       bonus: { progress: 5, gain: { funding: 2 } }, cost: { capacity: 1 },
       flavor: "Talent and remittances that never forgot home.",
-      fieldNote: "Diaspora investment often dwarfs official aid — channel it well." },
+      fieldNote: "Diaspora investment often dwarfs official aid, channel it well." },
     { id: "faith", name: "Faith-Based Networks", archetype: "Partner", icon: "🕊️", synergyPillar: "behavioural",
       bonus: { progress: 5, trust: 3 }, cost: { capacity: 1 },
       flavor: "Trusted voices in every village.",
@@ -310,7 +310,7 @@
     { id: "youthnet", name: "Youth Networks", archetype: "Partner", icon: "🧑‍🤝‍🧑", synergyPillar: "innovation",
       bonus: { progress: 6, gain: { coordination: 1 } }, cost: { capacity: 1 },
       flavor: "Digital natives with skin in the game.",
-      fieldNote: "Young people are not a future stakeholder group — they are a present one." },
+      fieldNote: "Young people are not a future stakeholder group, they are a present one." },
   ];
 
   // ---- MILESTONES (the win track) ---------------------------------------
@@ -338,8 +338,8 @@
     { id: "m_behavioural", pillar: "behavioural", icon: "🤝", target: 100,
       name: "Communities in the Lead",
       name_ar: "المجتمعات في المقدمة",
-      reward: "People shape the services they use — and trust them.",
-      reward_ar: "الناس يصوغون الخدمات التي يستخدمونها — ويثقون بها." },
+      reward: "People shape the services they use, and trust them.",
+      reward_ar: "الناس يصوغون الخدمات التي يستخدمونها, ويثقون بها." },
   ];
 
   CG.PILLARS = [

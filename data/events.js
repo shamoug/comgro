@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — events.js
+ * COMMON GROUND, events.js
  * 52 Event cards: the world acting on the players.
  *   type    : 'shock' | 'opening' | 'dilemma'
  *   rarity  : 'common' (3) | 'uncommon' (2) | 'rare' (1)  -> deck weighting
@@ -194,14 +194,14 @@
       ] },
     { id: "d_donorcondition", type: "dilemma", rarity: "common", tags: ["funding"], icon: "💶",
       name: "The Donor's Condition",
-      flavor: "Funding is offered — if you brand it their way and skip the joint plan.",
+      flavor: "Funding is offered, if you brand it their way and skip the joint plan.",
       options: [
         { label: "Take the money", desc: "+5 Funding, −Coordination and a little Trust.", effect: { gain: { funding: 5 }, drain: { coordination: 2 }, trust: -2 } },
         { label: "Hold the line", desc: "Protect the joint plan; forgo the funds.", effect: { trust: 4, gain: { coordination: 1 } } },
       ] },
     { id: "d_dataprivacy", type: "dilemma", rarity: "uncommon", tags: ["data", "cyber"], icon: "🔐",
       name: "Useful Data, Risky Data",
-      flavor: "A rich dataset would sharpen targeting — but it is sensitive.",
+      flavor: "A rich dataset would sharpen targeting, but it is sensitive.",
       options: [
         { label: "Use it carefully", desc: "Big data gain; some protection risk.", effect: { gain: { data: 4 }, pillar: "data", boost: 6, trust: -2 } },
         { label: "Protect first", desc: "Slower insight, stronger trust.", effect: { gain: { data: 1 }, trust: 4 } },
@@ -229,7 +229,7 @@
       ] },
     { id: "d_innovation", type: "dilemma", rarity: "uncommon", tags: ["innovation"], icon: "🎲",
       name: "Bet on the Bold Idea?",
-      flavor: "An unproven approach could leapfrog years — or waste a quarter.",
+      flavor: "An unproven approach could leapfrog years, or waste a quarter.",
       options: [
         { label: "Take the bet", desc: "High risk, high reward.", effect: { pillar: "innovation", boost: 14, trust: -2 } },
         { label: "Play it safe", desc: "Modest, reliable progress.", effect: { pillar: "innovation", boost: 5, trust: 1 } },
@@ -250,7 +250,7 @@
       ] },
     { id: "d_attribution", type: "dilemma", rarity: "uncommon", tags: ["coordination"], icon: "🏷️",
       name: "Whose Win Is It?",
-      flavor: "A success could be one agency's headline — or the whole team's quiet credit.",
+      flavor: "A success could be one agency's headline, or the whole team's quiet credit.",
       options: [
         { label: "Share the credit", desc: "Builds coordination and trust.", effect: { gain: { coordination: 3 }, trust: 3 } },
         { label: "Claim the spotlight", desc: "Visibility now, friction later.", effect: { trust: -1, drain: { coordination: 1 }, pillar: "digital", boost: 5 } },
@@ -264,7 +264,7 @@
       ] },
     { id: "d_pace", type: "dilemma", rarity: "common", tags: ["capacity"], icon: "🔋",
       name: "Push or Pace?",
-      flavor: "The team can sprint to hit a target — or protect its own energy.",
+      flavor: "The team can sprint to hit a target, or protect its own energy.",
       options: [
         { label: "Sprint now", desc: "Progress now, tired later.", effect: { pillar: "innovation", boost: 8, capacityAll: -1 } },
         { label: "Pace the team", desc: "Recover capacity for what's next.", effect: { capacityAll: 1, trust: 1 } },

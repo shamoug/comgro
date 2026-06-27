@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — strings.js
+ * COMMON GROUND: strings.js
  * All user-facing UI text lives here so the game can be localised.
  * Ship languages: English (en) and Arabic (ar, right-to-left).
  * Card / event / story text lives in their own data files but also supports
@@ -48,7 +48,7 @@
       modeSolo: "Solo vs AI",
       modeSoloDesc: "You lead. The AI plays your partners and the world.",
       modeHotseat: "Local Multiplayer",
-      modeHotseatDesc: "2–5 players share one device. The family table.",
+      modeHotseatDesc: "2: 5 players share one device. The family table.",
       modeCoop: "Co-op vs the World",
       modeCoopDesc: "All players team up against the country's dynamics.",
       modeQuick: "Quick Game",
@@ -86,13 +86,13 @@
       pillarBehavioural: "Behavioural Science",
       pillarCoordination: "Coordination",
       // --- Acts ---
-      act1: "Act I — Arrival",
-      act2: "Act II — Pressure",
-      act3: "Act III — Convergence",
-      act4: "Act IV — Legacy",
+      act1: "Act I: Arrival",
+      act2: "Act II: Pressure",
+      act3: "Act III: Convergence",
+      act4: "Act IV: Legacy",
       act1Mood: "Build the team, map needs, earn early trust.",
       act2Mood: "The first major crisis. Coordination is tested.",
-      act3Mood: "Big bets pay off — or fail. Alliances matter.",
+      act3Mood: "Big bets pay off: or fail. Alliances matter.",
       act4Mood: "The final push to hit national milestones.",
       month: "Month",
       act: "Act",
@@ -121,7 +121,7 @@
       fieldNotesOn: "Field Notes: On",
       fieldNotesOff: "Field Notes: Off",
       fieldNote: "Field Note",
-      countryDashboard: "Sahelia — Country Dashboard",
+      countryDashboard: "Sahelia: Country Dashboard",
       activeCrises: "Active crises",
       noCrises: "No active crises",
       milestones: "National Milestones",
@@ -143,9 +143,9 @@
       victory: "The Term Ends",
       afterAction: "After-Action Review",
       scorecard: "UN 2.0 Quintet Scorecard",
-      bronze: "Bronze — Steady Hand",
-      silver: "Silver — Trusted Partner",
-      gold: "Gold — Leave No One Behind",
+      bronze: "Bronze: Steady Hand",
+      silver: "Silver: Trusted Partner",
+      gold: "Gold: Leave No One Behind",
       bronzeDesc: "The country avoided collapse. Basic services held.",
       silverDesc: "Three milestones reached. Trust is strong.",
       goldDesc: "All five milestones reached. Trust high. No one left behind.",
@@ -245,10 +245,10 @@
       pillarForesight: "الاستشراف",
       pillarBehavioural: "العلوم السلوكية",
       pillarCoordination: "التنسيق",
-      act1: "الفصل الأول — الوصول",
-      act2: "الفصل الثاني — الضغط",
-      act3: "الفصل الثالث — التقارب",
-      act4: "الفصل الرابع — الإرث",
+      act1: "الفصل الأول: الوصول",
+      act2: "الفصل الثاني: الضغط",
+      act3: "الفصل الثالث: التقارب",
+      act4: "الفصل الرابع: الإرث",
       act1Mood: "ابنِ الفريق، وارسم الاحتياجات، واكسب الثقة المبكرة.",
       act2Mood: "أول أزمة كبرى. التنسيق على المحك.",
       act3Mood: "الرهانات الكبرى تنجح أو تفشل. التحالفات مهمة.",
@@ -278,7 +278,7 @@
       fieldNotesOn: "ملاحظات ميدانية: مفعّلة",
       fieldNotesOff: "ملاحظات ميدانية: متوقفة",
       fieldNote: "ملاحظة ميدانية",
-      countryDashboard: "ساهيليا — لوحة البلد",
+      countryDashboard: "ساهيليا: لوحة البلد",
       activeCrises: "الأزمات النشطة",
       noCrises: "لا أزمات نشطة",
       milestones: "المعالم الوطنية",
@@ -298,9 +298,9 @@
       victory: "تنتهي الولاية",
       afterAction: "مراجعة لاحقة",
       scorecard: "بطاقة نتائج خماسية التغيير",
-      bronze: "برونزية — يد ثابتة",
-      silver: "فضية — شريك موثوق",
-      gold: "ذهبية — لا أحد يُترك خلف الركب",
+      bronze: "برونزية: يد ثابتة",
+      silver: "فضية: شريك موثوق",
+      gold: "ذهبية: لا أحد يُترك خلف الركب",
       bronzeDesc: "تجنّب البلد الانهيار. صمدت الخدمات الأساسية.",
       silverDesc: "تحققت ثلاثة معالم. الثقة قوية.",
       goldDesc: "تحققت المعالم الخمسة. الثقة عالية. لم يُترك أحد.",
@@ -358,10 +358,10 @@
       capacityDesc: "L'énergie de votre équipe. Limite les actions par tour.",
       pillarData: "Données", pillarDigital: "Numérique", pillarInnovation: "Innovation",
       pillarForesight: "Prospective", pillarBehavioural: "Sciences du comportement", pillarCoordination: "Coordination",
-      act1: "Acte I — L'arrivée", act2: "Acte II — La pression", act3: "Acte III — La convergence", act4: "Acte IV — L'héritage",
+      act1: "Acte I: L'arrivée", act2: "Acte II: La pression", act3: "Acte III: La convergence", act4: "Acte IV: L'héritage",
       act1Mood: "Constituez l'équipe, cartographiez les besoins, gagnez une première confiance.",
       act2Mood: "La première crise majeure. La coordination est mise à l'épreuve.",
-      act3Mood: "Les grands paris réussissent — ou échouent. Les alliances comptent.",
+      act3Mood: "Les grands paris réussissent: ou échouent. Les alliances comptent.",
       act4Mood: "L'effort final pour atteindre les jalons nationaux.",
       month: "Mois", act: "Acte",
       phaseBriefing: "Briefing", phaseForesight: "Prospective", phaseEvent: "Événement",
@@ -373,7 +373,7 @@
       suggestedMove: "Coup suggéré", whyThisMove: "Pourquoi ce coup ?",
       hintsOn: "Astuces : activées", hintsOff: "Astuces : désactivées",
       fieldNotesOn: "Notes de terrain : activées", fieldNotesOff: "Notes de terrain : désactivées", fieldNote: "Note de terrain",
-      countryDashboard: "Sahélia — Tableau de bord du pays",
+      countryDashboard: "Sahélia: Tableau de bord du pays",
       activeCrises: "Crises actives", noCrises: "Aucune crise active", milestones: "Jalons nationaux",
       drawEvent: "Piocher l'événement du mois", resolveEvent: "Résoudre",
       peekEvents: "Prospective : événements à venir", reorder: "Réorganiser", keepOrder: "Garder l'ordre", chooseOption: "Choisir",
@@ -381,7 +381,7 @@
       reflection: "Réflexion", monthSummary: "Bilan du mois",
       useAbility: "Utiliser la capacité", abilityUsed: "Capacité utilisée", abilityReady: "Capacité prête",
       victory: "La mission s'achève", afterAction: "Bilan a posteriori", scorecard: "Tableau du Quintette ONU 2.0",
-      bronze: "Bronze — Main ferme", silver: "Argent — Partenaire de confiance", gold: "Or — Ne laisser personne de côté",
+      bronze: "Bronze: Main ferme", silver: "Argent: Partenaire de confiance", gold: "Or: Ne laisser personne de côté",
       bronzeDesc: "Le pays a évité l'effondrement. Les services de base ont tenu.",
       silverDesc: "Trois jalons atteints. La confiance est solide.",
       goldDesc: "Les cinq jalons atteints. Confiance élevée. Personne n'a été laissé de côté.",
@@ -430,10 +430,10 @@
       capacityDesc: "La energía de tu equipo. Limita las acciones por turno.",
       pillarData: "Datos", pillarDigital: "Digital", pillarInnovation: "Innovación",
       pillarForesight: "Prospectiva", pillarBehavioural: "Ciencias del comportamiento", pillarCoordination: "Coordinación",
-      act1: "Acto I — La llegada", act2: "Acto II — La presión", act3: "Acto III — La convergencia", act4: "Acto IV — El legado",
+      act1: "Acto I: La llegada", act2: "Acto II: La presión", act3: "Acto III: La convergencia", act4: "Acto IV: El legado",
       act1Mood: "Forma el equipo, mapea las necesidades, gánate la confianza inicial.",
       act2Mood: "La primera gran crisis. La coordinación se pone a prueba.",
-      act3Mood: "Las grandes apuestas dan fruto — o fracasan. Las alianzas importan.",
+      act3Mood: "Las grandes apuestas dan fruto: o fracasan. Las alianzas importan.",
       act4Mood: "El empujón final para alcanzar los hitos nacionales.",
       month: "Mes", act: "Acto",
       phaseBriefing: "Informe", phaseForesight: "Prospectiva", phaseEvent: "Evento",
@@ -445,7 +445,7 @@
       suggestedMove: "Jugada sugerida", whyThisMove: "¿Por qué esta jugada?",
       hintsOn: "Pistas: activadas", hintsOff: "Pistas: desactivadas",
       fieldNotesOn: "Notas de campo: activadas", fieldNotesOff: "Notas de campo: desactivadas", fieldNote: "Nota de campo",
-      countryDashboard: "Sahelia — Panel del país",
+      countryDashboard: "Sahelia: Panel del país",
       activeCrises: "Crisis activas", noCrises: "Sin crisis activas", milestones: "Hitos nacionales",
       drawEvent: "Roba el evento del mes", resolveEvent: "Resolver",
       peekEvents: "Prospectiva: próximos eventos", reorder: "Reordenar", keepOrder: "Mantener el orden", chooseOption: "Elegir",
@@ -453,7 +453,7 @@
       reflection: "Reflexión", monthSummary: "Resumen del mes",
       useAbility: "Usar habilidad", abilityUsed: "Habilidad usada", abilityReady: "Habilidad lista",
       victory: "El mandato concluye", afterAction: "Revisión posterior", scorecard: "Tarjeta del Quinteto ONU 2.0",
-      bronze: "Bronce — Mano firme", silver: "Plata — Socio de confianza", gold: "Oro — No dejar a nadie atrás",
+      bronze: "Bronce: Mano firme", silver: "Plata: Socio de confianza", gold: "Oro: No dejar a nadie atrás",
       bronzeDesc: "El país evitó el colapso. Los servicios básicos resistieron.",
       silverDesc: "Tres hitos alcanzados. La confianza es sólida.",
       goldDesc: "Los cinco hitos alcanzados. Confianza alta. Nadie quedó atrás.",
@@ -502,7 +502,7 @@
       capacityDesc: "团队的精力。限制每回合的行动数。",
       pillarData: "数据", pillarDigital: "数字化", pillarInnovation: "创新",
       pillarForesight: "前瞻", pillarBehavioural: "行为科学", pillarCoordination: "协调",
-      act1: "第一幕 — 抵达", act2: "第二幕 — 压力", act3: "第三幕 — 汇聚", act4: "第四幕 — 传承",
+      act1: "第一幕: 抵达", act2: "第二幕: 压力", act3: "第三幕: 汇聚", act4: "第四幕: 传承",
       act1Mood: "组建团队，摸清需求，赢得最初的信任。",
       act2Mood: "第一场重大危机。协调能力受到考验。",
       act3Mood: "重大押注或成功，或失败。联盟至关重要。",
@@ -517,7 +517,7 @@
       suggestedMove: "建议行动", whyThisMove: "为何这样做？",
       hintsOn: "提示：开", hintsOff: "提示：关",
       fieldNotesOn: "实地笔记：开", fieldNotesOff: "实地笔记：关", fieldNote: "实地笔记",
-      countryDashboard: "萨赫利亚 — 国家仪表盘",
+      countryDashboard: "萨赫利亚: 国家仪表盘",
       activeCrises: "活跃危机", noCrises: "无活跃危机", milestones: "国家里程碑",
       drawEvent: "抽取本月事件", resolveEvent: "结算",
       peekEvents: "前瞻：即将到来的事件", reorder: "重新排序", keepOrder: "保持顺序", chooseOption: "选择",
@@ -525,7 +525,7 @@
       reflection: "反思", monthSummary: "本月总结",
       useAbility: "使用技能", abilityUsed: "技能已使用", abilityReady: "技能就绪",
       victory: "任期结束", afterAction: "行动后回顾", scorecard: "联合国2.0 五重变革记分卡",
-      bronze: "铜级 — 稳健之手", silver: "银级 — 可信赖的伙伴", gold: "金级 — 不让任何人掉队",
+      bronze: "铜级: 稳健之手", silver: "银级: 可信赖的伙伴", gold: "金级: 不让任何人掉队",
       bronzeDesc: "国家避免了崩溃。基本服务得以维系。",
       silverDesc: "达成三项里程碑。信任稳固。",
       goldDesc: "五项里程碑全部达成。信任高涨。无人掉队。",
@@ -557,7 +557,7 @@
       glossary: "Глоссарий", credits: "Авторы", chooseMode: "Выберите режим", chooseRole: "Выберите роль",
       chooseDifficulty: "Выберите сложность", chooseCountry: "Брифинг по стране",
       modeSolo: "Один против ИИ", modeSoloDesc: "Вы руководите. ИИ играет за партнёров и за мир.",
-      modeHotseat: "Локальная игра", modeHotseatDesc: "2–5 игроков на одном устройстве. Семейный режим.",
+      modeHotseat: "Локальная игра", modeHotseatDesc: "2: 5 игроков на одном устройстве. Семейный режим.",
       modeCoop: "Кооператив против мира", modeCoopDesc: "Все игроки объединяются против динамики страны.",
       modeQuick: "Быстрая игра", modeQuickDesc: "Один акт. Менее 15 минут.",
       modeCampaign: "Кампания", modeCampaignDesc: "Все четыре акта. Постоянные разблокировки.",
@@ -574,10 +574,10 @@
       capacityDesc: "Энергия команды. Ограничивает число действий за ход.",
       pillarData: "Данные", pillarDigital: "Цифровизация", pillarInnovation: "Инновации",
       pillarForesight: "Прогнозирование", pillarBehavioural: "Поведенческая наука", pillarCoordination: "Координация",
-      act1: "Акт I — Прибытие", act2: "Акт II — Давление", act3: "Акт III — Сближение", act4: "Акт IV — Наследие",
+      act1: "Акт I: Прибытие", act2: "Акт II: Давление", act3: "Акт III: Сближение", act4: "Акт IV: Наследие",
       act1Mood: "Соберите команду, оцените потребности, заслужите первое доверие.",
       act2Mood: "Первый крупный кризис. Координация проходит проверку.",
-      act3Mood: "Крупные ставки оправдываются — или нет. Альянсы решают.",
+      act3Mood: "Крупные ставки оправдываются: или нет. Альянсы решают.",
       act4Mood: "Финальный рывок к национальным рубежам.",
       month: "Месяц", act: "Акт",
       phaseBriefing: "Брифинг", phaseForesight: "Прогноз", phaseEvent: "Событие",
@@ -589,7 +589,7 @@
       suggestedMove: "Рекомендуемый ход", whyThisMove: "Почему этот ход?",
       hintsOn: "Подсказки: вкл.", hintsOff: "Подсказки: выкл.",
       fieldNotesOn: "Полевые заметки: вкл.", fieldNotesOff: "Полевые заметки: выкл.", fieldNote: "Полевая заметка",
-      countryDashboard: "Сахелия — Панель страны",
+      countryDashboard: "Сахелия: Панель страны",
       activeCrises: "Активные кризисы", noCrises: "Активных кризисов нет", milestones: "Национальные рубежи",
       drawEvent: "Вытянуть событие месяца", resolveEvent: "Разрешить",
       peekEvents: "Прогноз: предстоящие события", reorder: "Переставить", keepOrder: "Оставить порядок", chooseOption: "Выбрать",
@@ -597,7 +597,7 @@
       reflection: "Размышление", monthSummary: "Итоги месяца",
       useAbility: "Использовать способность", abilityUsed: "Способность использована", abilityReady: "Способность готова",
       victory: "Срок полномочий завершается", afterAction: "Разбор по итогам", scorecard: "Карта Квинтета изменений ООН 2.0",
-      bronze: "Бронза — Твёрдая рука", silver: "Серебро — Надёжный партнёр", gold: "Золото — Никого не оставить позади",
+      bronze: "Бронза: Твёрдая рука", silver: "Серебро: Надёжный партнёр", gold: "Золото: Никого не оставить позади",
       bronzeDesc: "Страна избежала коллапса. Базовые услуги устояли.",
       silverDesc: "Достигнуто три рубежа. Доверие крепкое.",
       goldDesc: "Достигнуты все пять рубежей. Доверие высоко. Никто не остался позади.",
@@ -619,33 +619,33 @@
   // Plain-language glossary (shared structure; translated into all 6 UN languages).
   CG.GLOSSARY = [
     { term: "RC",
-      en: "Resident Coordinator — the UN's most senior official in a country. Leads by influence, not orders.",
-      ar: "المنسّق المقيم — أعلى مسؤول للأمم المتحدة في بلد. يقود بالتأثير لا بالأوامر.",
-      fr: "Coordonnateur résident — le plus haut responsable de l'ONU dans un pays. Dirige par l'influence, non par les ordres.",
-      es: "Coordinador Residente — el funcionario de mayor rango de la ONU en un país. Lidera por influencia, no por órdenes.",
-      zh: "驻地协调员 — 联合国在一国的最高官员。靠影响力领导，而非发号施令。",
-      ru: "Координатор-резидент — высшее должностное лицо ООН в стране. Руководит влиянием, а не приказами." },
+      en: "Resident Coordinator: the UN's most senior official in a country. Leads by influence, not orders.",
+      ar: "المنسّق المقيم: أعلى مسؤول للأمم المتحدة في بلد. يقود بالتأثير لا بالأوامر.",
+      fr: "Coordonnateur résident: le plus haut responsable de l'ONU dans un pays. Dirige par l'influence, non par les ordres.",
+      es: "Coordinador Residente: el funcionario de mayor rango de la ONU en un país. Lidera por influencia, no por órdenes.",
+      zh: "驻地协调员: 联合国在一国的最高官员。靠影响力领导，而非发号施令。",
+      ru: "Координатор-резидент: высшее должностное лицо ООН в стране. Руководит влиянием, а не приказами." },
     { term: "RCO",
-      en: "Resident Coordinator Office — the small team that supports the RC and connects everyone.",
-      ar: "مكتب المنسّق المقيم — الفريق الذي يدعم المنسّق ويربط الجميع.",
-      fr: "Bureau du coordonnateur résident — la petite équipe qui appuie le CR et relie tout le monde.",
-      es: "Oficina del Coordinador Residente — el equipo que apoya al CR y conecta a todos.",
-      zh: "驻地协调员办公室 — 支持驻地协调员并联系各方的小团队。",
-      ru: "Офис координатора-резидента — небольшая команда, которая поддерживает КР и связывает всех." },
+      en: "Resident Coordinator Office: the small team that supports the RC and connects everyone.",
+      ar: "مكتب المنسّق المقيم: الفريق الذي يدعم المنسّق ويربط الجميع.",
+      fr: "Bureau du coordonnateur résident: la petite équipe qui appuie le CR et relie tout le monde.",
+      es: "Oficina del Coordinador Residente: el equipo que apoya al CR y conecta a todos.",
+      zh: "驻地协调员办公室: 支持驻地协调员并联系各方的小团队。",
+      ru: "Офис координатора-резидента: небольшая команда, которая поддерживает КР и связывает всех." },
     { term: "UNCT",
-      en: "UN Country Team — all the UN agencies working in a country.",
-      ar: "فريق الأمم المتحدة القطري — كل وكالات الأمم المتحدة العاملة في بلد.",
-      fr: "Équipe de pays des Nations Unies — toutes les agences de l'ONU présentes dans un pays.",
-      es: "Equipo de las Naciones Unidas en el País — todos los organismos de la ONU que trabajan en un país.",
-      zh: "联合国国家工作队 — 在一国工作的所有联合国机构。",
-      ru: "Страновая группа ООН — все учреждения ООН, работающие в стране." },
+      en: "UN Country Team: all the UN agencies working in a country.",
+      ar: "فريق الأمم المتحدة القطري: كل وكالات الأمم المتحدة العاملة في بلد.",
+      fr: "Équipe de pays des Nations Unies: toutes les agences de l'ONU présentes dans un pays.",
+      es: "Equipo de las Naciones Unidas en el País: todos los organismos de la ONU que trabajan en un país.",
+      zh: "联合国国家工作队: 在一国工作的所有联合国机构。",
+      ru: "Страновая группа ООН: все учреждения ООН, работающие в стране." },
     { term: "SDG",
-      en: "Sustainable Development Goals — 17 global goals for people and planet by 2030.",
-      ar: "أهداف التنمية المستدامة — ١٧ هدفًا عالميًا للناس والكوكب بحلول ٢٠٣٠.",
-      fr: "Objectifs de développement durable — 17 objectifs mondiaux pour les peuples et la planète d'ici 2030.",
-      es: "Objetivos de Desarrollo Sostenible — 17 metas mundiales para las personas y el planeta para 2030.",
-      zh: "可持续发展目标 — 到 2030 年为人类与地球设定的 17 项全球目标。",
-      ru: "Цели устойчивого развития — 17 глобальных целей для людей и планеты к 2030 году." },
+      en: "Sustainable Development Goals: 17 global goals for people and planet by 2030.",
+      ar: "أهداف التنمية المستدامة: ١٧ هدفًا عالميًا للناس والكوكب بحلول ٢٠٣٠.",
+      fr: "Objectifs de développement durable: 17 objectifs mondiaux pour les peuples et la planète d'ici 2030.",
+      es: "Objetivos de Desarrollo Sostenible: 17 metas mundiales para las personas y el planeta para 2030.",
+      zh: "可持续发展目标: 到 2030 年为人类与地球设定的 17 项全球目标。",
+      ru: "Цели устойчивого развития: 17 глобальных целей для людей и планеты к 2030 году." },
     { term: "Cooperation Framework",
       en: "The agreement between the UN and a government on shared priorities.",
       ar: "اتفاق بين الأمم المتحدة والحكومة على الأولويات المشتركة.",
@@ -716,11 +716,64 @@
     return s;
   };
 
-  // Pick a localized field from a data object: obj[lang] || obj.en || obj[field]
+  // -----------------------------------------------------------------------
+  // CONTENT localization. All flavour text (roles, cards, events, story, etc.)
+  // lives in per-language bundles under CG.CONTENT[lang], keyed flatly by the
+  // object's id (plus special keys like "v0", "rf3", "ai2", "country.blurb").
+  // Renderers call CG.loc(obj, field) or CG.tc(key); both fall back en -> inline.
+  // This is how "choose a language and nothing stays in English" is guaranteed.
+  // -----------------------------------------------------------------------
+  CG.CONTENT = CG.CONTENT || {}; // filled by data/content.<lang>.js files
+
+  // Map a logical field name to its short content key.
+  CG.FIELD_KEY = {
+    name: "name", desc: "desc", ability: "ab", abilityDesc: "abd",
+    flavor: "fl", fieldNote: "fn", reward: "rw", archetype: "arch", blurb: "blurb",
+  };
+
+  function contentEntry(lang, id) {
+    return CG.CONTENT[lang] && CG.CONTENT[lang][id];
+  }
+
+  // Localized field from a data object (uses obj.id against CG.CONTENT).
   CG.loc = function (obj, field) {
     const lang = (CG.state && CG.state.lang) || "en";
     if (!obj) return "";
+    const k = CG.FIELD_KEY[field] || field;
+    if (obj.id) {
+      const cur = contentEntry(lang, obj.id);
+      if (cur && cur[k] != null) return cur[k];
+      const en = contentEntry("en", obj.id);
+      if (en && en[k] != null) return en[k];
+    }
     if (lang !== "en" && obj[field + "_" + lang]) return obj[field + "_" + lang];
     return obj[field] || "";
+  };
+
+  // Localized free key (vignettes, reflections, act intros, dynamic templates).
+  // Supports {placeholder} interpolation like CG.t.
+  CG.tc = function (key, vars) {
+    const lang = (CG.state && CG.state.lang) || "en";
+    let s = null;
+    if (CG.CONTENT[lang] && CG.CONTENT[lang][key] != null) s = CG.CONTENT[lang][key];
+    else if (CG.CONTENT.en && CG.CONTENT.en[key] != null) s = CG.CONTENT.en[key];
+    if (s == null) return "";
+    if (vars) {
+      Object.keys(vars).forEach((k) => { s = s.replace(new RegExp("\\{" + k + "\\}", "g"), vars[k]); });
+    }
+    return s;
+  };
+
+  // Localized dilemma option text. which = "l" (label) or "d" (description).
+  CG.tcOpt = function (eventId, i, which) {
+    const lang = (CG.state && CG.state.lang) || "en";
+    function pick(bundle) {
+      const e = bundle && bundle[eventId];
+      return e && e.o && e.o[i] ? e.o[i][which] : null;
+    }
+    const cur = pick(CG.CONTENT[lang]);
+    if (cur != null) return cur;
+    const en = pick(CG.CONTENT.en);
+    return en != null ? en : "";
   };
 })();

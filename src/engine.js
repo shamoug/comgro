@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — engine.js
+ * COMMON GROUND, engine.js
  * The rules engine. Pure logic: builds and mutates game state, knows nothing
  * about the DOM. The UI (ui.js) reads state and calls these methods.
  *
@@ -30,6 +30,13 @@
 
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const round = Math.round;
+
+  // Localized pillar label (for logs/messages).
+  function plabel(id) {
+    if (id === "coordination") return CG.t("pillarCoordination");
+    const p = CG.getPillar && CG.getPillar(id);
+    return p ? CG.t(p.labelKey) : id;
+  }
 
   const DIFFICULTY = {
     easy:   { neg: 0.7, pos: 1.15, crisisCap: 6, startTrust: 58, eventCount: 1, label: "diffEasy" },
@@ -183,7 +190,7 @@
     if (mods.startCrisis) s.country.crises.push(Object.assign({ id: "c0", age: 0 }, mods.startCrisis));
 
     CG.state = Object.assign(CG.state || {}, s);
-    Engine.log(CG.t("act") + " I — " + cond.name);
+    Engine.log(CG.t("act") + " I: " + CG.loc(cond, "name"));
     return CG.state;
   };
 
@@ -199,11 +206,12 @@
     const s = CG.state;
     s.monthInAct++;
     s.monthTotal++;
-    // pick a vignette for the current act
+    // pick a vignette for the current act; store its global index as a content key
     const pool = CG.getVignettes(s.act).filter((v) => !s.usedVignettes.includes(v.text));
     const list = pool.length ? pool : CG.getVignettes(s.act);
     const v = list[Math.floor(s.rng() * list.length)];
-    s.vignette = v ? v.text : "";
+    s.vignetteKey = v ? "v" + CG.VIGNETTES.indexOf(v) : "";
+    s.vignette = v ? v.text : ""; // English fallback
     if (v) s.usedVignettes.push(v.text);
 
     // refill hands
@@ -399,7 +407,7 @@
 
     // Set a synergy buff that applies to the next matching action.
     s.turnBuffs = s.turnBuffs || {};
-    s.turnBuffs.partnership = { synergyPillar: card.synergyPillar, bonus: card.bonus, name: card.name };
+    s.turnBuffs.partnership = { id: card.id, synergyPillar: card.synergyPillar, bonus: card.bonus, name: card.name };
     Engine.log(CG.t("aiPlayed", { name: p.name, card: CG.loc(card, "name") }), "play");
 
     const i = p.partners.indexOf(partnerId);
@@ -423,7 +431,7 @@
     const tb = s.turnBuffs || {};
 
     // RC Align buff: synergy bonus to next action
-    if (tb.alignBonus) { progress += 5; trust += 1; tb.alignBonus = false; Engine.log("Align synergy applied (+5 / +1 Trust)", "ability"); }
+    if (tb.alignBonus) { progress += 5; trust += 1; tb.alignBonus = false; Engine.log(CG.tc("log.alignSynergy"), "ability"); }
 
     // Donor priority pillar: double progress on that pillar
     if (tb.priorityPillar && pillar === tb.priorityPillar && progress > 0) { progress *= 2; }
@@ -431,7 +439,7 @@
     // Youth Amplify: double behavioural action effect
     if (tb.amplifyBehavioural && pillar === "behavioural") {
       progress *= 2; trust *= 2; tb.amplifyBehavioural = false;
-      Engine.log("Amplify: behavioural effect doubled", "ability");
+      Engine.log(CG.tc("log.amplify"), "ability");
     }
 
     // Partnership synergy
@@ -443,7 +451,7 @@
         trust += b.trust || 0;
         crisisFix += b.crisisFix || 0;
         if (b.gain) { if (b.gain.funding) gain.funding = (gain.funding||0)+b.gain.funding; if (b.gain.coordination) gain.coordination=(gain.coordination||0)+b.gain.coordination; if (b.gain.data) gain.data=(gain.data||0)+b.gain.data; }
-        Engine.log(ps.name + " synergy → " + CG.loc(card, "name"), "synergy");
+        Engine.log(CG.tc("log.synergy", { partner: CG.loc(CG.getPartnership(ps.id) || { id: ps.id }, "name"), card: CG.loc(card, "name") }), "synergy");
         s.turnBuffs.partnership = null;
       }
     }
@@ -472,7 +480,7 @@
     if (card.pillar === "coordination") p.style.coordination = (p.style.coordination || 0) + 1;
     p.impact += impact;
 
-    Engine.log(p.name + ": " + CG.loc(card, "name") + (progress ? " (+" + progress + " " + pillar + ")" : ""), "play");
+    Engine.log(p.name + ": " + CG.loc(card, "name") + (progress ? " (+" + progress + " " + plabel(pillar) + ")" : ""), "play");
     checkMilestones(s);
   }
 
@@ -497,7 +505,7 @@
     s.country.crises.forEach((c) => { total += c.severity; c.age++; });
     if (total > 0) {
       s.country.trust = clamp(s.country.trust - total, 0, 100);
-      Engine.log("Active crises cost " + total + " Trust", "shock");
+      Engine.log(CG.tc("log.crisesCost", { n: total }), "shock");
     }
     // mild natural decay on hard? keep crises persistent but decay severity by 1 if age>=2
     s.country.crises.forEach((c) => { if (c.age >= 2) c.severity -= 1; });
@@ -510,7 +518,7 @@
       if (!s.country.milestonesDone.includes(m.id) && s.country.pillars[m.pillar] >= m.target) {
         s.country.milestonesDone.push(m.id);
         s.country.trust = clamp(s.country.trust + 6, 0, 100);
-        Engine.log("★ Milestone reached: " + CG.loc(m, "name"), "milestone");
+        Engine.log("★ " + CG.tc("log.milestone", { name: CG.loc(m, "name") }), "milestone");
         s._newMilestone = m.id;
       }
     });
@@ -534,11 +542,13 @@
     s.phase = "resolution";
     crisisUpkeep(s);
     checkMilestones(s);
-    // reflection
+    // reflection: store its index as a content key (rf<index>)
     const pool = CG.REFLECTIONS.filter((r) => !s.usedReflections.includes(r));
     const list = pool.length ? pool : CG.REFLECTIONS;
-    s.reflection = list[Math.floor(s.rng() * list.length)];
-    s.usedReflections.push(s.reflection);
+    const r = list[Math.floor(s.rng() * list.length)];
+    s.reflectionKey = "rf" + CG.REFLECTIONS.indexOf(r);
+    s.reflection = r; // English fallback
+    s.usedReflections.push(r);
     Engine.checkEnd();
   };
 
@@ -555,7 +565,7 @@
       s.monthInAct = 0;
       // escalate: replenish event deck (fresh weighting)
       refillEventDeck(s);
-      Engine.log("— " + CG.t("act") + " " + ["I", "II", "III", "IV"][s.act - 1] + " —", "act");
+      Engine.log(", " + CG.t("act") + " " + ["I", "II", "III", "IV"][s.act - 1] + ", ", "act");
       return { newAct: true };
     }
     return { newAct: false };
@@ -606,21 +616,19 @@
       styleText: styleReflection(human.style),
       seed: s.seed,
     };
-    Engine.log("Term ended: " + tier.toUpperCase(), "milestone");
+    Engine.log(CG.tc("log.termEnded", { tier: CG.t(tier) || tier }), "milestone");
     return s.result;
   };
 
   function styleReflection(style) {
     const order = ["data", "digital", "innovation", "foresight", "behavioural", "coordination"];
-    const labels = { data: "Data", digital: "Digital", innovation: "Innovation", foresight: "Foresight", behavioural: "Behavioural Science", coordination: "Coordination" };
     const sorted = order.slice().sort((a, b) => (style[b] || 0) - (style[a] || 0));
     const top = sorted.slice(0, 2).filter((k) => style[k] > 0);
-    const low = sorted.filter((k) => k !== "coordination").reverse().filter((k) => (style[k] || 0) === 0 || (style[k] || 0) < (style[sorted[0]] || 1) * 0.25);
     let txt = "";
-    if (top.length) txt += "You led with " + top.map((k) => labels[k]).join(" and ") + ". ";
+    if (top.length) txt += CG.tc("style.led", { pillars: top.map((k) => plabel(k)).join(" " + CG.tc("style.and") + " ") });
     const under = ["data", "digital", "innovation", "foresight", "behavioural"].find((k) => (style[k] || 0) === 0);
-    if (under) txt += "You under-used " + labels[under] + " — a lever still on the table.";
-    else txt += "You balanced all five Quintet pillars — the mark of a true coordinator.";
+    if (under) txt += CG.tc("style.under", { pillar: plabel(under) });
+    else txt += CG.tc("style.balanced");
     return txt;
   }
 
@@ -635,40 +643,40 @@
     let msg = "";
     switch (role.id) {
       case "rc":
-        s.pool.coordination += 2; s.turnBuffs.alignBonus = true; msg = "Align: +2 Coordination, next action gets a synergy bonus.";
+        s.pool.coordination += 2; s.turnBuffs.alignBonus = true; msg = CG.tc("abmsg.rc");
         break;
       case "dmo":
-        s.pool.data += 3; s.dmoPeek = Engine.peekEvents(1)[0]; msg = "Insight: +3 Data, revealed next event.";
+        s.pool.data += 3; s.dmoPeek = Engine.peekEvents(1)[0]; msg = CG.tc("abmsg.dmo");
         break;
       case "hro":
-        s.shieldNext = true; msg = "Shield: the next harmful event's Trust hit is halved.";
+        s.shieldNext = true; msg = CG.tc("abmsg.hro");
         break;
       case "ngo":
-        s.turnBuffs.waiveFunding = true; msg = "Reach: your next action's Funding cost is waived.";
+        s.turnBuffs.waiveFunding = true; msg = CG.tc("abmsg.ngo");
         break;
       case "gov":
-        s.country.trust = clamp(s.country.trust + 5, 0, 100); msg = "Mandate: +5 national Trust.";
+        s.country.trust = clamp(s.country.trust + 5, 0, 100); msg = CG.tc("abmsg.gov");
         break;
       case "donor":
-        s.pool.funding += 5; s.turnBuffs.priorityPillar = args.pillar || "data"; msg = "Inject: +5 Funding; " + s.turnBuffs.priorityPillar + " earns double this turn.";
+        s.pool.funding += 5; s.turnBuffs.priorityPillar = args.pillar || "data"; msg = CG.tc("abmsg.donor", { pillar: plabel(s.turnBuffs.priorityPillar) });
         break;
       case "youth":
-        s.turnBuffs.amplifyBehavioural = true; msg = "Amplify: your next Behavioural action is doubled.";
+        s.turnBuffs.amplifyBehavioural = true; msg = CG.tc("abmsg.youth");
         break;
       case "innolab": {
         const win = s.rng() > 0.4;
-        if (win) { s.country.pillars.innovation = clamp(s.country.pillars.innovation + 16, 0, 100); msg = "Experiment SUCCESS: +16 Innovation!"; }
-        else { s.country.trust = clamp(s.country.trust - 3, 0, 100); msg = "Experiment setback: −3 Trust. It happens."; }
+        if (win) { s.country.pillars.innovation = clamp(s.country.pillars.innovation + 16, 0, 100); msg = CG.tc("abmsg.innolabWin"); }
+        else { s.country.trust = clamp(s.country.trust - 3, 0, 100); msg = CG.tc("abmsg.innolabLose"); }
         break;
       }
       case "foresight":
-        s.peek = Engine.peekEvents(2); s.foresightReorder = true; msg = "Horizon: peek the next two events and reorder.";
+        s.peek = Engine.peekEvents(2); s.foresightReorder = true; msg = CG.tc("abmsg.foresight");
         break;
       case "comms":
-        s.counterMisinfo = true; s.country.trust = clamp(s.country.trust + 3, 0, 100); msg = "Counter-narrative: misinformation neutralised, +3 Trust.";
+        s.counterMisinfo = true; s.country.trust = clamp(s.country.trust + 3, 0, 100); msg = CG.tc("abmsg.comms");
         break;
       case "logops":
-        s.turnBuffs.costReduction = { amount: 1, uses: 2 }; msg = "Streamline: next two actions cost 1 less Funding.";
+        s.turnBuffs.costReduction = { amount: 1, uses: 2 }; msg = CG.tc("abmsg.logops");
         break;
       case "chw": {
         const inHealth = s.country.crises.some((c) => c.type === "health");
@@ -676,13 +684,13 @@
         const mult = inHealth ? 2 : 1;
         s.pool.data -= conv;
         s.country.trust = clamp(s.country.trust + conv * mult, 0, 100);
-        msg = "Care: converted " + conv + " Data into " + conv * mult + " Trust" + (inHealth ? " (health crisis bonus!)" : "") + ".";
+        msg = CG.tc("abmsg.chw", { n: conv, m: conv * mult, bonus: inHealth ? CG.tc("abmsg.chwBonus") : "" });
         break;
       }
     }
     p.abilityUsed = true;
     checkMilestones(s);
-    Engine.log("⚡ " + p.name + " — " + role.ability + ": " + msg, "ability");
+    Engine.log("⚡ " + p.name + ", " + CG.loc(role, "ability") + ": " + msg, "ability");
     return { ok: true, msg };
   };
 

@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — ui.js
+ * COMMON GROUND, ui.js
  * In-game rendering + flow controller. Reads CG.state, calls CG.Engine,
  * paints the board. Menus/tutorial/settings live in main.js.
  * ========================================================================= */
@@ -19,6 +19,13 @@
   function on(sel, ev, fn) { const e = $(sel); if (e) e.addEventListener(ev, fn); }
   function reduced() { return CG.state.settings && CG.state.settings.reducedMotion; }
   function sfx(name) { if (CG.Audio && CG.Audio.sfx[name]) try { CG.Audio.sfx[name](); } catch (e) {} }
+
+  // Append a small "read aloud" speaker button to a container (no-op if TTS
+  // is unavailable). textFn may be a string or a function returning a string.
+  function addNarration(container, textFn) {
+    if (!container || !CG.Narrate || !CG.Narrate.supported()) return;
+    container.appendChild(CG.Narrate.button(textFn));
+  }
 
   const RES = ["trust", "funding", "coordination", "data"];
   const RES_ICON = { trust: "🤝", funding: "💶", coordination: "🔗", data: "📊", capacity: "🔋", impact: "⭐" };
@@ -113,10 +120,10 @@
 
   function wireChrome() {
     on("#btn-mute", "click", () => { const m = !CG.state.settings.muted; CG.state.settings.muted = m; CG.Audio && CG.Audio.setMuted(m); $("#btn-mute").textContent = m ? "🔇" : "🔊"; });
-    on("#btn-lang", "click", () => CG.langPicker(render));
+    on("#btn-lang", "click", () => { CG.Narrate && CG.Narrate.stop(); CG.langPicker(render); });
     on("#btn-help", "click", () => UI.modalHowTo());
     on("#btn-settings", "click", () => UI.modalSettings());
-    on("#btn-menu", "click", () => UI.confirm(t("quit"), t("quit") + "?", () => CG.goMenu()));
+    on("#btn-menu", "click", () => UI.confirm(t("quit"), t("quit") + "?", () => { CG.Narrate && CG.Narrate.stop(); CG.goMenu(); }));
   }
 
   // ---- dashboard ---------------------------------------------------------
@@ -184,7 +191,7 @@
   function milestoneInfo(p, m) {
     UI.modal(`<div class="m-info"><div class="m-ic" style="color:${p.color};font-size:48px">${p.icon}</div>
       <h3>${m ? loc(m, "name") : t(p.labelKey)}</h3>
-      <p class="m-prog">${t(p.labelKey)} — ${CG.state.country.pillars[p.id]}% / 100%</p>
+      <p class="m-prog">${t(p.labelKey)}, ${CG.state.country.pillars[p.id]}% / 100%</p>
       <p>${m ? loc(m, "reward") : ""}</p></div>`);
   }
 
@@ -198,12 +205,15 @@
     const sc = h(`<div class="act-intro mood-${s.act}">
       <div class="act-card">
         <div class="act-kicker">${t("act")} ${["I","II","III","IV"][s.act-1]}</div>
-        <h1>${t(intro.title_key).split("—")[1] || t(intro.title_key)}</h1>
+        <h1>${t(intro.title_key).split(/[:：]/).slice(1).join(":").trim() || t(intro.title_key)}</h1>
         <p class="act-mood">${t(intro.mood_key)}</p>
-        <p class="act-text">${intro.text}</p>
+        <p class="act-text">${(CG.tc("ai" + s.act) || intro.text)}</p>
         <button class="btn btn-primary" id="act-go">${t("continue")} →</button>
       </div>
     </div>`);
+    const introText = (t(intro.mood_key) + " " + (CG.tc("ai" + s.act) || intro.text));
+    addNarration(sc.querySelector(".act-kicker"), introText);
+    CG.Narrate.auto(introText);
     UI.root.appendChild(sc);
     on("#act-go", "click", () => { flow.actIntroPending = false; render(); });
   }
@@ -214,22 +224,25 @@
   function stageBriefing(stage) {
     const s = CG.state;
     stage.innerHTML = "";
+    const vtext = CG.tc(s.vignetteKey) || s.vignette;
     const card = h(`<div class="vignette-card fade-in">
-      <div class="vignette-tag">📻 ${t("phaseBriefing")} — ${t("month")} ${s.monthTotal}</div>
-      <p class="vignette-text">${s.vignette}</p>
+      <div class="vignette-tag">📻 ${t("phaseBriefing")}, ${t("month")} ${s.monthTotal}</div>
+      <p class="vignette-text">${vtext}</p>
       <div class="state-line">${stateSummary()}</div>
       <button class="btn btn-primary" id="brief-go">${t("continue")} →</button>
     </div>`);
+    addNarration(card.querySelector(".vignette-tag"), vtext);
     stage.appendChild(card);
+    CG.Narrate.auto(vtext);
     on("#brief-go", "click", () => { s.phase = "foresight"; render(); });
   }
 
   function stateSummary() {
     const s = CG.state, c = s.country;
     const done = c.milestonesDone.length;
-    let mood = c.trust >= 60 ? "Trust is strong." : c.trust >= 35 ? "Trust is holding, but watch it." : "Trust is fragile.";
-    let cr = c.crises.length ? c.crises.length + " active crisis" + (c.crises.length > 1 ? "es" : "") + "." : "No active crises.";
-    return `${mood} ${cr} ${done}/5 milestones reached.`;
+    const mood = c.trust >= 60 ? CG.tc("summ.trustStrong") : c.trust >= 35 ? CG.tc("summ.trustHold") : CG.tc("summ.trustFragile");
+    const cr = c.crises.length === 0 ? CG.tc("summ.crisesNone") : c.crises.length === 1 ? CG.tc("summ.crisesOne") : CG.tc("summ.crisesMany", { n: c.crises.length });
+    return `${mood} ${cr} ${CG.tc("summ.milestones", { n: done })}`;
   }
 
   // ===================================================================== //
@@ -247,7 +260,7 @@
     </div>`);
     const fa = card.querySelector(".fore-actions");
     if (canPeek) {
-      const b = h(`<button class="btn btn-secondary" id="fore-peek">⚡ ${CG.getRole(human.roleId).ability} — ${t("peekEvents")}</button>`);
+      const b = h(`<button class="btn btn-secondary" id="fore-peek">⚡ ${loc(CG.getRole(human.roleId), "ability")}: ${t("peekEvents")}</button>`);
       fa.appendChild(b);
     }
     fa.appendChild(h(`<button class="btn btn-primary" id="fore-go">${t("continue")} →</button>`));
@@ -310,18 +323,22 @@
     }
     const ev = s.pending.event;
     if (ev.type === "shock") sfx("crisis"); else if (ev.type === "opening") sfx("gain");
+    const badge = ev.type === "shock" ? "⚠️ " + CG.tc("ui.shock") : ev.type === "opening" ? "✨ " + CG.tc("ui.opening") : "⚖️ " + CG.tc("ui.dilemma");
+    const evText = loc(ev, "name") + ". " + loc(ev, "flavor");
     const card = h(`<div class="event-card type-${ev.type} flip-in">
-      <div class="event-type-badge">${ev.type === "shock" ? "⚠️ Shock" : ev.type === "opening" ? "✨ Opening" : "⚖️ Dilemma"}</div>
+      <div class="event-type-badge">${badge}</div>
       <div class="event-ic">${ev.icon}</div>
       <h2>${loc(ev, "name")}</h2>
       <p class="event-flavor">${loc(ev, "flavor")}</p>
       <div class="event-effect">${describeEffect(ev)}</div>
       <div class="event-actions"></div>
     </div>`);
+    addNarration(card.querySelector("h2"), evText);
+    CG.Narrate.auto(evText);
     const ea = card.querySelector(".event-actions");
     if (ev.type === "dilemma") {
       ev.options.forEach((opt, i) => {
-        const b = h(`<button class="btn btn-dilemma" data-opt="${i}"><strong>${opt.label}</strong><span>${opt.desc}</span></button>`);
+        const b = h(`<button class="btn btn-dilemma" data-opt="${i}"><strong>${CG.tcOpt(ev.id, i, "l") || opt.label}</strong><span>${CG.tcOpt(ev.id, i, "d") || opt.desc}</span></button>`);
         b.addEventListener("click", () => { resolveAndContinue(i); });
         ea.appendChild(b);
       });
@@ -382,7 +399,7 @@
     const role = CG.getRole(p.roleId);
     const abRow = h('<div class="ability-row"></div>');
     const abBtn = h(`<button class="btn btn-ability ${p.abilityUsed ? "used" : ""}" id="ability-btn" ${p.abilityUsed ? "disabled" : ""}>
-      ⚡ ${role.ability}${p.abilityUsed ? " — " + t("abilityUsed") : ""}</button>`);
+      ⚡ ${loc(role, "ability")}${p.abilityUsed ? ", " + t("abilityUsed") : ""}</button>`);
     abBtn.title = loc(role, "abilityDesc");
     abRow.appendChild(abBtn);
     if (s.settings.hints) abRow.appendChild(h(`<span class="ability-hint">${loc(role, "abilityDesc")}</span>`));
@@ -435,7 +452,7 @@
     const can = CG.Engine.canPlay(p, card);
     const pillar = CG.getPillar(card.synergyPillar);
     const el = h(`<div class="card partner ${can.ok ? "" : "disabled"}" data-id="${card.id}" tabindex="0">
-      <div class="card-top"><span class="card-ic">${card.icon}</span><span class="card-pillar">${card.archetype}</span></div>
+      <div class="card-top"><span class="card-ic">${card.icon}</span><span class="card-pillar">${loc(card, "archetype")}</span></div>
       <div class="card-name">${loc(card, "name")}</div>
       <div class="card-cost">${costLine(card)}</div>
       <div class="card-effect">🤝 Synergy with <strong>${pillar ? t(pillar.labelKey) : "any"}</strong>: ${bonusLine(card.bonus)}</div>
@@ -499,7 +516,7 @@
     const r = CG.Engine.playPartnership(card.id);
     if (r && !r.ok) { UI.toast(t(r.reason)); return; }
     sfx("card");
-    UI.toast("🤝 " + loc(card, "name") + " — synergy ready for your next matching action.");
+    UI.toast("🤝 " + loc(card, "name") + ", synergy ready for your next matching action.");
     render();
   }
 
@@ -545,15 +562,15 @@
     const weakest = Object.keys(s.country.pillars).filter((k) => s.country.pillars[k] < 100).sort((a, b) => s.country.pillars[a] - s.country.pillars[b])[0];
     if (s.country.crises.length >= 2) {
       const fix = p.hand.map((id) => CG.getAction(id)).find((c) => c.effect.crisisFix && CG.Engine.canPlay(p, c).ok);
-      if (fix) return `Crises are stacking — <strong>${loc(fix, "name")}</strong> would ease the pressure.`;
+      if (fix) return CG.tc("sugg.crisis", { card: "<strong>" + loc(fix, "name") + "</strong>" });
     }
     if (s.country.trust < 30) {
       const tr = p.hand.map((id) => CG.getAction(id)).find((c) => (c.effect.trust || 0) >= 3 && CG.Engine.canPlay(p, c).ok);
-      if (tr) return `Trust is low — <strong>${loc(tr, "name")}</strong> rebuilds it.`;
+      if (tr) return CG.tc("sugg.trust", { card: "<strong>" + loc(tr, "name") + "</strong>" });
     }
     const adv = p.hand.map((id) => CG.getAction(id)).find((c) => (c.effect.pillar || c.pillar) === weakest && CG.Engine.canPlay(p, c).ok);
-    if (adv) return `Your weakest priority is <strong>${pName(weakest)}</strong> — <strong>${loc(adv, "name")}</strong> advances it.`;
-    return `Build resources or convene partners to set up a bigger move next month.`;
+    if (adv) return CG.tc("sugg.weakest", { pillar: "<strong>" + pName(weakest) + "</strong>", card: "<strong>" + loc(adv, "name") + "</strong>" });
+    return CG.tc("sugg.build");
   }
 
   // ---- turn advance / AI -------------------------------------------------
@@ -585,7 +602,7 @@
     stage.innerHTML = "";
     const panel = h(`<div class="ai-turn fade-in">
       <div class="turn-who"><span class="role-ic" style="background:${CG.getRole(p.roleId).color}">${CG.getRole(p.roleId).icon}</span>
-        <div><strong>${p.name}</strong><span class="role-name">${loc(CG.getRole(p.roleId),"name")} · AI</span></div></div>
+        <div><strong>${p.name}</strong><span class="role-name">${loc(CG.getRole(p.roleId),"name")} · ${CG.tc("ui.aiTag")}</span></div></div>
       <div class="ai-status">${t("aiThinking", { name: p.name })}</div>
       <div class="ai-moves" id="ai-moves"></div>
     </div>`);
@@ -598,7 +615,7 @@
 
     function step() {
       if (i >= moves.length) {
-        panel.querySelector(".ai-status").textContent = "✓ " + p.name + " " + (s.lang === "ar" ? "أنهى دوره" : "is done.");
+        panel.querySelector(".ai-status").textContent = "✓ " + CG.tc("ai.done", { name: p.name });
         setTimeout(() => { flow.aiBusy = false; advanceTurn(); }, reduced() ? 250 : 700);
         return;
       }
@@ -629,15 +646,18 @@
     const snap = flow.snapshot || snapshot();
     stage.innerHTML = "";
     const dTrust = s.country.trust - snap.trust;
+    const reflText = CG.tc(s.reflectionKey) || s.reflection;
     const card = h(`<div class="resolution-card fade-in">
       <div class="vignette-tag">📋 ${t("monthSummary")}</div>
       <div class="res-summary"></div>
       <div class="reflection-card">
         <div class="refl-tag">💭 ${t("reflection")}</div>
-        <p>${s.reflection}</p>
+        <p>${reflText}</p>
       </div>
       <button class="btn btn-primary" id="res-go">${t("continue")} →</button>
     </div>`);
+    addNarration(card.querySelector(".refl-tag"), reflText);
+    CG.Narrate.auto(reflText);
     const sum = card.querySelector(".res-summary");
     sum.appendChild(deltaChip(t("trust"), dTrust, RES_ICON.trust));
     CG.PILLARS.forEach((p) => {
@@ -680,7 +700,7 @@
       <div class="mp-inner" style="--pcol:${CG.getPillar(m.pillar).color}">
         <div class="mp-ic">${m.icon}</div>
         <div class="mp-star">★</div>
-        <h2>${t("milestones").slice(0, 0)}Milestone reached!</h2>
+        <h2>${CG.tc("ui.milestoneReached")}</h2>
         <h3>${loc(m, "name")}</h3>
         <p>${loc(m, "reward")}</p>
       </div></div>`);
@@ -738,7 +758,7 @@
   }
 
   // ===================================================================== //
-  //  END SCREEN — Scorecard
+  //  END SCREEN, Scorecard
   // ===================================================================== //
   function renderEnd() {
     const s = CG.state;
@@ -834,15 +854,15 @@
   UI.modalHowTo = function () {
     const body = h(`<div class="howto">
       <h2>🧭 ${t("howToPlay")}</h2>
-      <p><strong>Goal:</strong> Help Sahelia reach its five national milestones (one per UN 2.0 strategy) while keeping <strong>Trust</strong> above the collapse line — before your term ends.</p>
+      <p>${CG.tc("howto.goal")}</p>
       <ol>
-        <li><strong>Briefing & Event:</strong> A field story sets the scene, then the world acts — a shock, an opening, or a hard choice.</li>
-        <li><strong>Your turn:</strong> Spend 🔋 Capacity to play Action cards. Each advances a pillar, shifts Trust, or builds resources. Partnership cards super-charge your next matching action. Use your role's ⚡ ability once per month.</li>
-        <li><strong>Resolution:</strong> Crises cost Trust until resolved. Fill a pillar to 100% to complete a Milestone.</li>
+        <li>${CG.tc("howto.s1")}</li>
+        <li>${CG.tc("howto.s2")}</li>
+        <li>${CG.tc("howto.s3")}</li>
       </ol>
-      <p><strong>Resources:</strong> 🤝 Trust (the meta-currency) · 💶 Funding · 🔗 Coordination · 📊 Data · 🔋 Capacity.</p>
-      <p><strong>The five strategies (Quintet of Change):</strong> Data, Digital, Innovation, Foresight, Behavioural Science. Balance them — hoarding one is never optimal.</p>
-      <p><strong>Win tiers:</strong> 🥉 avoid collapse · 🥈 three milestones · 🥇 all five + high trust.</p>
+      <p>🤝💶🔗📊🔋 ${CG.tc("howto.res")}</p>
+      <p>📊📱💡🔭🤝 ${CG.tc("howto.strat")}</p>
+      <p>🥉🥈🥇 ${CG.tc("howto.tiers")}</p>
     </div>`);
     UI.modal(body);
   };
@@ -857,6 +877,7 @@
       <label class="set-row"><span>${t("reducedMotion")}</span><input type="checkbox" id="set-motion" ${set.reducedMotion ? "checked" : ""}></label>
       <label class="set-row"><span>${t("highContrast")}</span><input type="checkbox" id="set-contrast" ${set.highContrast ? "checked" : ""}></label>
       <label class="set-row"><span>${t("mute")}</span><input type="checkbox" id="set-mute" ${set.muted ? "checked" : ""}></label>
+      <label class="set-row"><span>🔊 ${CG.tc("ui.narration")}</span><input type="checkbox" id="set-narrate" ${set.narrate ? "checked" : ""} ${CG.Narrate && CG.Narrate.supported() ? "" : "disabled"}></label>
       <label class="set-row col"><span>${t("textSize")}</span>
         <input type="range" id="set-text" min="90" max="130" value="${set.textSize || 100}"></label>
       <label class="set-row col"><span>${t("apiKey")}</span>
@@ -872,6 +893,7 @@
     bind("#set-motion", (e) => { set.reducedMotion = e.target.checked; CG.applySettings(); });
     bind("#set-contrast", (e) => { set.highContrast = e.target.checked; CG.applySettings(); });
     bind("#set-mute", (e) => { set.muted = e.target.checked; CG.Audio && CG.Audio.setMuted(set.muted); });
+    bind("#set-narrate", (e) => { set.narrate = e.target.checked; if (!set.narrate && CG.Narrate) CG.Narrate.stop(); });
     body.querySelector("#set-text").addEventListener("input", (e) => { set.textSize = +e.target.value; CG.applySettings(); });
     body.querySelector("#set-api").addEventListener("change", (e) => { set.apiKey = e.target.value.trim(); });
     body.querySelector("#set-glossary").addEventListener("click", () => CG.showGlossary());
