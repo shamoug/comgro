@@ -126,7 +126,21 @@
     win:      () => blip([523, 659, 784, 1047, 1319], 0.22, "triangle", 0.24),
     lose:     () => blip([330, 262, 196, 147], 0.3, "sine", 0.2),
     deal:     () => blip([520, 580], 0.07, "sine", 0.1),
+    crit:     () => blip([784, 1047, 1319, 1568, 2093], 0.16, "triangle", 0.26), // rising fanfare
+    setback:  () => blip([392, 311, 247], 0.26, "sine", 0.18),                    // gentle "womp"
+    dice:     () => diceRattle(),
   };
+
+  // A short dice-rattle: a few quick noisy taps.
+  function diceRattle() {
+    ensure(); if (!ctx || muted) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const f = 200 + Math.floor((i * 137) % 400);
+      playNote(f, t + i * 0.06, 0.05, "square", 0.06, sfxGain);
+    }
+  }
 
   Audio.sting = function (tier) {
     ensure(); if (!ctx || muted) return;

@@ -39,9 +39,9 @@
   }
 
   const DIFFICULTY = {
-    easy:   { neg: 0.7, pos: 1.15, crisisCap: 6, startTrust: 58, eventCount: 1, label: "diffEasy" },
-    normal: { neg: 1.0, pos: 1.0,  crisisCap: 5, startTrust: 50, eventCount: 1, label: "diffNormal" },
-    hard:   { neg: 1.3, pos: 0.9,  crisisCap: 4, startTrust: 44, eventCount: 1, label: "diffHard" },
+    easy:   { neg: 0.7, pos: 1.12, crisisCap: 6, startTrust: 58, eventCount: 1, label: "diffEasy", floor: { funding: 3, coordination: 1, data: 1 } },
+    normal: { neg: 1.05, pos: 0.95, crisisCap: 5, startTrust: 48, eventCount: 1, label: "diffNormal", floor: { funding: 2, coordination: 1, data: 0 } },
+    hard:   { neg: 1.4, pos: 0.85, crisisCap: 4, startTrust: 42, eventCount: 1, label: "diffHard", floor: { funding: 1, coordination: 0, data: 0 } },
   };
 
   const HAND_SIZE = 5;
@@ -222,11 +222,37 @@
       while (p.partners.length < PARTNER_HAND) p.partners.push(...drawPartnerships(s, 1));
     });
 
+    // Stall-guard: top up to a minimum working economy each month. This is a
+    // floor (not flat income), so it only helps a team that has run dry and
+    // never inflates one that is already resource-rich.
+    const fl = s.diff.floor || { funding: 2, coordination: 1, data: 0 };
+    s.pool.funding = Math.max(s.pool.funding, fl.funding);
+    s.pool.coordination = Math.max(s.pool.coordination, fl.coordination);
+    s.pool.data = Math.max(s.pool.data, fl.data);
+
     s.turnBuffs = null;
     s.pending = { event: null, eventResolved: false, options: null };
+    rollFortune(s);
     s.phase = "briefing";
     return s;
   };
+
+  // Fortune of the Month: a d6 luck roll that flavours the whole month. Mostly
+  // upbeat (variety, not punishment), with one mild headwind for tension.
+  function rollFortune(s) {
+    s.fortuneRollBonus = 0; s.fortuneMomentum = false; s.fortuneShockBonus = 0;
+    const face = 1 + Math.floor(s.rng() * 6);
+    s.fortune = { face: face };
+    switch (face) {
+      case 1: s.fortuneShockBonus = 1; break;     // Headwind: shocks bite a little harder
+      case 2: break;                              // Calm Waters: steady
+      case 3: s.pool.data += 1; break;            // Bright Spot: +1 Data
+      case 4: s.fortuneRollBonus = 1; break;      // Tailwind: +1 to every delivery roll
+      case 5: s.pool.funding += 2; break;         // Windfall: +2 Funding
+      case 6: s.fortuneMomentum = true; break;    // Momentum: first action is a guaranteed critical
+    }
+    Engine.log("🎲 " + CG.tc("fortune." + face + ".name"), "fortune");
+  }
 
   Engine.drawEvent = function () {
     const s = CG.state;
@@ -291,7 +317,7 @@
     if (typeof eff.trust === "number") {
       let t = eff.trust;
       if (t < 0) {
-        t = -scaleNeg(s, -t);
+        t = -scaleNeg(s, -t) - (s.fortuneShockBonus || 0); // monthly Headwind bites harder
         if (s.shieldNext) { t = round(t / 2); }
       } else {
         t = scalePos(s, t);
@@ -363,11 +389,44 @@
     return { ok: true };
   };
 
-  Engine.playAction = function (actionId, opts) {
+  // ---- Dice "delivery roll" (push your luck) ----------------------------
+  // Every action is delivered with a d6 roll. The result never wipes you out
+  // (the floor is a partial success), so you "score something" every turn, but
+  // a 6 is a critical and a 1 is a setback. Data buys a reroll; Foresight and a
+  // monthly Tailwind improve your odds. This is luck you can read and steer.
+  // Average multiplier is slightly above 1.0, so the dice ADD expected value
+  // (exciting upside) while a setback still delivers something (no wipeouts).
+  function deliveryBand(eff) {
+    if (eff <= 1) return { key: "setback", mult: 0.7 };
+    if (eff <= 3) return { key: "partial", mult: 0.9 };
+    if (eff <= 5) return { key: "solid", mult: 1.05 };
+    return { key: "crit", mult: 1.5 };
+  }
+  function rollModifier(s) {
+    let m = 0;
+    if (s.country.pillars.foresight >= 50) m += 1;   // preparation pays off
+    if (s.fortuneRollBonus) m += s.fortuneRollBonus;  // monthly Tailwind
+    const tb = s.turnBuffs || {};
+    if (tb.rollBonus) m += tb.rollBonus;
+    return m;
+  }
+  function rollInfo(s) {
+    const pa = s.pendingAction;
+    const eff = pa.roll + pa.modifier;
+    const band = deliveryBand(eff);
+    return {
+      ok: true, roll: pa.roll, modifier: pa.modifier, eff: eff,
+      band: band.key, mult: band.mult, crit: band.key === "crit", setback: band.key === "setback",
+      canReroll: !pa.rerolled && s.pool.data >= 1 && (band.key === "setback" || band.key === "partial"),
+    };
+  }
+
+  // Step 1: pay costs and roll (effect NOT yet applied, so a reroll is fair).
+  Engine.beginAction = function (actionId, opts) {
     const s = CG.state;
     const p = s.players[s.current];
     const card = CG.getAction(actionId);
-    if (!card) return;
+    if (!card) return { ok: false };
     const chk = Engine.canPlay(p, card);
     if (!chk.ok) return chk;
 
@@ -378,18 +437,55 @@
     s.pool.coordination -= (cost.coordination || 0);
     if (card.cost && card.cost.trust) s.country.trust = clamp(s.country.trust - card.cost.trust, 0, 100);
 
-    // decrement cost-reduction buff use
     const tb = s.turnBuffs || {};
     if (tb.costReduction && tb.costReduction.uses > 0 && (card.cost && card.cost.funding)) tb.costReduction.uses--;
     if (tb.waiveFunding) tb.waiveFunding = false;
 
-    applyActionEffect(s, p, card, opts);
+    let roll = 1 + Math.floor(s.rng() * 6);
+    const modifier = rollModifier(s);
+    if (s.fortuneMomentum) { roll = 6; s.fortuneMomentum = false; } // guaranteed critical
+    s.pendingAction = { actionId, opts: opts || {}, roll, modifier, rerolled: false, player: p };
+    return rollInfo(s);
+  };
 
-    // remove from hand
-    const i = p.hand.indexOf(actionId);
+  // Step 2 (optional): spend 1 Data to reroll once. The new roll stands.
+  Engine.rerollAction = function () {
+    const s = CG.state;
+    const pa = s.pendingAction;
+    if (!pa || pa.rerolled || s.pool.data < 1) return { ok: false };
+    s.pool.data -= 1;
+    pa.roll = 1 + Math.floor(s.rng() * 6);
+    pa.rerolled = true;
+    Engine.log(CG.tc("log.reroll"), "ability");
+    return rollInfo(s);
+  };
+
+  // Step 3: apply the effect with the rolled multiplier.
+  Engine.commitAction = function () {
+    const s = CG.state;
+    const pa = s.pendingAction;
+    if (!pa) return { ok: false };
+    const p = pa.player;
+    const card = CG.getAction(pa.actionId);
+    const band = deliveryBand(pa.roll + pa.modifier);
+    s.lastDeltas = null;
+    applyActionEffect(s, p, card, pa.opts, band.mult, band.key === "crit");
+    const i = p.hand.indexOf(pa.actionId);
     if (i >= 0) p.hand.splice(i, 1);
-    s.discards.action.push(actionId);
-    return { ok: true };
+    s.discards.action.push(pa.actionId);
+    const deltas = s.lastDeltas || {};
+    s.pendingAction = null;
+    return { ok: true, band: band.key, mult: band.mult, crit: band.key === "crit", setback: band.key === "setback", deltas };
+  };
+
+  // Convenience: begin + optional auto-reroll on a setback + commit. Used by
+  // the AI and the headless simulator (no interactive prompt).
+  Engine.playAction = function (actionId, opts, autoReroll) {
+    const r = Engine.beginAction(actionId, opts);
+    if (!r || !r.ok) return r || { ok: false };
+    if (autoReroll && r.canReroll && r.setback) Engine.rerollAction();
+    const c = Engine.commitAction();
+    return { ok: true, band: c.band, crit: c.crit, setback: c.setback, deltas: c.deltas };
   };
 
   Engine.playPartnership = function (partnerId) {
@@ -417,7 +513,8 @@
     return { ok: true };
   };
 
-  function applyActionEffect(s, p, card, opts) {
+  function applyActionEffect(s, p, card, opts, mult, crit) {
+    mult = mult == null ? 1 : mult;
     const eff = Object.assign({}, card.effect || {});
     let pillar = eff.pillar || card.pillar;
     if (eff.pillarChoice && opts && opts.pillar) pillar = opts.pillar;
@@ -456,19 +553,28 @@
       }
     }
 
+    // Dice delivery multiplier: progress, positive trust, and gains scale.
+    progress = Math.round(progress * mult);
+    if (trust > 0) trust = Math.round(trust * mult);
+    Object.keys(gain).forEach((k) => { gain[k] = Math.round(gain[k] * mult); });
+    if (crit) impact += 1;
+
+    const deltas = { pillar: null, progress: 0, trust: 0, gain: {}, crisisFix: 0 };
+
     if (pillar && progress) {
       if (s.country.pillars[pillar] !== undefined) {
         s.country.pillars[pillar] = clamp(s.country.pillars[pillar] + progress, 0, 100);
+        deltas.pillar = pillar; deltas.progress = progress;
       } else if (pillar === "coordination") {
-        // safety: a coordination-targeted action without a chosen pillar
-        s.pool.coordination += Math.max(1, Math.round(progress / 2));
+        const g = Math.max(1, Math.round(progress / 2));
+        s.pool.coordination += g; deltas.gain.coordination = (deltas.gain.coordination || 0) + g;
       }
     }
-    if (trust) s.country.trust = clamp(s.country.trust + trust, 0, 100);
-    if (gain.funding) s.pool.funding += gain.funding;
-    if (gain.data) s.pool.data += gain.data;
-    if (gain.coordination) s.pool.coordination += gain.coordination;
-    if (crisisFix) Engine.resolveCrises(crisisFix);
+    if (trust) { s.country.trust = clamp(s.country.trust + trust, 0, 100); deltas.trust = trust; }
+    if (gain.funding) { s.pool.funding += gain.funding; deltas.gain.funding = (deltas.gain.funding || 0) + gain.funding; }
+    if (gain.data) { s.pool.data += gain.data; deltas.gain.data = (deltas.gain.data || 0) + gain.data; }
+    if (gain.coordination) { s.pool.coordination += gain.coordination; deltas.gain.coordination = (deltas.gain.coordination || 0) + gain.coordination; }
+    if (crisisFix) { Engine.resolveCrises(crisisFix); deltas.crisisFix = crisisFix; }
 
     // specials
     if (eff.special === "extraCapacity") p.capacity += 1;
@@ -481,6 +587,7 @@
     p.impact += impact;
 
     Engine.log(p.name + ": " + CG.loc(card, "name") + (progress ? " (+" + progress + " " + plabel(pillar) + ")" : ""), "play");
+    s.lastDeltas = deltas;
     checkMilestones(s);
   }
 

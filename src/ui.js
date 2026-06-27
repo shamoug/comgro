@@ -225,14 +225,25 @@
     const s = CG.state;
     stage.innerHTML = "";
     const vtext = CG.tc(s.vignetteKey) || s.vignette;
+    const f = s.fortune || { face: 2 };
+    const fortuneGood = f.face !== 1;
     const card = h(`<div class="vignette-card fade-in">
       <div class="vignette-tag">📻 ${t("phaseBriefing")}, ${t("month")} ${s.monthTotal}</div>
       <p class="vignette-text">${vtext}</p>
+      <div class="fortune-card ${fortuneGood ? "good" : "bad"}">
+        <div class="fortune-die die">${pipDie(f.face)}</div>
+        <div class="fortune-text">
+          <div class="fortune-kicker">🎲 ${CG.tc("dice.fortuneTitle")}</div>
+          <strong>${CG.tc("fortune." + f.face + ".name")}</strong>
+          <span>${CG.tc("fortune." + f.face + ".desc")}</span>
+        </div>
+      </div>
       <div class="state-line">${stateSummary()}</div>
       <button class="btn btn-primary" id="brief-go">${t("continue")} →</button>
     </div>`);
     addNarration(card.querySelector(".vignette-tag"), vtext);
     stage.appendChild(card);
+    sfx("dice");
     CG.Narrate.auto(vtext);
     on("#brief-go", "click", () => { s.phase = "foresight"; render(); });
   }
@@ -351,8 +362,20 @@
   }
 
   function resolveAndContinue(optIndex) {
+    const s = CG.state;
     const before = snapshot();
+    const wasShock = s.pending.event && s.pending.event.type === "shock";
     CG.Engine.resolveEvent(optIndex);
+    if (wasShock && !reduced()) { shake(); }
+    // float the event's resource/trust shifts
+    floatDeltas({
+      trust: s.country.trust - before.trust,
+      gain: {
+        funding: s.pool.funding - before.pool.funding,
+        data: s.pool.data - before.pool.data,
+        coordination: s.pool.coordination - before.pool.coordination,
+      },
+    }, false);
     const m = CG.Engine.takeNewMilestone();
     if (m) celebrateMilestone(m);
     flashDeltas(before);
@@ -394,6 +417,12 @@
     </div>`);
     stage.appendChild(head);
     stage.appendChild(h(`<div class="turn-prompt">${t("whatOutcome")}</div>`));
+
+    // rotating coaching tip (helps players understand + improve)
+    if (s.settings.hints) {
+      const tipIdx = (s.monthTotal + s.current) % 10;
+      stage.appendChild(h(`<div class="coach-tip">💡 ${CG.tc("tip." + tipIdx)}</div>`));
+    }
 
     // ability button
     const role = CG.getRole(p.roleId);
@@ -497,31 +526,121 @@
   }
 
   function playActionFlow(card, p) {
-    const s = CG.state;
-    const doPlay = (opts) => {
-      const before = snapshot();
-      const r = CG.Engine.playAction(card.id, opts);
-      if (r && !r.ok) { UI.toast(t(r.reason)); return; }
-      sfx("play");
-      const m = CG.Engine.takeNewMilestone();
-      if (m) celebrateMilestone(m);
-      flashDeltas(before);
-      render();
-    };
     if (card.effect && card.effect.pillarChoice) {
-      pillarChooser((pillarId) => doPlay({ pillar: pillarId }));
-    } else doPlay({});
+      pillarChooser((pillarId) => rollAndPlay(card, p, { pillar: pillarId }));
+    } else rollAndPlay(card, p, {});
   }
+
+  // The push-your-luck dice flow: pay+roll, optional reroll, then commit with
+  // a celebration (critical) or a tease (setback).
+  function rollAndPlay(card, p, opts) {
+    if (document.querySelector(".dice-overlay")) return; // one roll at a time
+    const begin = CG.Engine.beginAction(card.id, opts);
+    if (!begin || !begin.ok) { UI.toast(t(begin && begin.reason ? begin.reason : "cannotAfford")); return; }
+    sfx("dice");
+    const ov = diceOverlay(card);
+    document.body.appendChild(ov);
+    const fast = reduced();
+
+    animateDie(ov.querySelector(".die"), begin.roll, fast, () => {
+      showRollResult(ov, begin);
+      if (begin.canReroll) {
+        offerReroll(ov, () => {
+          // reroll
+          const rr = CG.Engine.rerollAction();
+          sfx("dice");
+          animateDie(ov.querySelector(".die"), rr.roll, fast, () => { showRollResult(ov, rr); setTimeout(() => finalize(ov), fast ? 250 : 700); });
+        }, () => finalize(ov));
+      } else {
+        setTimeout(() => finalize(ov), fast ? 300 : (begin.crit ? 900 : 650));
+      }
+    });
+  }
+
+  function finalize(ov) {
+    const res = CG.Engine.commitAction();
+    // juice
+    if (res.crit) { sfx("crit"); if (!reduced()) { confetti(70); critBanner(CG.tc("dice.crit")); hitstop(120); } UI.toast("🎉 " + pickLine("praise")); }
+    else if (res.setback) { sfx("setback"); if (!reduced()) shake(); UI.toast("🎲 " + pickLine("tease")); }
+    else sfx("play");
+    floatDeltas(res.deltas, res.crit);
+    const m = CG.Engine.takeNewMilestone();
+    if (m) celebrateMilestone(m);
+    if (ov) { ov.classList.add("done"); setTimeout(() => ov.remove(), reduced() ? 0 : 260); }
+    setTimeout(() => render(), reduced() ? 0 : 200);
+  }
+
+  function pickLine(kind) {
+    const n = kind === "praise" ? 5 : 5;
+    return CG.tc(kind + "." + Math.floor(CG.state.rng() * n));
+  }
+
+  // ---- dice overlay + animation ----------------------------------------
+  function pipDie(value) {
+    // 3x3 pip grid; which cells are filled per face value.
+    const M = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+    const on = M[value] || [4];
+    let cells = "";
+    for (let i = 0; i < 9; i++) cells += `<span class="pip ${on.includes(i) ? "on" : ""}"></span>`;
+    return cells;
+  }
+  function diceOverlay(card) {
+    const pillar = CG.getPillar(card.pillar);
+    const ov = h(`<div class="dice-overlay">
+      <div class="dice-box" style="--pcol:${pillar ? pillar.color : "#1a8fe3"}">
+        <div class="dice-card-name">${card.icon} ${loc(card, "name")}</div>
+        <div class="die rolling">${pipDie(1)}</div>
+        <div class="dice-label" aria-live="polite"></div>
+        <div class="dice-actions"></div>
+      </div>
+    </div>`);
+    return ov;
+  }
+  function animateDie(die, value, fast, done) {
+    if (!die) { done(); return; }
+    if (fast) { die.classList.remove("rolling"); die.innerHTML = pipDie(value); done(); return; }
+    die.classList.add("rolling");
+    let ticks = 0;
+    const iv = setInterval(() => {
+      die.innerHTML = pipDie(1 + Math.floor(Math.random() * 6));
+      ticks++;
+      if (ticks >= 8) {
+        clearInterval(iv);
+        die.classList.remove("rolling");
+        die.innerHTML = pipDie(value);
+        die.classList.add("settle");
+        setTimeout(done, 220);
+      }
+    }, 70);
+  }
+  function showRollResult(ov, info) {
+    const lbl = ov.querySelector(".dice-label");
+    const box = ov.querySelector(".dice-box");
+    box.classList.remove("crit", "setback", "solid", "partial");
+    box.classList.add(info.band);
+    const bonus = info.modifier > 0 ? ` <span class="dice-bonus">+${info.modifier} ${CG.tc("dice.bonus")}</span>` : "";
+    lbl.innerHTML = `<strong>${CG.tc("dice." + info.band)}</strong>${bonus}`;
+  }
+  function offerReroll(ov, onReroll, onKeep) {
+    const acts = ov.querySelector(".dice-actions");
+    acts.innerHTML = "";
+    const r = h(`<button class="btn btn-secondary small">🎲 ${CG.tc("dice.pressLuck")}</button>`);
+    const k = h(`<button class="btn btn-primary small">${CG.tc("dice.keep")}</button>`);
+    r.addEventListener("click", () => { acts.innerHTML = ""; onReroll(); });
+    k.addEventListener("click", () => { acts.innerHTML = ""; onKeep(); });
+    acts.appendChild(r); acts.appendChild(k);
+  }
+
   function playPartnerFlow(card, p) {
     const r = CG.Engine.playPartnership(card.id);
     if (r && !r.ok) { UI.toast(t(r.reason)); return; }
     sfx("card");
-    UI.toast("🤝 " + loc(card, "name") + ", synergy ready for your next matching action.");
+    UI.toast("🤝 " + loc(card, "name") + ", " + CG.tc("ui.synergyReady"));
     render();
   }
 
   function pillarChooser(cb) {
-    const body = h('<div class="chooser"><h3>Direct this joint effort to…</h3><div class="chooser-grid"></div></div>');
+    const body = h(`<div class="chooser"><h3>${CG.tc("ui.directEffort")}</h3><div class="chooser-grid"></div></div>`);
     const grid = body.querySelector(".chooser-grid");
     CG.PILLARS.forEach((p) => {
       const b = h(`<button class="chooser-btn" style="--pcol:${p.color}"><span>${p.icon}</span>${t(p.labelKey)}</button>`);
@@ -620,18 +739,24 @@
         return;
       }
       const mv = moves[i++];
-      const before = snapshot();
-      let label = "";
-      if (mv.type === "ability") { const r = CG.Engine.useAbility(mv.args); label = "⚡ " + CG.getRole(p.roleId).ability; sfx("trust"); }
+      let label = "", badge = "", res = null;
+      if (mv.type === "ability") { CG.Engine.useAbility(mv.args); label = "⚡ " + loc(CG.getRole(p.roleId), "ability"); sfx("trust"); }
       else if (mv.type === "partnership") { const r = CG.Engine.playPartnership(mv.id); if (r && !r.ok) { step(); return; } label = "🤝 " + loc(CG.getPartnership(mv.id), "name"); sfx("card"); }
-      else { const r = CG.Engine.playAction(mv.id, mv.opts); if (r && !r.ok) { step(); return; } label = CG.getAction(mv.id).icon + " " + loc(CG.getAction(mv.id), "name"); sfx("play"); }
+      else {
+        res = CG.Engine.playAction(mv.id, mv.opts, true); // AI auto-rerolls setbacks
+        if (res && !res.ok) { step(); return; }
+        label = CG.getAction(mv.id).icon + " " + loc(CG.getAction(mv.id), "name");
+        if (res.crit) { badge = `<span class="ai-badge crit">🎉 ${CG.tc("dice.crit")}</span>`; sfx("crit"); if (!reduced()) confetti(40); }
+        else if (res.setback) { badge = `<span class="ai-badge setback">🎲 ${CG.tc("dice.setback")}</span>`; sfx("setback"); }
+        else sfx("play");
+        if (res.deltas) floatDeltas(res.deltas, res.crit);
+      }
       const m = CG.Engine.takeNewMilestone();
       if (m) celebrateMilestone(m);
-      const row = h(`<div class="ai-move slide-in"><div class="ai-move-card">${label}</div><div class="ai-reason">💬 ${mv.reasoning}</div></div>`);
+      const row = h(`<div class="ai-move slide-in"><div class="ai-move-card">${label} ${badge}</div><div class="ai-reason">💬 ${mv.reasoning}</div></div>`);
       movesBox.appendChild(row);
       // live-update dashboard
       const dash = $(".dashboard"); if (dash) dash.replaceWith(dashboard());
-      flashDeltas(before);
       setTimeout(step, delay);
     }
     setTimeout(step, reduced() ? 200 : 600);
@@ -713,6 +838,50 @@
     // subtle pulse on changed dashboard values (re-render handles values)
     const dash = $(".dashboard");
     if (dash && !reduced()) { dash.classList.remove("pulse"); void dash.offsetWidth; dash.classList.add("pulse"); }
+  }
+
+  // ---- floating "+N" numbers (juice) -----------------------------------
+  function floatDeltas(deltas, crit) {
+    if (!deltas) return;
+    const items = [];
+    if (deltas.trust) items.push({ icon: RES_ICON.trust, n: deltas.trust, cls: deltas.trust > 0 ? "up" : "down" });
+    if (deltas.pillar && deltas.progress) { const p = CG.getPillar(deltas.pillar); items.push({ icon: p ? p.icon : "★", n: deltas.progress, cls: "up", col: p ? p.color : null }); }
+    if (deltas.gain) Object.keys(deltas.gain).forEach((k) => { if (deltas.gain[k]) items.push({ icon: RES_ICON[k] || "+", n: deltas.gain[k], cls: deltas.gain[k] > 0 ? "up" : "down" }); });
+    if (deltas.crisisFix) items.push({ icon: "⚠️", n: -deltas.crisisFix, cls: "up" });
+    if (!items.length) return;
+    const dash = $(".dashboard");
+    const rect = dash ? dash.getBoundingClientRect() : { left: window.innerWidth / 2 - 40, top: 120, width: 80 };
+    let wrap = document.getElementById("float-wrap");
+    if (!wrap) { wrap = h('<div id="float-wrap"></div>'); document.body.appendChild(wrap); }
+    items.forEach((it, i) => {
+      const el = h(`<div class="float-num ${it.cls} ${crit ? "crit" : ""}">${it.icon} ${it.n > 0 ? "+" : ""}${it.n}</div>`);
+      if (it.col) el.style.color = it.col;
+      el.style.left = (rect.left + rect.width / 2 + (i - items.length / 2) * 26) + "px";
+      el.style.top = (rect.top + 70) + "px";
+      el.style.animationDelay = (i * 90) + "ms";
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 1700 + i * 90);
+    });
+  }
+
+  // ---- critical banner, screen shake, freeze-frame (juice) -------------
+  function critBanner(text) {
+    const b = h(`<div class="crit-banner">⚡ ${text} ⚡</div>`);
+    document.body.appendChild(b);
+    setTimeout(() => b.classList.add("show"), 10);
+    setTimeout(() => { b.classList.remove("show"); setTimeout(() => b.remove(), 300); }, 1300);
+  }
+  function shake() {
+    const g = UI.root;
+    if (!g) return;
+    g.classList.remove("screenshake"); void g.offsetWidth; g.classList.add("screenshake");
+    setTimeout(() => g.classList.remove("screenshake"), 500);
+  }
+  function hitstop(ms) {
+    // brief freeze-frame: dim + scale a flash layer
+    const f = h('<div class="hitstop-flash"></div>');
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), ms || 120);
   }
 
   UI.toast = function (msg) {
