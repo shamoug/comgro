@@ -1,83 +1,81 @@
 /* =========================================================================
- * COMMON GROUND, narrate.js
- * Optional spoken narration via the browser's built-in Web Speech API
- * (speechSynthesis). No network, no keys, no external assets. Reads game
- * text aloud in the currently selected language. Honours a settings toggle.
- *
- * It degrades gracefully: if the browser has no speech synthesis (or no voice
- * for the chosen language) the speaker buttons simply do nothing harmful.
+ * COMMON GROUND, THE LONG ROAD,  narrate.js
+ * Spoken narration via the browser's built-in Web Speech API. No network, no
+ * keys, no external assets. Reads the story and card text aloud in a warm
+ * English voice. Degrades gracefully where speech synthesis is unavailable.
  * ========================================================================= */
 (function () {
   const CG = (window.CG = window.CG || {});
   const N = (CG.Narrate = {});
 
-  const supported = typeof window.speechSynthesis !== "undefined" &&
+  const supported =
+    typeof window.speechSynthesis !== "undefined" &&
     typeof window.SpeechSynthesisUtterance !== "undefined";
 
-  // Map our language codes to BCP-47 voice locales.
-  const LOCALE = { en: "en", fr: "fr", es: "es", zh: "zh-CN", ru: "ru", ar: "ar" };
-
   let voices = [];
-  function loadVoices() { if (supported) voices = window.speechSynthesis.getVoices() || []; }
+  let chosen = null;
+  let enabled = true; // narration on by default; toggled from the UI
+
+  // Preferred warm English voices, in order. Falls back to any en-* voice.
+  const PREFERRED = [
+    "Google UK English Female",
+    "Microsoft Libby Online (Natural) - English (United Kingdom)",
+    "Microsoft Sonia Online (Natural) - English (United Kingdom)",
+    "Microsoft Aria Online (Natural) - English (United States)",
+    "Samantha",
+    "Google US English",
+    "Daniel",
+    "Microsoft Hazel - English (Great Britain)",
+  ];
+
+  function loadVoices() {
+    if (!supported) return;
+    voices = window.speechSynthesis.getVoices() || [];
+    chosen = null;
+    for (const want of PREFERRED) {
+      const v = voices.find((x) => x.name === want);
+      if (v) { chosen = v; return; }
+    }
+    // Otherwise prefer a British or US English voice, then any English voice.
+    chosen =
+      voices.find((x) => /en[-_]GB/i.test(x.lang)) ||
+      voices.find((x) => /en[-_]US/i.test(x.lang)) ||
+      voices.find((x) => /^en/i.test(x.lang)) ||
+      null;
+  }
+
   if (supported) {
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }
 
-  function pickVoice(lang) {
-    const want = (LOCALE[lang] || "en").toLowerCase();
-    if (!voices.length) loadVoices();
-    // exact-ish locale match first (e.g. zh-CN), then language prefix
-    let v = voices.find((x) => x.lang && x.lang.toLowerCase() === want);
-    if (!v) v = voices.find((x) => x.lang && x.lang.toLowerCase().indexOf(want.split("-")[0]) === 0);
-    return v || null;
-  }
-
   N.supported = function () { return supported; };
-  N.enabled = function () { return !!(CG.state && CG.state.settings && CG.state.settings.narrate); };
-
+  N.setEnabled = function (on) { enabled = !!on; if (!enabled) N.stop(); };
+  N.isEnabled = function () { return enabled; };
   N.stop = function () { if (supported) try { window.speechSynthesis.cancel(); } catch (e) {} };
 
-  // Strip simple HTML tags so we don't read "<strong>" aloud.
   function clean(text) {
     return String(text || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   }
 
-  // Speak immediately (used by the speaker buttons regardless of the toggle).
-  N.speak = function (text) {
+  // Speak now, regardless of toggle (used by explicit "read aloud" buttons).
+  N.speak = function (text, opts) {
     if (!supported) return;
     const t = clean(text);
     if (!t) return;
     try {
       window.speechSynthesis.cancel();
+      if (!chosen) loadVoices();
       const u = new SpeechSynthesisUtterance(t);
-      const lang = (CG.state && CG.state.lang) || "en";
-      const v = pickVoice(lang);
-      if (v) u.voice = v;
-      u.lang = (v && v.lang) || LOCALE[lang] || "en";
-      u.rate = lang === "ar" || lang === "zh" ? 0.95 : 1.0;
-      u.pitch = 1.0;
+      if (chosen) u.voice = chosen;
+      u.lang = (chosen && chosen.lang) || "en-GB";
+      u.rate = (opts && opts.rate) || 0.96; // a touch slower, warmer
+      u.pitch = (opts && opts.pitch) || 1.0;
+      u.volume = 1.0;
       window.speechSynthesis.speak(u);
     } catch (e) { /* ignore */ }
   };
 
-  // Speak only if the narration setting is on (auto-narration on phase text).
-  N.auto = function (text) { if (N.enabled()) N.speak(text); };
-
-  // Build a small speaker button that reads `getText()` aloud on click.
-  // getText may be a string or a function returning a string.
-  N.button = function (getText) {
-    const b = document.createElement("button");
-    b.className = "speak-btn";
-    b.type = "button";
-    b.setAttribute("aria-label", (CG.tc && CG.tc("ui.speak")) || "Read aloud");
-    b.title = (CG.tc && CG.tc("ui.speak")) || "Read aloud";
-    b.textContent = "🔊";
-    b.addEventListener("click", function (e) {
-      e.stopPropagation();
-      const txt = typeof getText === "function" ? getText() : getText;
-      N.speak(txt);
-    });
-    return b;
-  };
+  // Speak only when narration is enabled (story beats, card reveals).
+  N.auto = function (text, opts) { if (enabled) N.speak(text, opts); };
 })();

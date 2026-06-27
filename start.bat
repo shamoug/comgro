@@ -11,9 +11,9 @@ set PORT=8099
 
 echo.
 echo   =========================================
-echo     COMMON GROUND
-echo     Lead the team. Earn the trust.
-echo     Leave no one behind.
+echo     COMMON GROUND: THE LONG ROAD
+echo     Roll two dice. Climb the ladders.
+echo     Dodge the snakes. Finish the mandate.
 echo   =========================================
 echo.
 
@@ -43,8 +43,7 @@ if %errorlevel%==0 (
 
 REM --- Fallback: open the file directly (no server) ---
 echo   Python was not found, so opening the game file directly.
-echo   The game works fully this way. ^(For the optional online-AI
-echo   feature, a local server is recommended.^)
+echo   The game works fully this way.
 echo.
 start "" "index.html"
 echo   If the game did not open, double-click index.html yourself.

@@ -9,9 +9,9 @@ PORT=8099
 
 echo ""
 echo "  ========================================="
-echo "    COMMON GROUND"
-echo "    Lead the team. Earn the trust."
-echo "    Leave no one behind."
+echo "    COMMON GROUND: THE LONG ROAD"
+echo "    Roll two dice. Climb the ladders."
+echo "    Dodge the snakes. Finish the mandate."
 echo "  ========================================="
 echo ""
 

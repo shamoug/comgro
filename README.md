@@ -1,224 +1,109 @@
-# ◆ Common Ground
+# Common Ground: The Long Road
 
-**A strategic card game about UN field coordination.**
-*Lead the team. Earn the trust. Leave no one behind.*
+A cinematic, **Snakes &amp; Ladders** take on UN field coordination. Roll two
+dice, race a hundred squares to a finished mandate, and learn a little about how
+real crisis response works along the way.
 
-Common Ground puts you in a real UN field role, Resident Coordinator, Data
-Officer, NGO partner, donor, youth leader and more, working to help the
-fictional country of **Sahelia** advance its national development goals while
-navigating crises, scarce funding, fragile trust, and competing priorities.
+- **Ladders** are the lucky breaks: agreements, partnerships, community trust.
+  Land on one and you climb, and a card tells you *what happened*, with a fun fact.
+- **Snakes** are crises a Country Team really meets: floods, outbreaks, a closed
+  border, misinformation. Land on one and you slide, and a card explains it.
+- **Trophies 🏆** are recognition: collect one and roll again.
+- **Diamonds 💎** are a lucky find: collect one and hop forward.
+- **Surprise cards ❓** are a mystery: a bonus, a jump ahead, a found gem, or a
+  lost turn. You never know until you open it.
+- **Field notes ★** scattered across the board drop a fun fact as you pass.
 
-You don't win by dominating. You win by **aligning people, data, and resources
-at the right moment**, the actual craft of a Resident Coordinator Office.
+It is a single static website. No backend, no build step, no accounts, no
+external media. Drop it on GitHub Pages and it just runs.
 
-Built around the **UN 2.0 Quintet of Change**: Data · Digital · Innovation ·
-Foresight · Behavioural Science, with **Trust & Legitimacy** as the
-meta-currency above them all.
-
----
-
-## 📸 Screenshot
-
-> _Add a screenshot here, e.g. `assets/screenshot.png`._
-> The game is pure HTML/CSS/SVG with synthesised audio, nothing to install.
+**Live:** https://shamoug.github.io/comgro/
 
 ---
 
-## ▶ Play locally (easiest)
+## How to play
 
-### Windows
-1. Download or clone this folder.
-2. **Double-click `start.bat`.**
-3. Your browser opens the game. (If Python is installed it serves on
-   `http://localhost:8099`; if not, it opens `index.html` directly, both work.)
+1. Pick your table: **You + 1, 2, or 3 rivals**. Every rival is AI, so you always
+   have company on the board. Choose **one die or two dice** for the pace you want.
+2. The deal hands you a **Job Title** (your avatar this game) and posts you to a
+   **Crisis Theatre** (the country).
+3. Press **Roll**. You move the sum of your dice.
+   - With two dice, **doubles** earn you another roll.
+   - Overshoot square 100 and you **bounce back**, exact landing wins.
+4. Land on a ladder foot to climb, a snake head to slide, or a star to read a
+   field note. The narrator reads each card aloud in a warm voice.
+5. First to **square 100** completes the mandate.
 
-### macOS / Linux
-```bash
-./start.sh        # or:  bash start.sh
-```
+Everything is generated live in your browser:
 
-### Or just open the file
-Open **`index.html`** in any modern browser. The full game runs from
-`file://`, no server, no build step, no dependencies.
+- **Music** is an original, royalty-free score synthesised with the Web Audio
+  API. It deepens and resolves as you move through the board's four zones.
+- **Narration** uses the browser's built-in speech synthesis (Web Speech API),
+  no keys, no network. A "Read aloud" button sits on every card.
 
----
-
-## 🚀 Publishing updates (Windows)
-
-After you change anything, double-click **`publish.bat`** to commit and push to
-GitHub. The live site at `https://shamoug.github.io/comgro/` refreshes about a
-minute later. You can pass a message: `publish.bat "Added a new event card"`.
-It uses your saved GitHub login (no token to paste).
-
-## 🌐 Deploy to GitHub Pages
-
-This is a static site with **relative paths**, so it deploys with zero config.
-
-1. Create a repo named `common-ground` and push these files to the **root**.
-2. In **Settings → Pages**, set:
-   - **Source:** `Deploy from a branch`
-   - **Branch:** `main` (or `master`) · **Folder:** `/ (root)`
-3. Wait ~1 minute. Your game is live at:
-   `https://USERNAME.github.io/common-ground/`
-
-No backend is required. All assets are bundled or generated in-browser.
+Toggle music and narration from the title screen or the top bar.
 
 ---
 
-## 🎮 How to play (60-second version)
+## Run it locally
 
-- **Goal:** Reach Sahelia's five **national milestones** (one per Quintet
-  strategy) while keeping **Trust** above the collapse line, before your term
-  ends across four Acts.
-- Each **month** (round): read a field vignette → the world acts (a **shock**,
-  an **opening**, or a hard **dilemma**) → spend **🔋 Capacity** to play
-  **Action** and **Partnership** cards → resolve, and check milestones.
-- **Resources:** 🤝 Trust · 💶 Funding · 🔗 Coordination · 📊 Data · 🔋 Capacity.
-- **Dice and luck (push your luck):** every action is delivered with a 🎲 d6
-  roll. A 6 is a Critical (150% effect, confetti) and a 1 is a Setback (still
-  70%, so you always score something). Spend **Data** to reroll a weak result,
-  and raise **Foresight** to roll luckier. Each month also opens with a
-  **Fortune of the Month** roll (Tailwind, Windfall, Momentum, Headwind, and
-  more) that flavours the whole round. Luck you can read and steer, never luck
-  that erases your choices.
-- **Game feel:** animated dice, floating "+N" numbers, critical banners, screen
-  shake on shocks, celebratory stings on wins and playful teases on setbacks,
-  rotating coaching tips, and editorial typography (Fraunces + Inter).
-- **Win tiers:** 🥉 avoid collapse · 🥈 three milestones · 🥇 all five + high trust
-  (with confetti, a finale, and a personalised **Quintet Scorecard**).
-- Lose if Trust hits zero or crises stack past the cap, you get a constructive
-  **After-Action Review**, not a harsh "Game Over."
+You do not need to install anything beyond a web browser.
 
-Full rules are in-game under **How to Play (?)**, plus a 4-step interactive
-tutorial and a plain-language **glossary** of UN terms.
+- **Windows:** double-click `start.bat`.
+- **macOS / Linux:** run `./start.sh` (or `bash start.sh`).
+- **Any system with Python:** `python3 -m http.server 8099`, then open
+  http://localhost:8099.
 
-### Modes
-- **Solo vs AI**, you lead; a readable, goal-driven AI plays partners.
-- **Local Multiplayer (hotseat)**, 2, 5 players share one device.
-- **Co-op vs the World**, all humans team up against the country's dynamics.
-- **Quick Game**, one Act, under 15 minutes.
-- **Campaign**, all four Acts.
-- **Daily Challenge**, a fixed seed everyone shares for the day.
+You can also just open `index.html` directly, though a tiny local server is the
+smoothest way to play.
 
 ---
 
-## 🛠 Adding content (designers: edit data only)
+## Publish your own copy
 
-The project cleanly separates **data → logic → rendering**. To add cards,
-events, roles, or story, edit **only** the files in `data/`, no code changes
-needed.
+`publish.bat` commits everything and pushes to GitHub, which refreshes the live
+GitHub Pages site. Double-click it whenever you want to upload a new version.
 
-| Add this…            | Edit this file        | Notes |
-|----------------------|-----------------------|-------|
-| A role               | `data/roles.js`       | Give it `id`, `start` bonus, and an `ability` resolved in `engine.js`. |
-| An action card       | `data/cards.js`       | Set `pillar`, `cost`, and `effect`. |
-| A partnership        | `data/cards.js`       | Set `synergyPillar` + `bonus`. |
-| A milestone          | `data/cards.js`       | One per Quintet pillar. |
-| An event             | `data/events.js`      | `type`: shock / opening / dilemma; `rarity` weights the deck. |
-| A story vignette     | `data/story.js`       | Tag it with its `act`. |
-| UI text / a language | `data/strings.js`     | Add a language key with a `dir` for RTL. |
-
-Effect and cost schemas are documented at the top of each data file.
+To host anywhere else, upload the whole folder to any static host (GitHub Pages,
+Netlify, an S3 bucket, a USB stick). Relative paths keep it working everywhere.
 
 ---
 
-## ♿ Accessibility
-
-- Full **keyboard navigation** and focus rings; screen-reader labels on
-  controls and the country dashboard.
-- **Colour-blind safe:** every pillar and state uses an icon, shape, and label
- , never colour alone.
-- **Reduced-motion** toggle (and honours `prefers-reduced-motion`).
-- **Adjustable text size** and a **high-contrast** theme.
-- **All six official UN languages**, fully translated: English, Français,
-  Español, 中文, Русский, and العربية, via a one-tap language picker (🌐), with
-  full **right-to-left** layout for Arabic. *Everything* is translated, the UI,
-  the glossary, all 12 roles, every card, event and dilemma, all 64 field
-  vignettes, the reflections, the AI's spoken reasoning, hints, tutorial and
-  credits. Choose a language and nothing stays in English. (Translations live in
-  `data/content.<lang>.js`, keyed identically to the canonical `content.en.js`.)
-- **Spoken narration**: an optional read-aloud mode (Settings → Narration, or
-  the 🔊 button beside any story text) voices the game in the chosen language
-  using the browser's built-in speech synthesis. No keys, no network, no files.
-- Plain, jargon-free language by default, with a one-tap glossary.
-
----
-
-## 🔊 Audio
-
-All music and sound effects are **original and procedurally synthesised in the
-browser** via the Web Audio API, no audio files, fully royalty-free. The mood
-shifts by Act (calm → tense → convergent → triumphant), with a musical sting
-for each win tier. A **mute toggle** is always available.
-
----
-
-## 🤖 Optional AI narration (no key required)
-
-The game ships with a strong **rules-based AI** opponent that pursues visible
-goals and explains each move in one line. It needs **no API key** and is the
-default everywhere.
-
-If you paste an **Anthropic API key** into Settings, the game can route richer
-adaptive narration through the Anthropic Messages API (`claude-sonnet-4-6`).
-The key lives only in memory for the session, is never hard-coded, and the game
-is fully playable and beautiful without it.
-
----
-
-## 🧭 How it maps to UN 2.0 (for award submissions)
-
-| Quintet strategy        | In-game pillar & sample cards |
-|-------------------------|-------------------------------|
-| **Data**                | Joint Needs Assessment, Open Data Dashboard, Statistical Capacity |
-| **Digital**             | Launch Digital Service, Interoperable Platform, Digital ID |
-| **Innovation**          | Pilot Lab → Scale-Up, Challenge Fund, Frontier Tech Trial |
-| **Foresight**           | Scenario Workshop, Early Warning System, Anticipatory Action |
-| **Behavioural Science** | Nudge Campaign, Community Dialogue, Rumour Tracking |
-| **Trust & Legitimacy**  | The meta-currency gating every major move |
-
-Coordination is modelled as the Resident Coordinator's real superpower, 
-*convening, not commanding*, through Pooled Funds, Joint Programmes, and the
-humanitarian, development nexus. A post-game **Quintet Scorecard** reflects the
-player's strategy mix back to them, turning play into a learning moment.
-
----
-
-## 📦 Project structure
+## Project layout
 
 ```
-common-ground/
-  index.html          # entry point (loads everything, relative paths)
-  start.bat           # Windows launcher (double-click)
-  start.sh            # macOS / Linux launcher
-  README.md
-  LICENSE
-  /styles
-    styles.css        # all styling, theming, RTL, accessibility
-  /data               # DESIGNERS EDIT HERE
-    strings.js        # UI text + glossary (en / ar)
-    roles.js          # 12 playable roles
-    cards.js          # actions, partnerships, milestones, pillars
-    events.js         # 52 events (shocks / openings / dilemmas)
-    story.js          # 64 vignettes, act intros, reflections
-  /src                # game logic + rendering
-    engine.js         # rules engine (state, phases, win/loss)
-    ai.js             # readable goal-driven AI + optional API hook
-    audio.js          # procedural Web Audio music & SFX
-    ui.js             # in-game rendering & flow
-    main.js           # bootstrap, menus, tutorial, glossary
-  /assets             # (optional) screenshots etc., none required to run
+index.html          Loads the data, then the logic + render layers.
+data/content.js     ALL content: board layout, decks, cards, fun facts, story.
+src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
+src/narrate.js      Warm English narration (Web Speech API).
+src/game.js         The whole game: state, board, dice, movement, render.
+styles/styles.css   One self-contained stylesheet (board, dice, cards are CSS/SVG).
 ```
+
+**To change the story, edit only `data/content.js`.** Add or rewrite snake cards,
+ladder cards, job titles, theatres, and field notes; move the snakes and ladders
+on the board; adjust the spoken story beats. The engine never hard-codes flavour
+text.
 
 ---
 
-## 📄 Licence & credits
+## Design notes
 
-- **Code & design:** released under the MIT License (see `LICENSE`).
-- **Music & sound:** original, procedurally synthesised, royalty-free.
-- **Art:** CSS + SVG + system emoji. No external/third-party assets.
-- **Setting:** *Sahelia* is fictional and composite. Any resemblance to a real
-  nation is coincidental, by design, to remain neutral and respectful.
+- **No external assets.** Board, tokens, dice, snakes and ladders are all CSS and
+  inline SVG. Audio is synthesised. The only network request is the optional web
+  font, which degrades gracefully to system fonts offline.
+- **Accessible-friendly.** Honours `prefers-reduced-motion`, narration is
+  optional, and the game is clickable throughout.
+- **Fictional settings.** The crisis theatres are composite and invented. Any
+  resemblance to a real nation is coincidental. The coordination wisdom in the
+  fun facts, however, is very real.
 
-Made for the UN 2.0 community, in the spirit of the Quintet of Change.
-*Lead the team. Earn the trust. Leave no one behind.*
+---
+
+## Credits
+
+Designed by **Digital Solutions Lab**.
+
+## License
+
+See `LICENSE`.
