@@ -35,7 +35,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-#app { height: 100vh; }
+#app { height: 100vh; height: 100dvh; }
 button { font-family: inherit; cursor: pointer; }
 
 /* ---- buttons ---------------------------------------------------------- */
@@ -79,7 +79,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* shared scrolly screens */
 .title-screen, .deal-screen {
-  height: 100vh; overflow-y: auto;
+  height: 100vh; height: 100dvh; overflow-y: auto;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; padding: 28px; gap: 6px; position: relative;
 }
@@ -151,7 +151,7 @@ button { font-family: inherit; cursor: pointer; }
 /* ======================================================================= */
 /* BOARD SCREEN, full-screen rectangular board                             */
 /* ======================================================================= */
-.board-screen { position: fixed; inset: 0; overflow: hidden; }
+.board-screen { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100dvh; overflow: hidden; }
 .bg-layer {
   position: absolute; inset: 0;
   background:
@@ -188,7 +188,7 @@ button { font-family: inherit; cursor: pointer; }
 .spos { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 19px; color: var(--tok); }
 
 /* board fills the screen */
-.board-stage { position: absolute; inset: 0; padding: 56px 16px 112px; display: flex; }
+.board-stage { position: absolute; inset: 0; padding: 56px 16px calc(116px + env(safe-area-inset-bottom)); display: flex; }
 .board-box {
   position: relative; width: 100%; height: 100%;
   border-radius: 14px; overflow: hidden;
@@ -249,7 +249,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* floating dice dock */
 .dice-dock {
-  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 25;
+  position: absolute; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 25;
   display: flex; align-items: center; gap: 18px;
   background: var(--panel); border: 1px solid var(--line);
   border-radius: 20px; padding: 13px 22px; box-shadow: var(--shadow);
@@ -337,20 +337,20 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---- responsive ------------------------------------------------------- */
 @media (max-width: 760px) {
-  .hud-top { padding: 8px 10px; }
+  .hud-top { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; }
   .brand { font-size: 13px; }
   .brand span { display: none; }
   .theatre-chip { display: none; }
   /* compact standings as a centred row of avatar + position chips */
-  .standings { top: 46px; left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: nowrap; justify-content: center; gap: 6px; }
+  .standings { top: calc(46px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: nowrap; justify-content: center; gap: 6px; }
   .scard { flex: 0 1 auto; min-width: 0; padding: 5px 9px 5px 6px; gap: 6px; }
   .scard.active { transform: none; }
   .sinfo { display: none; }
   .savatar { width: 26px; height: 26px; font-size: 14px; }
   .spos { font-size: 16px; }
-  .board-stage { padding: 92px 8px 94px; }
+  .board-stage { padding: calc(86px + env(safe-area-inset-top)) 8px calc(90px + env(safe-area-inset-bottom)); }
   .die { width: 46px; height: 46px; }
-  .dice-dock { gap: 10px; padding: 10px 14px; bottom: 12px; max-width: calc(100vw - 16px); }
+  .dice-dock { gap: 10px; padding: 10px 14px; bottom: calc(14px + env(safe-area-inset-bottom)); max-width: calc(100vw - 16px); }
   .turn-tag { min-width: 0; font-size: 12px; }
   .btn-roll { font-size: 16px; padding: 11px 20px; }
   .board-credit { display: none; }
