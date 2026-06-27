@@ -167,7 +167,7 @@ button { font-family: inherit; cursor: pointer; }
 .theatre-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-sm); margin: 0 auto; }
 .hud-ctrls { display: flex; gap: 8px; }
 
-.standings { position: absolute; top: 54px; left: 16px; z-index: 15; display: flex; flex-direction: column; gap: 7px; width: 230px; }
+.standings { position: absolute; top: 54px; left: 16px; z-index: 15; display: flex; flex-direction: column; gap: 7px; width: 230px; transition: opacity .35s ease, transform .35s ease; }
 .scard {
   display: flex; align-items: center; gap: 9px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
@@ -253,7 +253,13 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; align-items: center; gap: 18px;
   background: var(--panel); border: 1px solid var(--line);
   border-radius: 20px; padding: 13px 22px; box-shadow: var(--shadow);
+  transition: opacity .35s ease, transform .35s ease;
 }
+
+/* focus mode: while a token travels, get the panels out of the way */
+.board-screen.moving .standings { opacity: 0; transform: translateX(-18px); pointer-events: none; }
+.board-screen.moving .dice-dock { opacity: 0; transform: translate(-50%, 26px); pointer-events: none; }
+.board-screen.moving .board-credit { opacity: 0; }
 .turn-tag { font-size: 14px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 124px; }
 .turn-tag .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
 .dice { display: flex; gap: 12px; }
@@ -286,7 +292,7 @@ button { font-family: inherit; cursor: pointer; }
 .toast.roll { border-color: rgba(239,159,37,.5); }
 .toast.muted { color: var(--muted); font-style: italic; }
 
-.board-credit { position: absolute; left: 16px; bottom: 12px; z-index: 15; font-size: 11px; color: var(--muted); opacity: .8; pointer-events: none; }
+.board-credit { position: absolute; left: 16px; bottom: 12px; z-index: 15; font-size: 11px; color: var(--muted); opacity: .8; pointer-events: none; transition: opacity .35s ease; }
 .board-credit b { color: var(--blue); font-weight: 700; }
 
 /* ---- event card overlay ----------------------------------------------- */
@@ -331,16 +337,30 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---- responsive ------------------------------------------------------- */
 @media (max-width: 760px) {
-  .standings { top: 50px; left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: wrap; gap: 6px; }
-  .scard { flex: 1 1 auto; min-width: 0; padding: 6px 8px; }
-  .sinfo small { display: none; }
-  .scard.active { transform: none; }
-  .board-stage { padding: 100px 8px 108px; }
+  .hud-top { padding: 8px 10px; }
+  .brand { font-size: 13px; }
+  .brand span { display: none; }
   .theatre-chip { display: none; }
-  .die { width: 48px; height: 48px; }
-  .dice-dock { gap: 12px; padding: 11px 16px; bottom: 12px; }
+  /* compact standings as a centred row of avatar + position chips */
+  .standings { top: 46px; left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: nowrap; justify-content: center; gap: 6px; }
+  .scard { flex: 0 1 auto; min-width: 0; padding: 5px 9px 5px 6px; gap: 6px; }
+  .scard.active { transform: none; }
+  .sinfo { display: none; }
+  .savatar { width: 26px; height: 26px; font-size: 14px; }
+  .spos { font-size: 16px; }
+  .board-stage { padding: 92px 8px 94px; }
+  .die { width: 46px; height: 46px; }
+  .dice-dock { gap: 10px; padding: 10px 14px; bottom: 12px; max-width: calc(100vw - 16px); }
   .turn-tag { min-width: 0; font-size: 12px; }
+  .btn-roll { font-size: 16px; padding: 11px 20px; }
   .board-credit { display: none; }
+  .sq-n { font-size: 9px; }
+}
+@media (max-width: 420px) {
+  .scard { padding: 4px 7px 4px 5px; }
+  .savatar { width: 23px; height: 23px; font-size: 12px; }
+  .spos { font-size: 15px; }
+  .turn-tag { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

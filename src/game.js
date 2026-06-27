@@ -332,19 +332,16 @@
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML =
       `<linearGradient id="snakeGrad" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="#8fe06a"/><stop offset="0.5" stop-color="#52b85a"/><stop offset="1" stop-color="#2f8f4f"/>` +
+        `<stop offset="0" stop-color="#6fb6ff"/><stop offset="0.5" stop-color="#3b86f0"/><stop offset="1" stop-color="#2461c8"/>` +
       `</linearGradient>` +
-      `<radialGradient id="hoodGrad" cx="0.4" cy="0.35" r="0.8">` +
-        `<stop offset="0" stop-color="#9fe070"/><stop offset="0.6" stop-color="#5cb456"/><stop offset="1" stop-color="#327f3f"/>` +
-      `</radialGradient>` +
       `<radialGradient id="headGrad" cx="0.4" cy="0.32" r="0.85">` +
-        `<stop offset="0" stop-color="#a7e87a"/><stop offset="1" stop-color="#4ba14f"/>` +
+        `<stop offset="0" stop-color="#8fc6ff"/><stop offset="1" stop-color="#2f72db"/>` +
       `</radialGradient>` +
       `<linearGradient id="woodGrad" x1="0" y1="0" x2="0" y2="1">` +
         `<stop offset="0" stop-color="#d79b56"/><stop offset="1" stop-color="#a9692f"/>` +
       `</linearGradient>` +
       `<filter id="soft" x="-40%" y="-40%" width="180%" height="180%">` +
-        `<feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#1a2a1a" flood-opacity="0.28"/>` +
+        `<feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#10233f" flood-opacity="0.28"/>` +
       `</filter>`;
     return defs;
   }
@@ -360,82 +357,79 @@
     return e;
   }
 
-  // A cartoon KING COBRA: a slim, tapered S-curved body, a flared hood with
-  // the classic spectacle mark, a raised head with eyes, and a forked tongue.
-  // Drawn in pixel space; kept slim and 3D (gradient + outline + drop shadow).
+  // A slim blue snake: a thin, tapered S-curved body with a small slim head,
+  // tiny eyes and a forked tongue. No hood. Drawn in pixel space, kept slim
+  // and 3D (gradient fill + outline + soft drop shadow).
   function drawSnake(head, tail, unit) {
     const dx = tail.x - head.x, dy = tail.y - head.y;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len;
-    const bow = Math.min(unit * 1.6, len * 0.28);
-    // start the body a little below the head so the hood sits on the neck
-    const neck = { x: head.x + dx * 0.04, y: head.y + dy * 0.04 };
-    const c1 = { x: head.x + dx * 0.34 + nx * bow, y: head.y + dy * 0.34 + ny * bow };
+    const bow = Math.min(unit * 1.5, len * 0.26);
+    const c1 = { x: head.x + dx * 0.32 + nx * bow, y: head.y + dy * 0.32 + ny * bow };
     const c2 = { x: head.x + dx * 0.70 - nx * bow, y: head.y + dy * 0.70 - ny * bow };
+    const neck = { x: head.x + dx * 0.05, y: head.y + dy * 0.05 };
 
     // ---- slim tapered body ----
-    const N = 34, left = [], right = [];
-    const wHead = unit * 0.135, wTail = unit * 0.045;
+    const N = 36, left = [], right = [], mids = [];
+    const wHead = unit * 0.1, wTail = unit * 0.03;
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       const p = bez(neck, c1, c2, tail, t);
       const pn = bez(neck, c1, c2, tail, Math.min(1, t + 0.01));
       const tx = pn.x - p.x, ty = pn.y - p.y, tl = Math.hypot(tx, ty) || 1;
       const ox = -ty / tl, oy = tx / tl;
-      const w = wHead + (wTail - wHead) * Math.pow(t, 0.85);
+      const w = wHead + (wTail - wHead) * Math.pow(t, 0.8);
       left.push({ x: p.x + ox * w, y: p.y + oy * w });
       right.push({ x: p.x - ox * w, y: p.y - oy * w });
+      mids.push({ p, ox, oy, w });
     }
     let d = `M ${left[0].x} ${left[0].y}`;
     left.forEach((p) => (d += ` L ${p.x} ${p.y}`));
     for (let i = right.length - 1; i >= 0; i--) d += ` L ${right[i].x} ${right[i].y}`;
     d += " Z";
-    svgEl("path", { d, fill: "url(#snakeGrad)", stroke: "#1f5e30", "stroke-width": Math.max(0.5, unit * 0.022), "stroke-linejoin": "round", filter: "url(#soft)" });
+    svgEl("path", { d, fill: "url(#snakeGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)" });
 
     // thin belly highlight down the centre
     const bd = `M ${neck.x} ${neck.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${tail.x} ${tail.y}`;
-    svgEl("path", { d: bd, fill: "none", stroke: "#e6f7c4", "stroke-width": Math.max(0.4, unit * 0.03), "stroke-linecap": "round", opacity: "0.5" });
+    svgEl("path", { d: bd, fill: "none", stroke: "#dcefff", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", opacity: "0.5" });
 
-    // ---- the flared hood ----
+    // a few faint scale bands
+    for (let i = 4; i < N - 3; i += 4) {
+      const m = mids[i];
+      svgEl("line", {
+        x1: m.p.x + m.ox * m.w * 0.85, y1: m.p.y + m.oy * m.w * 0.85,
+        x2: m.p.x - m.ox * m.w * 0.85, y2: m.p.y - m.oy * m.w * 0.85,
+        stroke: "#2461c8", "stroke-width": Math.max(0.25, unit * 0.012), opacity: "0.45",
+      });
+    }
+
+    // ---- small slim head ----
     const ang = Math.atan2(c1.y - head.y, c1.x - head.x); // toward the body
-    const faceAng = ang + Math.PI;                         // where the cobra looks
+    const faceAng = ang + Math.PI;                         // where it looks
     const fx = Math.cos(faceAng), fy = Math.sin(faceAng);
     const sx = Math.cos(faceAng + Math.PI / 2), sy = Math.sin(faceAng + Math.PI / 2);
-
-    const hoodC = { x: head.x + Math.cos(ang) * unit * 0.30, y: head.y + Math.sin(ang) * unit * 0.30 };
-    const hoodRX = unit * 0.6, hoodRY = unit * 0.46;
-    const hoodDeg = (faceAng + Math.PI / 2) * 180 / Math.PI; // wide axis across the body
-    svgEl("ellipse", { cx: hoodC.x, cy: hoodC.y, rx: hoodRX, ry: hoodRY, fill: "url(#hoodGrad)", stroke: "#1f5e30", "stroke-width": Math.max(0.6, unit * 0.03), transform: `rotate(${hoodDeg} ${hoodC.x} ${hoodC.y})`, filter: "url(#soft)" });
-    // hood highlight
-    svgEl("ellipse", { cx: hoodC.x + fx * unit * 0.08, cy: hoodC.y + fy * unit * 0.08, rx: hoodRX * 0.6, ry: hoodRY * 0.5, fill: "#bfe89a", opacity: "0.4", transform: `rotate(${hoodDeg} ${hoodC.x} ${hoodC.y})` });
-    // spectacle mark on the hood (the cobra's signature)
-    [-1, 1].forEach((s) => {
-      svgEl("circle", { cx: hoodC.x + sx * hoodRX * 0.42 * s, cy: hoodC.y + sy * hoodRX * 0.42 * s, r: unit * 0.09, fill: "none", stroke: "#1f5e30", "stroke-width": Math.max(0.4, unit * 0.025), opacity: "0.7" });
-    });
-
-    // ---- the head ----
-    const hp = { x: head.x + fx * unit * 0.08, y: head.y + fy * unit * 0.08 };
-    const hr = unit * 0.32;
+    const hp = { x: head.x, y: head.y };
+    const hr = unit * 0.2;                                 // small head
     const headDeg = faceAng * 180 / Math.PI;
-    svgEl("ellipse", { cx: hp.x, cy: hp.y, rx: hr, ry: hr * 0.74, fill: "url(#headGrad)", stroke: "#1f5e30", "stroke-width": Math.max(0.6, unit * 0.03), transform: `rotate(${headDeg} ${hp.x} ${hp.y})`, filter: "url(#soft)" });
+    svgEl("ellipse", { cx: hp.x, cy: hp.y, rx: hr, ry: hr * 0.6, fill: "url(#headGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.018), transform: `rotate(${headDeg} ${hp.x} ${hp.y})`, filter: "url(#soft)" });
 
-    // eyes
+    // tiny eyes
     [-1, 1].forEach((s) => {
-      const ex = hp.x + fx * hr * 0.15 + sx * hr * 0.5 * s;
-      const ey = hp.y + fy * hr * 0.15 + sy * hr * 0.5 * s;
-      svgEl("circle", { cx: ex, cy: ey, r: hr * 0.26, fill: "#fff8da" });
-      svgEl("circle", { cx: ex + fx * hr * 0.06, cy: ey + fy * hr * 0.06, r: hr * 0.13, fill: "#10180f" });
+      const ex = hp.x + fx * hr * 0.1 + sx * hr * 0.42 * s;
+      const ey = hp.y + fy * hr * 0.1 + sy * hr * 0.42 * s;
+      svgEl("circle", { cx: ex, cy: ey, r: hr * 0.24, fill: "#ffffff" });
+      svgEl("circle", { cx: ex + fx * hr * 0.05, cy: ey + fy * hr * 0.05, r: hr * 0.12, fill: "#0c1830" });
     });
 
     // forked tongue
-    const sn = { x: hp.x + fx * hr * 1.1, y: hp.y + fy * hr * 1.1 };
-    const tip = { x: hp.x + fx * hr * 2.0, y: hp.y + fy * hr * 2.0 };
-    const fork = hr * 0.4;
+    const sn = { x: hp.x + fx * hr * 1.15, y: hp.y + fy * hr * 1.15 };
+    const tip = { x: hp.x + fx * hr * 2.1, y: hp.y + fy * hr * 2.1 };
+    const fork = hr * 0.45;
     svgEl("path", {
       d: `M ${sn.x} ${sn.y} L ${tip.x} ${tip.y} ` +
          `M ${tip.x} ${tip.y} L ${tip.x + sx * fork + fx * fork * 0.5} ${tip.y + sy * fork + fy * fork * 0.5} ` +
          `M ${tip.x} ${tip.y} L ${tip.x - sx * fork + fx * fork * 0.5} ${tip.y - sy * fork + fy * fork * 0.5}`,
-      stroke: "#e23b5a", "stroke-width": Math.max(0.5, unit * 0.03), fill: "none", "stroke-linecap": "round",
+      stroke: "#e23b5a", "stroke-width": Math.max(0.4, unit * 0.024), fill: "none", "stroke-linecap": "round",
     });
     void nx; void ny;
   }
@@ -587,6 +581,13 @@
     setTimeout(() => { if (!S.over && S.players[S.current].isAI) onRoll(); }, 850);
   }
 
+  // Hide the floating panels (standings + dice dock) while a token travels, so
+  // the board is clean to watch; bring them back only when a roll is needed.
+  function setMoving(on) {
+    const s = $(".board-screen");
+    if (s) s.classList.toggle("moving", !!on);
+  }
+
   async function onRoll() {
     if (S.busy || S.over) return;
     S.busy = true;
@@ -606,10 +607,12 @@
     let target = p.pos + sum, bounced = false;
     if (target > 100) { target = 100 - (target - 100); bounced = true; }
 
+    setMoving(true); // clear the board while the token travels
     await walk(p, target);
     if (bounced) toast(`${p.name} overshoots and bounces back to ${target}`, "muted");
 
     await resolveLanding(p, 0);
+    setMoving(false); // a roll is coming up: bring the panels back
     if (p.pos === 100) return finish(p);
 
     const again = doubles || p.bonusRoll;
@@ -814,6 +817,7 @@
   // =======================================================================
   function finish(winner) {
     S.over = true; S.busy = false;
+    setMoving(false);
     renderStandings(); renderTokens();
     if (S.settings.music) { winner.isAI ? CG.Audio.sfx.lose() : CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
     if (!winner.isAI) confetti();
