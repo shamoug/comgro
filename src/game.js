@@ -16,7 +16,6 @@
  * ========================================================================= */
 (function () {
   const CG = (window.CG = window.CG || {});
-  const B = CG.BOARD;
 
   // ---- tiny helpers ------------------------------------------------------
   const $ = (sel, root) => (root || document).querySelector(sel);
@@ -63,6 +62,60 @@
     return { x: (c.col + 0.5) * (bw / 10), y: (c.vrow + 0.5) * (bh / 10) };
   }
 
+  // ---- dynamic board: a fresh, valid layout every game ------------------
+  function generateBoard() {
+    const used = new Set([1, 100]);
+    const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    const ladders = {}, snakes = {};
+    let g;
+    g = 0;
+    while (Object.keys(ladders).length < 8 && g++ < 900) {
+      const foot = rnd(2, 90), top = foot + rnd(8, 45);
+      if (top > 99 || used.has(foot) || used.has(top)) continue;
+      used.add(foot); used.add(top); ladders[foot] = top;
+    }
+    g = 0;
+    while (Object.keys(snakes).length < 9 && g++ < 900) {
+      const head = rnd(14, 99), tail = head - rnd(8, 45);
+      if (tail < 2 || used.has(head) || used.has(tail)) continue;
+      used.add(head); used.add(tail); snakes[head] = tail;
+    }
+    const take = (n) => {
+      const out = []; let gg = 0;
+      while (out.length < n && gg++ < 700) {
+        const s = rnd(2, 99);
+        if (used.has(s)) continue;
+        used.add(s); out.push(s);
+      }
+      return out;
+    };
+    return { ladders, snakes, trophies: take(4), diamonds: take(5), surprises: take(6), fieldNotes: take(5) };
+  }
+
+  // Draw a card, favouring ones whose tag matches the crisis theatre, so the
+  // challenges and openings fit where you are posted. Avoid repeating the last
+  // card so back-to-back draws stay varied.
+  const lastDrawn = new WeakMap();
+  function weightedDraw(cards, tags) {
+    const pool = [];
+    cards.forEach((c) => {
+      const match = c.tag && c.tag !== "any" && tags && tags.indexOf(c.tag) >= 0;
+      const w = match ? 3 : 1;
+      for (let i = 0; i < w; i++) pool.push(c);
+    });
+    let pick = pool[Math.floor(Math.random() * pool.length)], tries = 0;
+    while (pick === lastDrawn.get(cards) && tries++ < 5) pick = pool[Math.floor(Math.random() * pool.length)];
+    lastDrawn.set(cards, pick);
+    return pick;
+  }
+
+  // Fill {role} / {theatre} placeholders for the player who landed here.
+  function fillCard(card, p) {
+    const role = p.role.name, theatre = (S.theatre && S.theatre.name) || "";
+    const sub = (s) => String(s).replace(/\{role\}/g, role).replace(/\{theatre\}/g, theatre);
+    return Object.assign({}, card, { title: sub(card.title), why: sub(card.why), fact: sub(card.fact) });
+  }
+
   // ---- state -------------------------------------------------------------
   const S = {
     players: [],
@@ -75,23 +128,22 @@
     zoneSpoken: -1,
   };
 
-  // Token colours, all distinct from ladder-wood and snake-green.
+  // Token colours, all distinct from ladder-wood and snake-blue.
   const COLORS = ["#2f6bff", "#e8439b", "#7c4dff", "#ff7a1a"];
-  const NAMES = ["Blue Mission", "Magenta Mission", "Violet Mission", "Amber Mission"];
 
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
+  let decksReady = false;
 
   // =======================================================================
   // SCREENS
   // =======================================================================
-  function start() {
-    S.decks.snake = makeDeck(CG.SNAKE_CARDS);
-    S.decks.ladder = makeDeck(CG.LADDER_CARDS);
+  function ensureDecks() {
+    if (decksReady) return;
     S.decks.note = makeDeck(CG.FIELD_NOTES);
     S.decks.trophy = makeDeck(CG.TROPHY_CARDS);
     S.decks.diamond = makeDeck(CG.DIAMOND_CARDS);
     S.decks.surprise = makeDeck(CG.SURPRISE_CARDS);
-    renderTitle();
+    decksReady = true;
   }
 
   function renderTitle() {
@@ -100,6 +152,11 @@
     root.innerHTML = "";
     const wrap = el("div", "screen title-screen");
     wrap.appendChild(el("div", "title-glow"));
+    if (CG.Platform) {
+      const back = el("button", "back-link", "← Games");
+      back.onclick = () => { CG.Narrate.stop(); CG.Platform.show(); };
+      wrap.appendChild(back);
+    }
     wrap.appendChild(el("div", "logo-mark", "◆"));
     wrap.appendChild(el("h1", "title", "Common Ground"));
     wrap.appendChild(el("p", "subtitle", "The Long Road"));
@@ -157,12 +214,15 @@
     if (S.settings.music) CG.Audio.start();
     CG.Narrate.setEnabled(S.settings.voice);
 
+    // fresh, surprising every game: random theatre, board layout, names, roles
     S.theatre = CG.THEATRES[Math.floor(Math.random() * CG.THEATRES.length)];
+    S.board = generateBoard();
     const roles = shuffle(CG.ROLES);
+    const names = shuffle(CG.AGENT_NAMES);
     S.players = [];
     for (let i = 0; i < numPlayers; i++) {
       S.players.push({
-        name: i === 0 ? "You" : NAMES[i] || ("Rival " + i),
+        name: i === 0 ? "You" : names[i - 1] + " Mission",
         isAI: i !== 0,
         role: roles[i],
         pos: 1,
@@ -226,6 +286,7 @@
 
   function renderBoard() {
     teardownBoard();
+    const B = S.board;
     const root = app();
     root.innerHTML = "";
     const wrap = el("div", "screen board-screen");
@@ -315,7 +376,8 @@
 
   // ---- SVG overlay drawn in pixel space ---------------------------------
   function drawOverlay() {
-    if (!boardBox || !overlaySvg) return;
+    if (!boardBox || !overlaySvg || !S.board) return;
+    const B = S.board;
     const bw = boardBox.clientWidth, bh = boardBox.clientHeight;
     if (!bw || !bh) return;
     const unit = Math.min(bw / 10, bh / 10);
@@ -675,22 +737,24 @@
 
   async function resolveLanding(p, depth) {
     depth = depth || 0;
+    const B = S.board;
+    const tags = (S.theatre && S.theatre.tags) || [];
     const n = p.pos;
     if (B.ladders[n]) {
-      const card = S.decks.ladder();
+      const card = weightedDraw(CG.LADDER_CARDS, tags);
       await showCard(p, card, "ladder", B.ladders[n]);
       if (S.settings.music) CG.Audio.sfx.ladder();
       toast(`${p.name} climbs to ${B.ladders[n]}`, "good");
       await slide(p, B.ladders[n], "up");
     } else if (B.snakes[n]) {
-      const card = S.decks.snake();
+      const card = weightedDraw(CG.SNAKE_CARDS, tags);
       await showCard(p, card, "snake", B.snakes[n]);
       if (S.settings.music) CG.Audio.sfx.snake();
       toast(`${p.name} slides to ${B.snakes[n]}`, "bad");
       shake();
       await slide(p, B.snakes[n], "down");
     } else if (B.trophies.includes(n)) {
-      const card = S.decks.trophy();
+      const card = fillCard(S.decks.trophy(), p);
       p.trophies++;
       await showCard(p, card, "trophy", null);
       if (S.settings.music) CG.Audio.sfx.note();
@@ -864,6 +928,9 @@
     }
   }
 
-  // ---- boot --------------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", start);
+  // ---- public API (the platform launcher mounts the game) ---------------
+  CG.SnakesGame = {
+    title: "Common Ground: The Long Road",
+    show: function () { ensureDecks(); teardownBoard(); renderTitle(); },
+  };
 })();
