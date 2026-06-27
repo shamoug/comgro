@@ -74,6 +74,16 @@ No backend is required. All assets are bundled or generated in-browser.
   an **opening**, or a hard **dilemma**) → spend **🔋 Capacity** to play
   **Action** and **Partnership** cards → resolve, and check milestones.
 - **Resources:** 🤝 Trust · 💶 Funding · 🔗 Coordination · 📊 Data · 🔋 Capacity.
+- **Dice and luck (push your luck):** every action is delivered with a 🎲 d6
+  roll. A 6 is a Critical (150% effect, confetti) and a 1 is a Setback (still
+  70%, so you always score something). Spend **Data** to reroll a weak result,
+  and raise **Foresight** to roll luckier. Each month also opens with a
+  **Fortune of the Month** roll (Tailwind, Windfall, Momentum, Headwind, and
+  more) that flavours the whole round. Luck you can read and steer, never luck
+  that erases your choices.
+- **Game feel:** animated dice, floating "+N" numbers, critical banners, screen
+  shake on shocks, celebratory stings on wins and playful teases on setbacks,
+  rotating coaching tips, and editorial typography (Fraunces + Inter).
 - **Win tiers:** 🥉 avoid collapse · 🥈 three milestones · 🥇 all five + high trust
   (with confetti, a finale, and a personalised **Quintet Scorecard**).
 - Lose if Trust hits zero or crises stack past the cap, you get a constructive
