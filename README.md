@@ -1,18 +1,31 @@
-# Common Ground: The Long Road
+# Common Ground: The Game Room
 
-A cinematic, **Snakes &amp; Ladders** take on UN field coordination. Roll two
-dice, race a hundred squares to a finished mandate, and learn a little about how
-real crisis response works along the way.
+A small game platform for a UN Country Team, with two games and AI rivals. Open
+it and pick how you want to play. Everything runs in the browser, with spoken
+narration and an original cinematic score generated live.
+
+## The Long Road, Snakes &amp; Ladders
+
+Roll one or two dice, race a hundred squares to a finished mandate, and learn a
+little about how real crisis response works along the way. **The board is
+generated fresh every game**, so the ladders, snakes, trophies and diamonds move
+each time, and the **job titles, rival names and crisis theatre are different
+every run**. The challenges and openings you draw are weighted to fit the theatre
+you are posted to.
 
 - **Ladders** are the lucky breaks: agreements, partnerships, community trust.
-  Land on one and you climb, and a card tells you *what happened*, with a fun fact.
 - **Snakes** are crises a Country Team really meets: floods, outbreaks, a closed
-  border, misinformation. Land on one and you slide, and a card explains it.
-- **Trophies 🏆** are recognition: collect one and roll again.
+  border, misinformation. A card explains every climb and slide, with a fun fact.
+- **Trophies 🏆** are recognition (tailored to your job title): collect and roll again.
 - **Diamonds 💎** are a lucky find: collect one and hop forward.
-- **Surprise cards ❓** are a mystery: a bonus, a jump ahead, a found gem, or a
-  lost turn. You never know until you open it.
-- **Field notes ★** scattered across the board drop a fun fact as you pass.
+- **Surprise cards ❓** are a mystery: a bonus, a jump ahead, a found gem, or a lost turn.
+- **Field notes ★** drop a fun fact as you pass.
+
+## Field Ludo
+
+The classic four-colour Ludo. Roll a six to deploy a team from base, race all
+four teams around the cross and home to the centre, and send rivals back to base
+when you land on them. First to bring everyone home wins.
 
 It is a single static website. No backend, no build step, no accounts, no
 external media. Drop it on GitHub Pages and it just runs.
@@ -72,12 +85,14 @@ Netlify, an S3 bucket, a USB stick). Relative paths keep it working everywhere.
 ## Project layout
 
 ```
-index.html          Loads the data, then the logic + render layers.
-data/content.js     ALL content: board layout, decks, cards, fun facts, story.
+index.html          Loads the data, the two games, then the launcher.
+data/content.js     ALL Long Road content: decks, cards, theatres, names, story.
 src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
 src/narrate.js      Warm English narration (Web Speech API).
-src/game.js         The whole game: state, board, dice, movement, render.
-styles/styles.css   One self-contained stylesheet (board, dice, cards are CSS/SVG).
+src/game.js         The Long Road: dynamic board, dice, movement, render.
+src/ludo.js         Field Ludo: board, dice, tokens, capture, AI.
+src/platform.js     The launcher that lets you choose a game.
+styles/styles.css   One self-contained stylesheet (boards, dice, cards are CSS/SVG).
 ```
 
 **To change the story, edit only `data/content.js`.** Add or rewrite snake cards,
