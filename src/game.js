@@ -69,13 +69,13 @@
     const ladders = {}, snakes = {};
     let g;
     g = 0;
-    while (Object.keys(ladders).length < 8 && g++ < 900) {
+    while (Object.keys(ladders).length < 6 && g++ < 900) {
       const foot = rnd(2, 90), top = foot + rnd(8, 45);
       if (top > 99 || used.has(foot) || used.has(top)) continue;
       used.add(foot); used.add(top); ladders[foot] = top;
     }
     g = 0;
-    while (Object.keys(snakes).length < 9 && g++ < 900) {
+    while (Object.keys(snakes).length < 6 && g++ < 900) {
       const head = rnd(14, 99), tail = head - rnd(8, 45);
       if (tail < 2 || used.has(head) || used.has(tail)) continue;
       used.add(head); used.add(tail); snakes[head] = tail;
@@ -123,7 +123,7 @@
     theatre: null,
     busy: false,
     over: false,
-    settings: { music: true, voice: true, diceCount: 2 },
+    settings: { music: true, voice: true, diceCount: 1 },
     decks: {},
     zoneSpoken: -1,
   };
