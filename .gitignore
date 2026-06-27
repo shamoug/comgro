@@ -1,0 +1,11 @@
+# Dev-only tooling (local preview config) — not needed to play or deploy
+.claude/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Node (none required, but just in case)
+node_modules/
