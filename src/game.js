@@ -334,9 +334,6 @@
       `<linearGradient id="snakeGrad" x1="0" y1="0" x2="0" y2="1">` +
         `<stop offset="0" stop-color="#6fb6ff"/><stop offset="0.5" stop-color="#3b86f0"/><stop offset="1" stop-color="#2461c8"/>` +
       `</linearGradient>` +
-      `<radialGradient id="headGrad" cx="0.4" cy="0.32" r="0.85">` +
-        `<stop offset="0" stop-color="#8fc6ff"/><stop offset="1" stop-color="#2f72db"/>` +
-      `</radialGradient>` +
       `<linearGradient id="woodGrad" x1="0" y1="0" x2="0" y2="1">` +
         `<stop offset="0" stop-color="#d79b56"/><stop offset="1" stop-color="#a9692f"/>` +
       `</linearGradient>` +
@@ -357,9 +354,9 @@
     return e;
   }
 
-  // A slim blue snake: a thin, tapered S-curved body with a small slim head,
-  // tiny eyes and a forked tongue. No hood. Drawn in pixel space, kept slim
-  // and 3D (gradient fill + outline + soft drop shadow).
+  // An abstract blue snake: ONE continuous shape. The head is a sharp triangle
+  // that flows straight out of the body, no separate oval and no seam, with two
+  // eyes and a forked Y tongue. Drawn in pixel space, slim and 3D.
   function drawSnake(head, tail, unit) {
     const dx = tail.x - head.x, dy = tail.y - head.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -367,15 +364,14 @@
     const bow = Math.min(unit * 1.5, len * 0.26);
     const c1 = { x: head.x + dx * 0.32 + nx * bow, y: head.y + dy * 0.32 + ny * bow };
     const c2 = { x: head.x + dx * 0.70 - nx * bow, y: head.y + dy * 0.70 - ny * bow };
-    const neck = { x: head.x + dx * 0.05, y: head.y + dy * 0.05 };
 
-    // ---- slim tapered body ----
+    // body edges, sampled from the head centre to the tail
     const N = 36, left = [], right = [], mids = [];
-    const wHead = unit * 0.1, wTail = unit * 0.03;
+    const wHead = unit * 0.13, wTail = unit * 0.028;   // half-widths
     for (let i = 0; i <= N; i++) {
       const t = i / N;
-      const p = bez(neck, c1, c2, tail, t);
-      const pn = bez(neck, c1, c2, tail, Math.min(1, t + 0.01));
+      const p = bez(head, c1, c2, tail, t);
+      const pn = bez(head, c1, c2, tail, Math.min(1, t + 0.01));
       const tx = pn.x - p.x, ty = pn.y - p.y, tl = Math.hypot(tx, ty) || 1;
       const ox = -ty / tl, oy = tx / tl;
       const w = wHead + (wTail - wHead) * Math.pow(t, 0.8);
@@ -383,53 +379,54 @@
       right.push({ x: p.x - ox * w, y: p.y - oy * w });
       mids.push({ p, ox, oy, w });
     }
-    let d = `M ${left[0].x} ${left[0].y}`;
-    left.forEach((p) => (d += ` L ${p.x} ${p.y}`));
-    for (let i = right.length - 1; i >= 0; i--) d += ` L ${right[i].x} ${right[i].y}`;
-    d += " Z";
+
+    // forward direction the head points (opposite the body's start tangent)
+    const tgx = c1.x - head.x, tgy = c1.y - head.y, tgl = Math.hypot(tgx, tgy) || 1;
+    const fx = -tgx / tgl, fy = -tgy / tgl;            // forward (face)
+    const sxn = -fy, syn = fx;                          // side (perp to forward)
+    const snout = { x: head.x + fx * unit * 0.34, y: head.y + fy * unit * 0.34 };
+    const tcl = Math.hypot(tail.x - c2.x, tail.y - c2.y) || 1;
+    const tailTip = { x: tail.x + (tail.x - c2.x) / tcl * unit * 0.05, y: tail.y + (tail.y - c2.y) / tcl * unit * 0.05 };
+
+    // one continuous outline: sharp snout, down the left edge, around the tail
+    // tip, back up the right edge to the snout. The triangle head IS the body.
+    let d = `M ${snout.x} ${snout.y}`;
+    for (let i = 0; i <= N; i++) d += ` L ${left[i].x} ${left[i].y}`;
+    d += ` L ${tailTip.x} ${tailTip.y}`;
+    for (let i = N; i >= 0; i--) d += ` L ${right[i].x} ${right[i].y}`;
+    d += ` L ${snout.x} ${snout.y} Z`;
     svgEl("path", { d, fill: "url(#snakeGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)" });
 
-    // thin belly highlight down the centre
-    const bd = `M ${neck.x} ${neck.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${tail.x} ${tail.y}`;
-    svgEl("path", { d: bd, fill: "none", stroke: "#dcefff", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", opacity: "0.5" });
+    // thin belly highlight down the spine
+    const bd = `M ${head.x} ${head.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${tail.x} ${tail.y}`;
+    svgEl("path", { d: bd, fill: "none", stroke: "#dcefff", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.45" });
 
-    // a few faint scale bands
-    for (let i = 4; i < N - 3; i += 4) {
+    // faint scale bands
+    for (let i = 5; i < N - 3; i += 4) {
       const m = mids[i];
       svgEl("line", {
         x1: m.p.x + m.ox * m.w * 0.85, y1: m.p.y + m.oy * m.w * 0.85,
         x2: m.p.x - m.ox * m.w * 0.85, y2: m.p.y - m.oy * m.w * 0.85,
-        stroke: "#2461c8", "stroke-width": Math.max(0.25, unit * 0.012), opacity: "0.45",
+        stroke: "#2461c8", "stroke-width": Math.max(0.25, unit * 0.012), opacity: "0.4",
       });
     }
 
-    // ---- small slim head ----
-    const ang = Math.atan2(c1.y - head.y, c1.x - head.x); // toward the body
-    const faceAng = ang + Math.PI;                         // where it looks
-    const fx = Math.cos(faceAng), fy = Math.sin(faceAng);
-    const sx = Math.cos(faceAng + Math.PI / 2), sy = Math.sin(faceAng + Math.PI / 2);
-    const hp = { x: head.x, y: head.y };
-    const hr = unit * 0.2;                                 // small head
-    const headDeg = faceAng * 180 / Math.PI;
-    svgEl("ellipse", { cx: hp.x, cy: hp.y, rx: hr, ry: hr * 0.6, fill: "url(#headGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.018), transform: `rotate(${headDeg} ${hp.x} ${hp.y})`, filter: "url(#soft)" });
-
-    // tiny eyes
+    // two eyes on the triangular head
     [-1, 1].forEach((s) => {
-      const ex = hp.x + fx * hr * 0.1 + sx * hr * 0.42 * s;
-      const ey = hp.y + fy * hr * 0.1 + sy * hr * 0.42 * s;
-      svgEl("circle", { cx: ex, cy: ey, r: hr * 0.24, fill: "#ffffff" });
-      svgEl("circle", { cx: ex + fx * hr * 0.05, cy: ey + fy * hr * 0.05, r: hr * 0.12, fill: "#0c1830" });
+      const ex = head.x + fx * unit * 0.07 + sxn * unit * 0.06 * s;
+      const ey = head.y + fy * unit * 0.07 + syn * unit * 0.06 * s;
+      svgEl("circle", { cx: ex, cy: ey, r: unit * 0.04, fill: "#ffffff", stroke: "#1747a8", "stroke-width": Math.max(0.2, unit * 0.009) });
+      svgEl("circle", { cx: ex + fx * unit * 0.012, cy: ey + fy * unit * 0.012, r: unit * 0.02, fill: "#0c1830" });
     });
 
-    // forked tongue
-    const sn = { x: hp.x + fx * hr * 1.15, y: hp.y + fy * hr * 1.15 };
-    const tip = { x: hp.x + fx * hr * 2.1, y: hp.y + fy * hr * 2.1 };
-    const fork = hr * 0.45;
+    // forked Y tongue from the snout tip
+    const mid = { x: snout.x + fx * unit * 0.13, y: snout.y + fy * unit * 0.13 };
+    const fork = unit * 0.07;
     svgEl("path", {
-      d: `M ${sn.x} ${sn.y} L ${tip.x} ${tip.y} ` +
-         `M ${tip.x} ${tip.y} L ${tip.x + sx * fork + fx * fork * 0.5} ${tip.y + sy * fork + fy * fork * 0.5} ` +
-         `M ${tip.x} ${tip.y} L ${tip.x - sx * fork + fx * fork * 0.5} ${tip.y - sy * fork + fy * fork * 0.5}`,
-      stroke: "#e23b5a", "stroke-width": Math.max(0.4, unit * 0.024), fill: "none", "stroke-linecap": "round",
+      d: `M ${snout.x} ${snout.y} L ${mid.x} ${mid.y} ` +
+         `M ${mid.x} ${mid.y} L ${mid.x + sxn * fork + fx * unit * 0.04} ${mid.y + syn * fork + fy * unit * 0.04} ` +
+         `M ${mid.x} ${mid.y} L ${mid.x - sxn * fork + fx * unit * 0.04} ${mid.y - syn * fork + fy * unit * 0.04}`,
+      stroke: "#e23b5a", "stroke-width": Math.max(0.4, unit * 0.022), fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round",
     });
     void nx; void ny;
   }
