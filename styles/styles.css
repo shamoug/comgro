@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — styles.css
+ * COMMON GROUND, styles.css
  * Warm, modern, hopeful. UN blue anchored, expanded with earth + bright
  * accents. Colour-blind safe (shapes + icons + labels, never colour alone).
  * Honours --text-scale, .reduced-motion, .high-contrast, and RTL.
@@ -367,6 +367,12 @@ button { font-family: inherit; }
 .peek-ic { font-size: 22px; } .peek-row button { margin-inline-start: auto; }
 
 .m-info { text-align: center; } .m-prog { font-weight: 700; color: var(--un-blue-d); }
+
+/* narration speaker button */
+.speak-btn { border: none; background: rgba(26,143,227,.12); color: var(--un-blue-d); border-radius: 999px; cursor: pointer; font-size: .9rem; width: 30px; height: 30px; margin-inline-start: 8px; vertical-align: middle; transition: background .15s, transform .12s; }
+.speak-btn:hover { background: rgba(26,143,227,.25); transform: scale(1.08); }
+.speak-btn:focus-visible { outline: 3px solid var(--accent); }
+.vignette-tag .speak-btn, .refl-tag .speak-btn, .act-kicker .speak-btn { width: 26px; height: 26px; font-size: .8rem; }
 
 /* language picker */
 .lang-picker h2 { font-size: 1rem; color: var(--ink-soft); font-weight: 700; }

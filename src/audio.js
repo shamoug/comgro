@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — audio.js
+ * COMMON GROUND, audio.js
  * Original, royalty-free, fully synthesised audio via the Web Audio API.
  * No external files: every note is generated in-browser, so it ships free
  * and credited to "procedural synthesis." Mood shifts by Act. Soft UI SFX.

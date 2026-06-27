@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — ai.js
+ * COMMON GROUND, ai.js
  * A readable, goal-driven AI opponent. It plays partner roles in Solo mode.
  * It is NOT random: it pursues visible goals (fix crises, lift the weakest
  * pillar, build resources) and explains each move in one plain-language line,
@@ -50,38 +50,39 @@
   function reasoningFor(s, card, pillar) {
     const eff = card.effect || {};
     const weakest = Object.keys(s.country.pillars).sort((a, b) => s.country.pillars[a] - s.country.pillars[b])[0];
-    if (s.country.crises.length && eff.crisisFix) return "Crises were piling up, so I moved to stabilise the response.";
-    if (s.country.trust < 35 && (eff.trust || 0) > 0) return "Trust was getting dangerously low — rebuilding it comes first.";
-    if (eff.gain && eff.gain.funding && s.pool.funding < 3) return "The funding gap was widening, so I mobilised resources.";
-    if (eff.gain && eff.gain.coordination && s.pool.coordination < 2) return "We needed coordination to unlock joint work, so I convened partners.";
-    if (pillar === weakest) return "Our weakest priority was " + pillarName(weakest) + ", so I invested there.";
+    if (s.country.crises.length && eff.crisisFix) return CG.tc("ai.crisis");
+    if (s.country.trust < 35 && (eff.trust || 0) > 0) return CG.tc("ai.trustLow");
+    if (eff.gain && eff.gain.funding && s.pool.funding < 3) return CG.tc("ai.funding");
+    if (eff.gain && eff.gain.coordination && s.pool.coordination < 2) return CG.tc("ai.coordination");
+    if (pillar === weakest) return CG.tc("ai.weakest", { pillar: pillarName(weakest) });
     if (pillar && s.country.pillars[pillar] >= 100 - (eff.progress || 0) && s.country.pillars[pillar] < 100)
-      return "This push could complete the " + pillarName(pillar) + " milestone.";
-    return "This was the highest-impact move available to me.";
+      return CG.tc("ai.milestone", { pillar: pillarName(pillar) });
+    return CG.tc("ai.default");
   }
   function pillarName(id) {
-    const map = { data: "Data", digital: "Digital", innovation: "Innovation", foresight: "Foresight", behavioural: "Behavioural Science", coordination: "Coordination" };
-    return map[id] || id;
+    if (id === "coordination") return CG.t("pillarCoordination");
+    const p = CG.getPillar(id);
+    return p ? CG.t(p.labelKey) : id;
   }
 
-  // Decide an ability use (simple heuristics).
+  // Decide an ability use (simple heuristics). Returns a tc key for narration.
   function planAbility(s, p) {
     const role = CG.getRole(p.roleId);
     const c = s.country;
     switch (role.id) {
-      case "gov": if (c.trust < 45) return { use: true, reason: "Trust needed a lift, so I unlocked a national policy." }; break;
-      case "comms": if (c.crises.some((x) => true) || c.trust < 40) return { use: true, reason: "I countered the narrative to protect public trust." }; break;
-      case "hro": if (c.trust < 50) return { use: true, reason: "I shielded the vulnerable from the next shock." }; break;
-      case "donor": if (s.pool.funding < 4) return { use: true, pillar: weakestPillar(s), reason: "Funds were short, so I injected new money." }; break;
-      case "logops": if (s.pool.funding < 5) return { use: true, reason: "I streamlined costs to stretch our budget." }; break;
-      case "chw": if (s.pool.data > 1 && c.trust < 55) return { use: true, reason: "I converted spare data into community trust." }; break;
-      case "foresight": return { use: true, reason: "I scanned the horizon to reorder what's coming." };
-      case "dmo": if (s.pool.data < 3) return { use: true, reason: "I drew on data to see the next event clearly." }; break;
-      case "rc": if (s.pool.coordination < 3) return { use: true, reason: "I aligned the team to amplify the next move." }; break;
+      case "gov": if (c.trust < 45) return { use: true, key: "ai.ab.gov" }; break;
+      case "comms": if (c.crises.length || c.trust < 40) return { use: true, key: "ai.ab.comms" }; break;
+      case "hro": if (c.trust < 50) return { use: true, key: "ai.ab.hro" }; break;
+      case "donor": if (s.pool.funding < 4) return { use: true, pillar: weakestPillar(s), key: "ai.ab.donor" }; break;
+      case "logops": if (s.pool.funding < 5) return { use: true, key: "ai.ab.logops" }; break;
+      case "chw": if (s.pool.data > 1 && c.trust < 55) return { use: true, key: "ai.ab.chw" }; break;
+      case "foresight": return { use: true, key: "ai.ab.foresight" };
+      case "dmo": if (s.pool.data < 3) return { use: true, key: "ai.ab.dmo" }; break;
+      case "rc": if (s.pool.coordination < 3) return { use: true, key: "ai.ab.rc" }; break;
       default: break;
     }
     // generic: use ability if it helps and is cheap
-    if (["youth", "innolab", "ngo"].includes(role.id)) return { use: true, reason: "I used my signature strength while it mattered." };
+    if (["youth", "innolab", "ngo"].includes(role.id)) return { use: true, key: "ai.ab.generic" };
     return { use: false };
   }
   function weakestPillar(s) {
@@ -96,7 +97,7 @@
     // 1) maybe use ability first
     const ab = planAbility(s, player);
     if (ab.use && !player.abilityUsed) {
-      moves.push({ type: "ability", args: { pillar: ab.pillar || weakestPillar(s) }, reasoning: ab.reason });
+      moves.push({ type: "ability", args: { pillar: ab.pillar || weakestPillar(s) }, reasoning: CG.tc(ab.key) });
     }
 
     // Local capacity ledger so we never mutate the player's real capacity
@@ -110,7 +111,7 @@
       .map((id) => CG.getPartnership(id))
       .find((pp) => pp && (pp.synergyPillar === weakest) && CG.Engine.canPlay(player, pp).ok);
     if (partnerMatch && capLeft >= 2) {
-      moves.push({ type: "partnership", id: partnerMatch.id, reasoning: "I brought " + partnerMatch.name + " to the table to boost our weakest priority." });
+      moves.push({ type: "partnership", id: partnerMatch.id, reasoning: CG.tc("ai.partner", { partner: CG.loc(partnerMatch, "name") }) });
       capLeft -= 1;
     }
 

@@ -1,4 +1,4 @@
-# Dev-only tooling (local preview config) — not needed to play or deploy
+# Dev-only tooling (local preview config), not needed to play or deploy
 .claude/
 
 # OS / editor cruft

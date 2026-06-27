@@ -1,5 +1,5 @@
 /* =========================================================================
- * COMMON GROUND — roles.js
+ * COMMON GROUND, roles.js
  * 12 playable roles. Each has a portrait (inline SVG via emoji + colour),
  * a one-sentence description, and ONE signature ability.
  * Abilities are resolved by id in src/engine.js (applyAbility).
@@ -70,8 +70,8 @@
       desc: "Holds the mandate.",
       desc_ar: "صاحب الولاية الوطنية.",
       ability: "Mandate",
-      abilityDesc: "Once per round: unlock a national policy — +5 Trust for the whole country.",
-      abilityDesc_ar: "مرة كل دور: أطلق سياسة وطنية — +٥ ثقة لكل البلد.",
+      abilityDesc: "Once per round: unlock a national policy, +5 Trust for the whole country.",
+      abilityDesc_ar: "مرة كل دور: أطلق سياسة وطنية, +٥ ثقة لكل البلد.",
       start: { trust: 3 },
     },
     {
@@ -109,8 +109,8 @@
       desc: "Tests bold ideas.",
       desc_ar: "يختبر الأفكار الجريئة.",
       ability: "Experiment",
-      abilityDesc: "Once per round: run a high-risk experiment — big Innovation gain, or a small setback.",
-      abilityDesc_ar: "مرة كل دور: أجرِ تجربة عالية المخاطرة — مكسب ابتكار كبير أو نكسة صغيرة.",
+      abilityDesc: "Once per round: run a high-risk experiment, big Innovation gain, or a small setback.",
+      abilityDesc_ar: "مرة كل دور: أجرِ تجربة عالية المخاطرة, مكسب ابتكار كبير أو نكسة صغيرة.",
       start: { data: 2 },
     },
     {
