@@ -190,6 +190,14 @@
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
+  // A player is "in finishing range" when an exact landing on 100 is within one
+  // roll: squares 94-99 with one die, 88-99 with two. Rolls from here that miss
+  // count toward the mercy intervention.
+  function inFinishRange(pos) {
+    const maxRoll = 6 * S.settings.diceCount;
+    return pos >= 100 - maxRoll && pos <= 99;
+  }
+
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
   let decksReady = false;
 
@@ -300,6 +308,7 @@
       bonusRoll: false,
       skipNext: false,
       finished: false,
+      finishTries: 0,      // failed attempts to land squarely on 100; mercy kicks in at 8
       rank: 0,
     }));
     S.current = 0; S.over = false; S.zoneSpoken = -1;
@@ -756,8 +765,42 @@
     const btn = $("#rollBtn"); if (btn) btn.disabled = true;
 
     const p = S.players[S.current];
+
+    // Exact-landing keeps its teeth: you finish ON square 100, never past it.
+    // But no one rolls forever. We count a "try" each turn the player rolls from
+    // within finishing range and fails to land on 100 (overshooting and bouncing,
+    // or stuck on the impossible square 99 with two dice). After 8 failed tries
+    // the field steps in and rolls exactly the number that lands them home.
+    const dc = S.settings.diceCount;
+    const gap = 100 - p.pos;
+    const nearBefore = inFinishRange(p.pos);
+    const mercy = p.finishTries >= 8 && !p.finished;
+
+    if (mercy && (gap < dc || gap > 6 * dc)) {
+      // Too close to show as a fair roll (square 99 with two dice needs a 1), or a
+      // snake has knocked them out of reach: simply wave them across the line.
+      if (S.settings.music) CG.Audio.sfx.dice();
+      toast(`After ${p.finishTries} near-misses, the field waves ${p.name} home`, "good");
+      setMoving(true);
+      await walk(p, 100);
+      setMoving(false);
+      return playerFinishes(p);
+    }
+
     const rolls = [];
-    for (let i = 0; i < S.settings.diceCount; i++) rolls.push(1 + Math.floor(Math.random() * 6));
+    if (mercy) {
+      // forced exact roll: dice that sum to the gap, so the player lands on 100
+      if (dc === 1) {
+        rolls.push(gap);
+      } else {
+        const lo = Math.max(1, gap - 6), hi = Math.min(6, gap - 1);
+        const d1 = lo + Math.floor(Math.random() * (hi - lo + 1));
+        rolls.push(d1, gap - d1);
+      }
+      toast(`After ${p.finishTries} near-misses, ${p.name} rolls exactly what the road needs`, "good");
+    } else {
+      for (let i = 0; i < dc; i++) rolls.push(1 + Math.floor(Math.random() * 6));
+    }
     if (S.settings.music) CG.Audio.sfx.dice();
 
     await animateDice(rolls);
@@ -766,21 +809,19 @@
     const rollText = rolls.length > 1 ? `${rolls.join(" + ")} = <b>${sum}</b>` : `<b>${sum}</b>`;
     toast(`${p.name} rolls ${rollText}${doubles ? " · doubles" : ""}`, "roll");
 
-    // Reaching OR passing square 100 finishes the road. We deliberately do NOT
-    // require an exact landing: with the "last player home ends the game" rule,
-    // an exact-landing rule leaves the trailing player (especially an auto-
-    // playing AI) bouncing around the high squares for hundreds of turns, so the
-    // game never actually ends. Overshoot simply arrives home.
-    let target = p.pos + sum, overshot = false;
-    if (target > 100) { target = 100; overshot = true; }
+    let target = p.pos + sum, bounced = false;
+    if (target > 100) { target = 100 - (target - 100); bounced = true; }
 
     setMoving(true); // clear the board while the token travels
     await walk(p, target);
-    if (overshot) toast(`${p.name} crosses the line home`, "good");
+    if (bounced) toast(`${p.name} overshoots and bounces back to ${target}`, "muted");
 
     await resolveLanding(p, 0);
     setMoving(false); // a roll is coming up: bring the panels back
     if (p.pos === 100 && !p.finished) return playerFinishes(p);
+    // a turn that started in finishing range but did not land on 100 is a failed
+    // try; once these reach 8 the mercy intervention above fires next turn.
+    if (nearBefore) p.finishTries++;
 
     const again = doubles || p.bonusRoll;
     p.bonusRoll = false;
