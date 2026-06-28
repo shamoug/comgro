@@ -654,3 +654,20 @@ button { font-family: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .05ms !important; }
 }
+
+/* ---- pull-to-refresh (touch) ------------------------------------------- */
+/* The app fills the viewport with body overflow hidden, so the browser's own
+   pull-to-refresh never fires. This is a custom one: pull down from the top
+   and release to hard-reload. */
+.ptr {
+  position: fixed; top: 0; left: 50%; z-index: 200;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 0 0 16px 16px;
+  background: var(--panel-solid); box-shadow: var(--shadow-sm);
+  color: var(--muted); font-size: 13px; font-weight: 700;
+  transform: translate(-50%, -100%); will-change: transform;
+  pointer-events: none;
+}
+.ptr-arrow { font-size: 16px; transition: transform .2s ease; }
+.ptr.ready .ptr-arrow { transform: rotate(180deg); color: var(--blue); }
+.ptr.ready { color: var(--blue); }
