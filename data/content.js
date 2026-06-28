@@ -119,6 +119,19 @@
     return CG.QUINTET[0];
   };
 
+  // Short, professional affiliation label (org / agency acronym) for the
+  // identity badge on every in-play card. Most affiliations are already a
+  // crisp acronym; only the few long descriptive ones are condensed here.
+  CG.AFF_SHORT = {
+    "UN Resident Coordinator's Office": "UN RCO",
+    "UN Strategic Foresight": "UN Foresight",
+    "UN Communications": "UN Comms",
+    "UN Innovation": "UN Innovation",
+    "National Government": "Government",
+    "Independent Monitor": "Independent",
+  };
+  CG.affShort = function (aff) { return CG.AFF_SHORT[aff] || aff; };
+
   /* ----------------------------------------------------------------------
    * JOB TITLES,  drawn once per player at setup (your avatar this game).
    * The real roles around a country team: UN, NGO, government, donor, community.
@@ -868,7 +881,7 @@
     { icon: "💵", title: "The Flash Appeal Is Funded", kind: "good", tag: "funding", why: "The appeal hits a hundred percent and the plan finally has money behind it.", fact: "A flash appeal sets the strategy for the first months of a crisis.", eff: { funding: 2, move: 1 } },
     { icon: "📉", title: "The Appeal Stalls at 40 Percent", kind: "bad", tag: "funding", why: "Chronic underfunding forces brutal cuts across whole sectors.", fact: "Underfunding means reaching millions fewer people than planned.", eff: { funding: -2 } },
     { icon: "📱", title: "Rumours Outrun the Response", kind: "bad", tag: "info", why: "False information empties the clinics faster than you can fill them.", fact: "Risk communication teams treat rumour-tracking as surveillance.", eff: { trust: -2 } },
-    { icon: "🛂", title: "Visas Denied at the Last Minute", kind: "bad", tag: "access", why: "Your surge experts simply cannot get into the country.", fact: "Visa delays are logged as deliberate access constraints now, not paperwork.", eff: { capacity: -2, move: -1 } },
+    { icon: "🛂", title: "Visas Denied at the Last Minute", kind: "bad", tag: "access", why: "Your surge experts simply cannot get into the country.", fact: "Visa delays are logged as deliberate access constraints now, not paperwork.", eff: { capacity: -2, move: -2 } },
     { icon: "🕳️", title: "Aid Is Diverted", kind: "bad", tag: "governance", why: "Goods siphoned off before they land dent donor confidence.", fact: "Diversion is managed through third-party monitoring. Zero diversion can mean zero access.", eff: { funding: -1, trust: -1 } },
     { icon: "😷", title: "A Lockdown Hits the Pipeline", kind: "bad", tag: "health", why: "Movement bans choke your supply chain just as needs surge.", fact: "Response measures can harm the most vulnerable as much as the disease.", eff: { capacity: -1, move: -1 } },
     { icon: "🔌", title: "The Generator Fails", kind: "bad", tag: "any", why: "The office loses power mid-crisis, and a day of work goes with it.", fact: "Resilience is boring until the day it is everything. Plan for the outage.", eff: { move: -1 } },
@@ -888,12 +901,12 @@
     // more setbacks
     { icon: "✂️", title: "A Global Funding Cut Lands", kind: "bad", tag: "funding", why: "A donor capital slashes its aid budget, and ration cuts cascade.", fact: "A recent year saw the largest fall in humanitarian funding ever recorded.", eff: { funding: -2, capacity: -1 } },
     { icon: "🍚", title: "Rations Are Cut in Half", kind: "bad", tag: "funding", why: "With the pipeline short, families on a full ration now get a fraction.", fact: "When the money shrinks, the ration is the first thing to fall.", eff: { funding: -1, trust: -1 } },
-    { icon: "🎯", title: "A Convoy Is Attacked", kind: "bad", tag: "access", why: "An attack forces a security pause that halts assistance for everyone.", fact: "The deadliest years on record for aid workers are the recent ones.", eff: { capacity: -2, move: -1 } },
+    { icon: "🎯", title: "A Convoy Is Attacked", kind: "bad", tag: "access", why: "An attack forces a security pause that halts assistance for everyone.", fact: "The deadliest years on record for aid workers are the recent ones.", eff: { capacity: -2, move: -3 } },
     { icon: "⛓️", title: "National Staff Are Detained", kind: "bad", tag: "governance", why: "The arbitrary arrest of local colleagues freezes the operation.", fact: "States, not only armed groups, are a fast-growing threat to aid workers.", eff: { capacity: -1, trust: -1 } },
     { icon: "🦠", title: "Cholera Breaks Out", kind: "bad", tag: "health", why: "Contaminated water in a crowded site sends cases climbing fast.", fact: "Cholera is a water disease. The vaccine only buys time while you fix the tap.", eff: { capacity: -1, move: -1 } },
-    { icon: "⚓", title: "The Port Seizes Up", kind: "bad", tag: "supply", why: "Congestion at the single entry port backs up everyone's cargo at once.", fact: "Common logistics services exist because no one agency can untangle a port alone.", eff: { capacity: -1, move: -1 } },
+    { icon: "⚓", title: "The Port Seizes Up", kind: "bad", tag: "supply", why: "Congestion at the single entry port backs up everyone's cargo at once.", fact: "Common logistics services exist because no one agency can untangle a port alone.", eff: { capacity: -1, move: -2 } },
     { icon: "🪙", title: "A Pledge Never Arrives", kind: "bad", tag: "funding", why: "A headline pledge turns out to be announced, not paid.", fact: "Count what arrives, not what is announced.", eff: { funding: -2 } },
-    { icon: "🌪️", title: "A Storm Makes Landfall", kind: "bad", tag: "storm", why: "One storm flattens shelter, water and health all at once.", fact: "Anticipatory action releases money on the forecast, before the impact.", eff: { capacity: -1, move: -1 } },
+    { icon: "🌪️", title: "A Storm Makes Landfall", kind: "bad", tag: "storm", why: "One storm flattens shelter, water and health all at once.", fact: "Anticipatory action releases money on the forecast, before the impact.", eff: { capacity: -1, move: -2 } },
     { icon: "🪧", title: "An NGO Law Bites", kind: "bad", tag: "governance", why: "A restrictive registration law can deregister your partners overnight.", fact: "The only durable insurance against a registration weapon is local capacity that stays.", eff: { capacity: -2 } },
     { icon: "📑", title: "A Counter-Terror Clause Freezes a Partner", kind: "bad", tag: "governance", why: "Strict conditions make supporting a frontline partner legally fraught.", fact: "Principled action reaches by need alone, but the paperwork grows heavier.", eff: { capacity: -1, move: -1 } },
     { icon: "🧱", title: "A Bank De-Risks You", kind: "bad", tag: "funding", why: "A nervous bank closes the account, and cash cannot reach partners.", fact: "Financial de-risking can choke a lawful operation like any checkpoint.", eff: { funding: -1, capacity: -1 } },

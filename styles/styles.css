@@ -244,6 +244,19 @@ button { font-family: inherit; cursor: pointer; }
 .qchip.neg { background: rgba(229,86,75,.14); border-color: rgba(229,86,75,.4); }
 .qchip.neg .q-ic { filter: none; opacity: 1; }
 .qchip.neg .q-lv { color: #c0392b; }
+/* the chip the latest movement just touched, pulsed so the change is seen */
+.qchip.pulse-up { animation: qPulseUp .9s ease-out; }
+.qchip.pulse-down { animation: qPulseDown .9s ease-out; }
+@keyframes qPulseUp {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47,158,84,.5); }
+  30% { transform: scale(1.22); box-shadow: 0 0 0 6px rgba(47,158,84,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47,158,84,0); }
+}
+@keyframes qPulseDown {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229,86,75,.5); }
+  30% { transform: scale(1.22); box-shadow: 0 0 0 6px rgba(229,86,75,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229,86,75,0); }
+}
 
 /* board fills the screen */
 .board-stage { position: absolute; inset: 0; padding: 56px 16px calc(116px + env(safe-area-inset-bottom)); display: flex; }
@@ -399,7 +412,7 @@ button { font-family: inherit; cursor: pointer; }
 .event-card.note, .event-card.win { border-top-color: var(--gold); }
 .ec-who {
   display: flex; align-items: center; gap: 10px;
-  justify-content: center; text-align: left;
+  justify-content: flex-start; text-align: left;
   margin: -6px 0 14px; padding: 8px 14px;
   background: color-mix(in srgb, var(--who, #2f6bff) 9%, #fff);
   border: 1px solid color-mix(in srgb, var(--who, #2f6bff) 24%, var(--line));
@@ -410,9 +423,20 @@ button { font-family: inherit; cursor: pointer; }
   display: grid; place-items: center; font-size: 16px;
   background: color-mix(in srgb, var(--who, #2f6bff) 18%, #fff);
 }
-.ec-who-id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
-.ec-who-id b { font-size: 14px; font-weight: 800; color: var(--ink); }
-.ec-who-id small { font-size: 11px; color: var(--muted); font-weight: 600; }
+.ec-who-id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; flex: 1 1 auto; }
+.ec-who-id b { font-size: 14px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ec-who-id small { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* affiliation badge: the org / agency short name, so every card reads as a
+   professional identity, not just a player nickname */
+.ec-who-aff {
+  flex: none; margin-left: auto;
+  font-family: "Space Grotesk", sans-serif; font-weight: 700;
+  font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--who, #2f6bff) 62%, var(--ink));
+  background: color-mix(in srgb, var(--who, #2f6bff) 14%, #fff);
+  border: 1px solid color-mix(in srgb, var(--who, #2f6bff) 30%, var(--line));
+  padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+}
 .ec-band { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
 .event-card.ladder .ec-band { color: var(--gold); }
 .event-card.snake .ec-band { color: var(--red); }

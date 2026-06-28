@@ -59,12 +59,47 @@
     CG.QUINTET.forEach((c) => (q[c.key] = 0));
     return q;
   }
-  function applyQuintet(tag, dir, p) {
-    const key = CG.quintetForTag(tag);
-    const meta = CG.quintetMeta(key);
-    S.quintet[key] = (S.quintet[key] || 0) + dir;
-    if (p && p.contrib) p.contrib[key] = (p.contrib[key] || 0) + dir;
-    return { key, meta, dir, level: S.quintet[key] };
+  // Resolve which capability a card touches, and in which direction, WITHOUT
+  // mutating, so the very same result can be shown on the card and then applied.
+  // Explicit eff.quintet wins; otherwise it is inferred from the card's tag,
+  // and a setback (defaultDir < 0) sets the capability back instead of building it.
+  function resolveQuintet(eff, tag, defaultDir) {
+    if (eff && eff.quintet) {
+      const key = eff.quintet;
+      return { key, meta: CG.quintetMeta(key), dir: eff.quintetDir || 1 };
+    }
+    if (tag) {
+      const key = CG.quintetForTag(tag);
+      return { key, meta: CG.quintetMeta(key), dir: defaultDir || 1 };
+    }
+    return null;
+  }
+  // Commit a resolved quintet nudge to the shared tally and the player, then
+  // pulse its chip in the standings panel so the change never passes unseen.
+  function commitQuintet(p, q) {
+    if (!q) return null;
+    S.quintet[q.key] = (S.quintet[q.key] || 0) + q.dir;
+    if (p && p.contrib) p.contrib[q.key] = (p.contrib[q.key] || 0) + q.dir;
+    q.level = S.quintet[q.key];
+    return q;
+  }
+  function flashQuint(key, dir) {
+    const chip = $('#standings [data-q="' + key + '"]');
+    if (!chip) return;
+    const cls = dir > 0 ? "pulse-up" : "pulse-down";
+    chip.classList.remove(cls); void chip.offsetWidth; chip.classList.add(cls);
+    setTimeout(() => chip.classList.remove(cls), 950);
+  }
+  // The UN 2.0 Quintet block shown on an event / resource card, so the player
+  // sees which of the five capabilities a movement just strengthened or set back.
+  function quintBlockHtml(q) {
+    if (!q) return "";
+    return `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}">` +
+        `<span class="eq-ic">${q.meta.icon}</span>` +
+        `<span class="eq-txt"><b>${esc(q.meta.name)}</b> ${q.dir > 0 ? "strengthened" : "set back"}` +
+          `<small>UN 2.0 Quintet of Change</small></span>` +
+        `<span class="eq-delta">${q.dir > 0 ? "+1" : "−1"}</span>` +
+      `</div>`;
   }
 
   // weighted, theatre-aware draw that avoids repeating the last card
@@ -135,8 +170,9 @@
         `<span class="ec-who-ic">${p.role.icon}</span>` +
         `<span class="ec-who-id">` +
           `<b>${esc(p.name)}</b>` +
-          `<small>${esc(p.role.name)} · ${esc(p.role.aff)}</small>` +
+          `<small>${esc(p.role.name)}</small>` +
         `</span>` +
+        `<span class="ec-who-aff" title="${esc(p.role.aff)}">${esc(CG.affShort(p.role.aff))}</span>` +
       `</div>`;
   }
 
@@ -605,7 +641,7 @@
     CG.QUINTET.forEach((q) => {
       const lvl = S.quintet[q.key] || 0;
       chips +=
-        `<span class="qchip${lvl > 0 ? " on" : lvl < 0 ? " neg" : ""}" title="${q.name}: ${q.blurb}">` +
+        `<span class="qchip${lvl > 0 ? " on" : lvl < 0 ? " neg" : ""}" data-q="${q.key}" title="${q.name}: ${q.blurb}">` +
           `<span class="q-ic">${q.icon}</span><span class="q-lv">${lvl}</span></span>`;
     });
     panel.innerHTML = `<div class="quint-label">UN 2.0 Quintet of Change</div><div class="quint-row">${chips}</div>`;
@@ -794,9 +830,10 @@
     if (t === "funding" || t === "trust" || t === "capacity") {
       const deck = S.decks[t];
       const card = deck();
-      await showResourceCard(p, card, t);
+      const q = resolveQuintet(card.eff, card.tag, 1);
+      await showResourceCard(p, card, t, q);
       if (S.settings.music) CG.Audio.sfx.note();
-      await applyEffects(p, card.eff, card.tag);
+      await applyEffects(p, card.eff, card.tag, null, q);
     } else if (t === "milestone") {
       const card = S.decks.milestone();
       p.milestones++;
@@ -807,10 +844,11 @@
       toast(`${p.name} reaches a milestone ⭐`, "good");
     } else if (t === "event") {
       const card = weightedDraw(CG.MANDATE_EVENTS, tags);
-      await showEventCard(p, card);
+      const q = resolveQuintet(card.eff, card.tag, card.kind === "bad" ? -1 : 1);
+      await showEventCard(p, card, q);
       if (S.settings.music) (card.kind === "bad" ? CG.Audio.sfx.snake : CG.Audio.sfx.ladder)();
       if (card.kind === "bad") shake();
-      await applyEffects(p, card.eff, card.tag);
+      await applyEffects(p, card.eff, card.tag, null, q);
     } else if (t === "crossroads") {
       const card = weightedDraw(CG.MANDATE_DECISIONS, tags);
       const choice = await showDecision(p, card);
@@ -825,7 +863,7 @@
   }
 
   // apply a card / choice effect: resources, a Quintet nudge, then movement.
-  async function applyEffects(p, eff, tag, choiceLabel) {
+  async function applyEffects(p, eff, tag, choiceLabel, q) {
     if (!eff) return;
     const parts = [];
     ["funding", "trust", "capacity"].forEach((k) => {
@@ -835,15 +873,16 @@
         parts.push(`${eff[k] > 0 ? "+" : ""}${eff[k]} ${ic}`);
       }
     });
-    if (eff.quintet) {
-      const dir = eff.quintetDir || 1;
-      S.quintet[eff.quintet] = (S.quintet[eff.quintet] || 0) + dir;
-      if (p.contrib) p.contrib[eff.quintet] = (p.contrib[eff.quintet] || 0) + dir;
-    } else if (tag) {
-      applyQuintet(tag, 1, p);
-    }
+    // Quintet of Change: use the result already shown on the card when given,
+    // otherwise resolve one now (a building move, +1).
+    if (q === undefined) q = resolveQuintet(eff, tag, 1);
+    commitQuintet(p, q);
     if (parts.length) toast(`${p.name}: ${parts.join("  ")}`, parts.some((s) => s[0] === "-") ? "bad" : "good");
     renderStandings();
+    if (q) {
+      flashQuint(q.key, q.dir);
+      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} ${q.dir > 0 ? "strengthened" : "set back"}`, q.dir > 0 ? "good" : "bad");
+    }
     if (eff.skip) { p.skipNext = true; toast(`${p.name} will lose a turn`, "muted"); }
     if (eff.bonus) { p.bonusSpin = true; toast(`${p.name} spins again`, "good"); }
     if (eff.move) {
@@ -876,7 +915,7 @@
     capacity: { band: "CAPACITY", cls: "capacity", cont: "Build it ▸" },
   };
 
-  function showResourceCard(p, card, kind) {
+  function showResourceCard(p, card, kind, q) {
     return new Promise((resolve) => {
       const m = RES_META[kind];
       const why = fillText(card.why, p), fact = fillText(card.fact, p);
@@ -890,7 +929,8 @@
         `<div class="ec-title">${esc(card.title)}</div>` +
         effChips(card.eff) +
         `<div class="ec-why">${why}</div>` +
-        `<div class="ec-fact"><span>Side fact</span>${fact}</div>`;
+        `<div class="ec-fact"><span>Side fact</span>${fact}</div>` +
+        quintBlockHtml(q);
       finishOverlay(c, over, kind, spoken, p, resolve, m.cont, why + " " + fact, 3000);
     });
   }
@@ -913,7 +953,7 @@
     });
   }
 
-  function showEventCard(p, card) {
+  function showEventCard(p, card, q) {
     return new Promise((resolve) => {
       const spoken = `${card.title}. ${card.why} ${card.fact}`;
       const over = el("div", "overlay-card");
@@ -925,7 +965,8 @@
         `<div class="ec-title">${esc(card.title)}</div>` +
         effChips(card.eff) +
         `<div class="ec-why">${card.why}</div>` +
-        `<div class="ec-fact"><span>Side fact</span>${card.fact}</div>`;
+        `<div class="ec-fact"><span>Side fact</span>${card.fact}</div>` +
+        quintBlockHtml(q);
       finishOverlay(c, over, card.kind === "bad" ? "snake" : "ladder", spoken, p, resolve,
         card.kind === "bad" ? "Take the hit ▾" : "Ride it ▸", card.why + " " + card.fact, 3000);
     });
@@ -1020,6 +1061,10 @@
       if (eff[k]) chips.push(`<span class="ef ${eff[k] > 0 ? "up" : "down"}">${eff[k] > 0 ? "+" : ""}${eff[k]} ${map[k]}</span>`);
     });
     if (eff.move) chips.push(`<span class="ef ${eff.move > 0 ? "up" : "down"}">${eff.move > 0 ? "▲" : "▼"}${Math.abs(eff.move)}</span>`);
+    if (eff.quintet) {
+      const qm = CG.quintetMeta(eff.quintet), qd = eff.quintetDir || 1;
+      chips.push(`<span class="ef ${qd > 0 ? "up" : "down"}" title="${esc(qm.name)} · UN 2.0 Quintet">${qm.icon} ${qd > 0 ? "+" : "−"}1</span>`);
+    }
     if (eff.bonus) chips.push(`<span class="ef up">spin again</span>`);
     if (eff.skip) chips.push(`<span class="ef down">lose a turn</span>`);
     if (!chips.length) return "";
