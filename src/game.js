@@ -766,12 +766,17 @@
     const rollText = rolls.length > 1 ? `${rolls.join(" + ")} = <b>${sum}</b>` : `<b>${sum}</b>`;
     toast(`${p.name} rolls ${rollText}${doubles ? " · doubles" : ""}`, "roll");
 
-    let target = p.pos + sum, bounced = false;
-    if (target > 100) { target = 100 - (target - 100); bounced = true; }
+    // Reaching OR passing square 100 finishes the road. We deliberately do NOT
+    // require an exact landing: with the "last player home ends the game" rule,
+    // an exact-landing rule leaves the trailing player (especially an auto-
+    // playing AI) bouncing around the high squares for hundreds of turns, so the
+    // game never actually ends. Overshoot simply arrives home.
+    let target = p.pos + sum, overshot = false;
+    if (target > 100) { target = 100; overshot = true; }
 
     setMoving(true); // clear the board while the token travels
     await walk(p, target);
-    if (bounced) toast(`${p.name} overshoots and bounces back to ${target}`, "muted");
+    if (overshot) toast(`${p.name} crosses the line home`, "good");
 
     await resolveLanding(p, 0);
     setMoving(false); // a roll is coming up: bring the panels back
