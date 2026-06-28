@@ -11,7 +11,7 @@ echo ""
 echo "  ========================================="
 echo "    COMMON GROUND: THE LONG ROAD"
 echo "    Roll two dice. Climb the ladders."
-echo "    Dodge the snakes. Finish the mandate."
+echo "    Dodge the holes. Finish the mandate."
 echo "  ========================================="
 echo ""
 

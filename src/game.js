@@ -5,12 +5,12 @@
  * lives in data/content.js; this file is pure mechanics + DOM.
  *
  * THE GAME
- *   A field-coordination Snakes & Ladders for a UN Country Team. You always
+ *   A field-coordination Ladders & Holes for a UN Country Team. You always
  *   play against AI rivals. Roll one or two dice, race a hundred squares to a
- *   finished mandate. Climb ladders, dodge snakes, and collect trophies,
+ *   finished mandate. Climb ladders, dodge holes, and collect trophies,
  *   diamonds and surprise cards along the way. Every landing is read aloud.
  *
- * The board fills the screen (cells are rectangles). Snakes, ladders and
+ * The board fills the screen (cells are rectangles). Holes, ladders and
  * tokens are drawn in real pixel space so nothing distorts, and redraw on
  * resize. All shapes are CSS/SVG, no external images.
  * ========================================================================= */
@@ -75,7 +75,7 @@
   }
 
   // ---- dynamic board: a fresh, valid layout every game ------------------
-  // Ladders and snakes run STRAIGHT UP A COLUMN (no diagonals). A vertical line
+  // Ladders and holes run STRAIGHT UP A COLUMN (no diagonals). A vertical line
   // in a column always connects a lower square (more vrow) to a higher one.
   function generateBoard() {
     const used = new Set([1, 100]);
@@ -90,7 +90,7 @@
         if (vBot > 9) continue;
         const topSq = squareAt(col, vTop), botSq = squareAt(col, vBot);
         if (topSq === 100 || botSq === 1 || topSq === 1 || botSq === 100) continue;
-        // reserve EVERY cell the chute passes through, so ladders and tunnels
+        // reserve EVERY cell the chute passes through, so ladders and holes
         // never share a box. A chute is clear only if all its cells are free.
         const span = [];
         for (let v = vTop; v <= vBot; v++) span.push(squareAt(col, v));
@@ -132,9 +132,9 @@
   }
 
   // ---- the UN 2.0 Quintet of Change -------------------------------------
-  // Every player carries the five capabilities. Ladders strengthen one, snakes
-  // set one back (never below zero). The capability touched is inferred from
-  // the card's tag, so the nudge fits the event.
+  // Every player carries the five capabilities. Ladders strengthen one, holes
+  // set one back, and a capability can fall below zero. The capability touched
+  // is inferred from the card's tag, so the nudge fits the event.
   function newQuintet() {
     const q = {};
     CG.QUINTET.forEach((c) => (q[c.key] = 0));
@@ -143,7 +143,7 @@
   function applyQuintet(p, tag, dir) {
     const key = CG.quintetForTag(tag);
     const meta = CG.quintetMeta(key);
-    const level = Math.max(0, (p.quintet[key] || 0) + dir);
+    const level = (p.quintet[key] || 0) + dir;   // can climb positive or fall negative
     p.quintet[key] = level;
     return { key, meta, dir, level };
   }
@@ -167,8 +167,14 @@
     zoneSpoken: -1,
   };
 
-  // Token colours, all distinct from ladder-wood and snake-blue.
+  // Token colours, all distinct from ladder-wood and hole-green.
   const COLORS = ["#2f6bff", "#e8439b", "#7c4dff", "#ff7a1a"];
+  // Finishing order: the road is not done until the LAST player is home.
+  const MEDALS = ["🥇", "🥈", "🥉", "🎖️"];
+  function ordinal(n) {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
 
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
   let decksReady = false;
@@ -278,6 +284,8 @@
       quintet: newQuintet(),
       bonusRoll: false,
       skipNext: false,
+      finished: false,
+      rank: 0,
     }));
     S.current = 0; S.over = false; S.zoneSpoken = -1;
     renderDeal();
@@ -448,19 +456,19 @@
       `<linearGradient id="ladderRung" x1="0" y1="0" x2="0" y2="1">` +
         `<stop offset="0" stop-color="#7ab0f0"/><stop offset="1" stop-color="#2f63b0"/>` +
       `</linearGradient>` +
-      // tunnel pipe: glossy red cylinder
+      // tunnel pipe: glossy light-green cylinder
       `<linearGradient id="portalPipe" x1="0" y1="0" x2="1" y2="0">` +
-        `<stop offset="0" stop-color="#8a1f1f"/><stop offset="0.42" stop-color="#f2655a"/>` +
-        `<stop offset="0.58" stop-color="#ec5448"/><stop offset="1" stop-color="#8a1f1f"/>` +
+        `<stop offset="0" stop-color="#4ea36a"/><stop offset="0.42" stop-color="#cdf0d8"/>` +
+        `<stop offset="0.58" stop-color="#c2ecce"/><stop offset="1" stop-color="#4ea36a"/>` +
       `</linearGradient>` +
-      // the dark mouth of the tunnel, deep in the middle, lit at the red rim
+      // the dark mouth of the tunnel, deep in the middle, lit at the green rim
       `<radialGradient id="portalGrad" cx="0.5" cy="0.42" r="0.62">` +
-        `<stop offset="0" stop-color="#1a0606"/><stop offset="0.5" stop-color="#5a1414"/>` +
-        `<stop offset="0.82" stop-color="#b83030"/><stop offset="1" stop-color="#f2655a"/>` +
+        `<stop offset="0" stop-color="#0c1a10"/><stop offset="0.5" stop-color="#1f4a2c"/>` +
+        `<stop offset="0.82" stop-color="#5aa873"/><stop offset="1" stop-color="#cdf0d8"/>` +
       `</radialGradient>` +
       // soft glow around the mouth
       `<radialGradient id="portalGlow" cx="0.5" cy="0.5" r="0.5">` +
-        `<stop offset="0" stop-color="#ff9a86" stop-opacity="0.85"/><stop offset="1" stop-color="#ff9a86" stop-opacity="0"/>` +
+        `<stop offset="0" stop-color="#bff5d0" stop-opacity="0.85"/><stop offset="1" stop-color="#bff5d0" stop-opacity="0"/>` +
       `</radialGradient>` +
       `<filter id="soft" x="-40%" y="-40%" width="180%" height="180%">` +
         `<feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#10233f" flood-opacity="0.28"/>` +
@@ -497,10 +505,10 @@
     const tip = { x: tail.x + ux * W, y: tail.y + uy * W };
     mk("path", {
       d: `M ${hL.x} ${hL.y} L ${tL.x} ${tL.y} Q ${tip.x} ${tip.y} ${tR.x} ${tR.y} L ${hR.x} ${hR.y} Z`,
-      fill: "url(#portalPipe)", stroke: "#3a0e0e", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)",
+      fill: "url(#portalPipe)", stroke: "#2c6b42", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)",
     }, g);
     // glossy highlight running down one side of the pipe
-    mk("path", { d: `M ${head.x + px * W * 0.45} ${head.y + py * W * 0.45} L ${tail.x + px * W * 0.45} ${tail.y + py * W * 0.45}`, fill: "none", stroke: "#ffd9d2", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.35" }, g);
+    mk("path", { d: `M ${head.x + px * W * 0.45} ${head.y + py * W * 0.45} L ${tail.x + px * W * 0.45} ${tail.y + py * W * 0.45}`, fill: "none", stroke: "#eafff0", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.35" }, g);
 
     // downward chevrons (it takes you back)
     const arrows = Math.max(1, Math.round(len / (unit * 0.9)));
@@ -509,45 +517,65 @@
       const aw = W * 0.5, ah = W * 0.42;
       mk("path", {
         d: `M ${cx + px * aw - ux * ah} ${cy + py * aw - uy * ah} L ${cx + ux * ah} ${cy + uy * ah} L ${cx - px * aw - ux * ah} ${cy - py * aw - uy * ah}`,
-        fill: "none", stroke: "#ffe3de", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", "stroke-linejoin": "round", opacity: "0.7",
+        fill: "none", stroke: "#eafff0", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", "stroke-linejoin": "round", opacity: "0.7",
       }, g);
     }
 
     // exit opening at the bottom
-    mk("ellipse", { cx: tail.x, cy: tail.y, rx: W * 0.72, ry: W * 0.4, fill: "#1a0606", opacity: "0.88" }, g);
+    mk("ellipse", { cx: tail.x, cy: tail.y, rx: W * 0.72, ry: W * 0.4, fill: "#0a1c11", opacity: "0.88" }, g);
 
     // the lit mouth at the top, in its own group so it can swell on a swallow
     const m = mk("g", { class: "tunnel-mouth" }, g);
     mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.85, ry: W * 1.12, fill: "url(#portalGlow)", opacity: "0.75" }, m);
-    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.5, ry: W * 0.92, fill: "#f4d9d2", stroke: "#a6635f", "stroke-width": Math.max(0.4, unit * 0.016), filter: "url(#soft)" }, m);
-    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.18, ry: W * 0.7, fill: "#97625b" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.5, ry: W * 0.92, fill: "#dcf4e3", stroke: "#6fa680", "stroke-width": Math.max(0.4, unit * 0.016), filter: "url(#soft)" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.18, ry: W * 0.7, fill: "#6f9b7c" }, m);
     mk("ellipse", { cx: head.x, cy: head.y, rx: W * 0.95, ry: W * 0.56, fill: "url(#portalGrad)" }, m);
     // a crescent glint on the rim
-    mk("path", { d: `M ${head.x - W * 0.72} ${head.y - W * 0.06} A ${W * 0.85} ${W * 0.48} 0 0 1 ${head.x + W * 0.45} ${head.y - W * 0.44}`, fill: "none", stroke: "#fff0f0", "stroke-width": Math.max(0.3, unit * 0.014), "stroke-linecap": "round", opacity: "0.6" }, m);
+    mk("path", { d: `M ${head.x - W * 0.72} ${head.y - W * 0.06} A ${W * 0.85} ${W * 0.48} 0 0 1 ${head.x + W * 0.45} ${head.y - W * 0.44}`, fill: "none", stroke: "#f0fff5", "stroke-width": Math.max(0.3, unit * 0.014), "stroke-linecap": "round", opacity: "0.6" }, m);
   }
 
   function drawLadder(foot, top, unit, footSq) {
     const dx = top.x - foot.x, dy = top.y - foot.y;
     const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len, ny = dx / len;
-    const w = unit * 0.17;
-    const g = mk("g", { class: "ladder", "data-foot": footSq });
-    const line = (x1, y1, x2, y2, cls, sw) =>
-      mk("line", { x1, y1, x2, y2, class: cls, "stroke-width": sw, "stroke-linecap": "round" }, g);
-    const railW = Math.max(1.0, unit * 0.08), edgeW = railW * 1.7;
-    // dark green underside, nudged down a touch for a 3D lift
-    [-1, 1].forEach((s) => {
-      line(foot.x + nx * w * s, foot.y + ny * w * s + unit * 0.022, top.x + nx * w * s, top.y + ny * w * s + unit * 0.022, "ladder-edge", edgeW);
-    });
-    // solid 3D green rails
-    [-1, 1].forEach((s) => {
-      line(foot.x + nx * w * s, foot.y + ny * w * s, top.x + nx * w * s, top.y + ny * w * s, "ladder-rail", railW);
-    });
+    const nx = -dy / len, ny = dx / len;   // across the ladder
+    const w = unit * 0.17;                   // half-distance between the rails
+    const g = mk("g", { class: "ladder", "data-foot": footSq, filter: "url(#soft)" });
+    const seg = (x1, y1, x2, y2, color, sw, op) =>
+      mk("line", { x1, y1, x2, y2, stroke: color, "stroke-width": sw, "stroke-linecap": "round", ...(op != null ? { opacity: op } : {}) }, g);
+
+    const railW = Math.max(1.2, unit * 0.085);
+    // a glossy rounded tube: dark base, mid body, bright core highlight, drawn
+    // along the same line so the stacked widths read as a lit cylinder.
+    const tube = (ax, ay, bx, by, baseW, dark, mid, light) => {
+      seg(ax, ay, bx, by, dark, baseW);
+      seg(ax, ay, bx, by, mid, baseW * 0.72);
+      seg(ax, ay, bx, by, light, baseW * 0.26, 0.85);
+    };
+
+    // soft cast shadow of each rail, nudged down-right for a 3D lift
+    [-1, 1].forEach((s) =>
+      seg(foot.x + nx * w * s + unit * 0.02, foot.y + ny * w * s + unit * 0.03,
+          top.x + nx * w * s + unit * 0.02, top.y + ny * w * s + unit * 0.03,
+          "#14365f", railW * 1.05, 0.22));
+
+    // rungs first, so the rails overlap their ends cleanly
     const rungs = Math.max(3, Math.round(len / (unit * 0.6)));
     for (let i = 1; i < rungs; i++) {
       const t = i / rungs, cx = foot.x + dx * t, cy = foot.y + dy * t;
-      line(cx + nx * w, cy + ny * w, cx - nx * w, cy - ny * w, "ladder-rung", railW * 0.82);
+      tube(cx + nx * w, cy + ny * w, cx - nx * w, cy - ny * w, railW * 0.8, "#1f5396", "#4f93e6", "#cfe6ff");
     }
+
+    // the two side rails
+    [-1, 1].forEach((s) =>
+      tube(foot.x + nx * w * s, foot.y + ny * w * s, top.x + nx * w * s, top.y + ny * w * s,
+           railW, "#1d4e8f", "#5b97dd", "#dcecff"));
+
+    // rounded caps at the foot and the top of each rail
+    [-1, 1].forEach((s) => {
+      [foot, top].forEach((end) =>
+        mk("circle", { cx: end.x + nx * w * s, cy: end.y + ny * w * s, r: railW * 0.62,
+          fill: "#8fc0f5", stroke: "#1d4e8f", "stroke-width": Math.max(0.3, unit * 0.01) }, g));
+    });
   }
 
   // ---- standings ---------------------------------------------------------
@@ -555,17 +583,24 @@
     const box = $("#standings");
     if (!box) return;
     box.innerHTML = "";
-    const order = S.players.map((p, i) => ({ p, i })).sort((a, b) => b.p.pos - a.p.pos);
+    // Finishers rank to the top in placing order; the rest sort by position.
+    const order = S.players.map((p, i) => ({ p, i })).sort((a, b) => {
+      if (a.p.finished && b.p.finished) return a.p.rank - b.p.rank;
+      if (a.p.finished) return -1;
+      if (b.p.finished) return 1;
+      return b.p.pos - a.p.pos;
+    });
     order.forEach(({ p, i }) => {
-      const card = el("div", "scard" + (i === S.current && !S.over ? " active" : ""));
+      const card = el("div", "scard" + (i === S.current && !S.over ? " active" : "") + (p.finished ? " done" : ""));
       card.style.setProperty("--tok", p.color);
       let loot = "";
       if (p.trophies) loot += `<span>🏆${p.trophies > 1 ? "×" + p.trophies : ""}</span>`;
       if (p.diamonds) loot += `<span>💎${p.diamonds > 1 ? "×" + p.diamonds : ""}</span>`;
+      const posCell = p.finished ? (MEDALS[p.rank - 1] || "#" + p.rank) : p.pos;
       card.innerHTML =
         `<span class="savatar" style="--tok:${p.color}">${p.role.icon}</span>` +
         `<span class="sinfo"><b>${p.name}</b><small>${p.role.name}</small>${loot ? `<span class="sloot">${loot}</span>` : ""}</span>` +
-        `<span class="spos">${p.pos}</span>`;
+        `<span class="spos">${posCell}</span>`;
       box.appendChild(card);
     });
     // Show the Quintet meter for the player in focus: the one whose turn it is
@@ -587,7 +622,7 @@
     CG.QUINTET.forEach((q) => {
       const lvl = p.quintet[q.key] || 0;
       chips +=
-        `<span class="qchip${lvl > 0 ? " on" : ""}" title="${q.name}: ${q.blurb}">` +
+        `<span class="qchip${lvl > 0 ? " on" : lvl < 0 ? " neg" : ""}" title="${q.name}: ${q.blurb}">` +
           `<span class="q-ic">${q.icon}</span><span class="q-lv">${lvl}</span>` +
         `</span>`;
     });
@@ -733,7 +768,7 @@
 
     await resolveLanding(p, 0);
     setMoving(false); // a roll is coming up: bring the panels back
-    if (p.pos === 100) return finish(p);
+    if (p.pos === 100 && !p.finished) return playerFinishes(p);
 
     const again = doubles || p.bonusRoll;
     p.bonusRoll = false;
@@ -753,9 +788,10 @@
     do {
       S.current = (S.current + 1) % S.players.length;
       const np = S.players[S.current];
-      if (np.skipNext) { np.skipNext = false; toast(`${np.name} loses a turn`, "muted"); }
-      else break;
-    } while (++guard <= S.players.length);
+      if (np.finished) continue;                 // finished players sit out
+      if (np.skipNext) { np.skipNext = false; toast(`${np.name} loses a turn`, "muted"); continue; }
+      break;
+    } while (++guard <= S.players.length * 2);
     renderStandings(); renderTokens(); setTurnTag();
     if (!S.over && S.players[S.current].isAI) scheduleAI();
   }
@@ -907,7 +943,7 @@
   // CARD OVERLAYS
   // =======================================================================
   const CONT = { ladder: "Climb ▸", snake: "Down you go ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
-  const BAND = { ladder: "A LADDER", snake: "A TUNNEL", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
+  const BAND = { ladder: "A LADDER", snake: "A HOLE", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
 
   // Read a card aloud and, for an AI player, dismiss it only once the voice has
   // finished, so we never advance to the next card or player mid-sentence. With
@@ -952,7 +988,7 @@
         `<div class="ec-title">${card.title}</div>` +
         moveHtml +
         `<div class="ec-why">${card.why}</div>` +
-        `<div class="ec-fact"><span>Fun fact</span>${card.fact}</div>` +
+        `<div class="ec-fact"><span>Side fact</span>${card.fact}</div>` +
         quintHtml;
       const actions = el("div", "ec-actions");
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
@@ -996,33 +1032,94 @@
   // =======================================================================
   // FINISH
   // =======================================================================
-  function finish(winner) {
+  // A player reaching square 100 is placed (1st, 2nd, ...) but the game keeps
+  // going: the road is not over until the LAST player is home too.
+  function playerFinishes(p) {
+    if (p.finished) return;
+    p.finished = true;
+    p.rank = S.players.filter((x) => x.finished).length;
+    S.busy = false;
+    setMoving(false);
+    const isLast = S.players.every((x) => x.finished);
+    if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
+    if (!p.isAI) confetti();
+    renderStandings(); renderTokens(); setTurnTag();
+    toast(`${p.name} completes the mandate · ${ordinal(p.rank)} ${MEDALS[p.rank - 1] || "🏁"}`, "good");
+    showFinishCard(p, isLast, () => {
+      if (isLast) return endGame();
+      endTurn(); // hand the road to the next player still running
+    });
+  }
+
+  // The finishing player's placement card. AI players auto-advance once the
+  // line has been read; a human taps to play on (or to see the standings).
+  function showFinishCard(p, isLast, done) {
+    const spoken = `${p.name} completes the mandate, finishing in ${ordinal(p.rank)} place.`;
+    const over = el("div", "overlay-card");
+    const c = el("div", "event-card trophy");
+    c.innerHTML =
+      `<div class="ec-band">${ordinal(p.rank).toUpperCase()} PLACE</div>` +
+      `<div class="ec-icon">${MEDALS[p.rank - 1] || "🏁"}</div>` +
+      `<div class="ec-title">${esc(p.name)} reaches the end of the road</div>` +
+      `<div class="ec-why">${esc(p.role.name)} completes the mandate in ${ordinal(p.rank)} place.` +
+        `${isLast ? " The whole table is home now." : " The rest of the field plays on."}</div>`;
+    const actions = el("div", "ec-actions");
+    const cont = el("button", "btn btn-primary", isLast ? "Final standings ▸" : "Play on ▸");
+    const finishDone = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
+    cont.onclick = finishDone;
+    actions.appendChild(cont);
+    c.appendChild(actions);
+    over.appendChild(c);
+    app().appendChild(over);
+    requestAnimationFrame(() => over.classList.add("show"));
+    narrateCard(p, spoken, over, finishDone, 3000);
+  }
+
+  // Every player is home: show the full finishing order and wrap up.
+  function endGame() {
     S.over = true; S.busy = false;
     setMoving(false);
-    renderStandings(); renderTokens();
-    if (S.settings.music) { winner.isAI ? CG.Audio.sfx.lose() : CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
-    if (!winner.isAI) confetti();
+    renderStandings(); renderTokens(); setTurnTag();
+    const order = S.players.slice().sort((a, b) => a.rank - b.rank);
+    const winner = order[0];
+    const human = S.players.find((x) => !x.isAI);
+    if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
+    if (human && human.rank === 1) confetti();
 
-    const youWon = !winner.isAI;
-    // Recap the winner's run, whoever they are (works for hotseat humans too).
-    let line = youWon
-      ? (winner.name === "You" ? CG.STORY.winVsAI
-          : `${winner.name} reaches the end of the road first, leaving the country a little stronger, a little fairer, and quite able to do without them. Mandate complete.`)
-      : CG.STORY.loseVsAI;
-    const loot = [];
-    if (winner.trophies) loot.push(`${winner.trophies} ${winner.trophies > 1 ? "trophies" : "trophy"}`);
-    if (winner.diamonds) loot.push(`${winner.diamonds} ${winner.diamonds > 1 ? "diamonds" : "diamond"}`);
-    if (loot.length) line += ` Along the way ${youWon && winner.name === "You" ? "you" : winner.name} gathered ${loot.join(" and ")}.`;
+    let line;
+    if (human && human.rank === 1) {
+      line = human.name === "You" ? CG.STORY.winVsAI
+        : `${human.name} reaches the end of the road first, leaving the country a little stronger, a little fairer, and quite able to do without them. Mandate complete.`;
+    } else if (human) {
+      line = `${winner.name} reaches the end first; ${human.name === "You" ? "you finish" : human.name + " finishes"} ${ordinal(human.rank)}. Every team made it home in the end.`;
+    } else {
+      line = `${winner.name} leads the field home. Every team completed the road.`;
+    }
     const built = CG.QUINTET.filter((q) => (winner.quintet[q.key] || 0) > 0).map((q) => q.name);
     if (built.length) line += ` Strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
     CG.Narrate.auto(line);
 
+    let rows = "";
+    order.forEach((p) => {
+      const loot = [];
+      if (p.trophies) loot.push(`🏆${p.trophies > 1 ? "×" + p.trophies : ""}`);
+      if (p.diamonds) loot.push(`💎${p.diamonds > 1 ? "×" + p.diamonds : ""}`);
+      rows +=
+        `<div class="final-row">` +
+          `<span class="final-medal">${MEDALS[p.rank - 1] || "#" + p.rank}</span>` +
+          `<span class="final-name" style="color:${p.color}">${esc(p.name)}</span>` +
+          `<span class="final-role">${esc(p.role.name)}</span>` +
+          `<span class="final-loot">${loot.join(" ")}</span>` +
+        `</div>`;
+    });
+
     const over = el("div", "overlay-card show");
     const c = el("div", "event-card win");
     c.innerHTML =
-      `<div class="ec-band">${youWon ? "MANDATE COMPLETE" : "THE RIVAL FINISHES FIRST"}</div>` +
-      `<div class="ec-icon">${youWon ? "🏆" : "🏳️"}</div>` +
-      `<div class="ec-title">${youWon ? esc(winner.name) + " completes the mandate" : esc(winner.name) + " gets there first"}</div>` +
+      `<div class="ec-band">FINAL STANDINGS</div>` +
+      `<div class="ec-icon">🏁</div>` +
+      `<div class="ec-title">The whole table is home</div>` +
+      `<div class="final-list">${rows}</div>` +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
     const again = el("button", "btn btn-primary", "Run the road again ▸");
