@@ -895,9 +895,23 @@
   // =======================================================================
   // CARD OVERLAYS
   // =======================================================================
-  function narrateCard(p, spoken, over, done, fallbackMs) {
+  function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
-    if (!p.isAI) { CG.Narrate.auto(spoken); return; }
+    if (!p.isAI) {
+      // Human paces with the button, but the pawn must not move until the
+      // narrator has finished: hold Continue disabled while the voice speaks,
+      // then release it. A safety timer frees a stuck voice.
+      if (cont && voiced) {
+        cont.disabled = true;
+        let freed = false;
+        const free = () => { if (!freed) { freed = true; cont.disabled = false; } };
+        CG.Narrate.auto(spoken, { onend: free });
+        setTimeout(free, 20000);
+      } else {
+        CG.Narrate.auto(spoken);
+      }
+      return;
+    }
     let advanced = false;
     const advance = () => { if (!advanced) { advanced = true; if (over.parentNode) done(); } };
     if (voiced) {
@@ -1005,7 +1019,7 @@
     over.appendChild(c);
     app().appendChild(over);
     requestAnimationFrame(() => over.classList.add("show"));
-    narrateCard(p, spoken, over, done, fallbackMs);
+    narrateCard(p, spoken, over, done, fallbackMs, cont);
   }
 
   // the crossroads: a choice with consequences. Resolves to the chosen option.
@@ -1116,7 +1130,7 @@
     over.appendChild(c);
     app().appendChild(over);
     requestAnimationFrame(() => over.classList.add("show"));
-    narrateCard(p, spoken, over, fin, 3000);
+    narrateCard(p, spoken, over, fin, 3000, cont);
   }
 
   // Crowning the table, the same spirit as The Long Road: finishing first is

@@ -80,7 +80,10 @@ button { font-family: inherit; cursor: pointer; }
 /* shared scrolly screens */
 .title-screen, .deal-screen {
   height: 100vh; height: 100dvh; overflow-y: auto;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center;
+  /* "safe" keeps the top (logo + title) reachable when the content is taller
+     than the viewport; plain "center" clips it off-screen on short phones. */
+  justify-content: safe center;
   text-align: center; padding: 28px; gap: 6px; position: relative;
 }
 .title-screen {
@@ -397,6 +400,10 @@ button { font-family: inherit; cursor: pointer; }
 .overlay-card.show { opacity: 1; }
 .event-card {
   width: min(440px, 92vw);
+  /* never taller than the screen: a long card scrolls inside itself rather than
+     spilling off the top and bottom (common on phones with a lot of card text) */
+  max-height: 92vh; max-height: calc(100dvh - 28px);
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   background: #fff; border: 1px solid var(--line);
   border-radius: 22px; padding: 28px; text-align: center; box-shadow: var(--shadow);
   transform: translateY(18px) scale(.95);
@@ -523,7 +530,8 @@ button { font-family: inherit; cursor: pointer; }
 /* ======================================================================= */
 .platform-screen {
   height: 100vh; height: 100dvh; overflow-y: auto;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: safe center; /* see note above: keep the header reachable */
   text-align: center; padding: 28px; gap: 6px; position: relative;
   background:
     radial-gradient(1100px 680px at 80% -12%, #d6e6ff 0%, transparent 60%),
