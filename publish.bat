@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  Logic parity + enriched knowledge base. (1) Ported The Long
+REM              Road's end-game "Champions" celebration to The Mandate: it now
+REM              crowns Speed (first home), Legacy (deepest legacy) and a champion
+REM              for each UN 2.0 capability, shown on the final card and read
+REM              aloud. The Mandate's event/resource cards now also speak the
+REM              capability they move, matching the on-card Quintet block.
+REM              (2) Enriched data/content.js from current sources (GHO 2025,
+REM              UN 2.0, CERF/pooled funds, anticipatory action, displacement,
+REM              cash, aid-worker security, IPC famine, Grand Bargain, Pact for
+REM              the Future): +6 hole cards, +6 ladder cards, +13 field notes,
+REM              +6 Mandate events, +4 crossroads, +3 milestones, +6 resource
+REM              cards, +3 theatres, +6 roles. content.js v13, mandate.js v7.
 REM  2026-06-28  The Mandate, three refinements. (1) Setbacks can now send a
 REM              player back more than one square: the worst crises step back 2
 REM              or 3 (Convoy Attacked -3, Visas Denied / Storm / Port -2). (2)
