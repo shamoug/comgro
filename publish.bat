@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  Mobile polish, three fixes. (1) Header no longer truncated:
+REM              the launcher and title/deal screens used vertical centring that
+REM              clipped the logo and title off the top on short phones; switched
+REM              to "justify-content: safe center" so the top stays reachable.
+REM              (2) Cards never spill off-screen: an event card now caps at the
+REM              viewport height and scrolls inside itself, so a long card keeps
+REM              its Continue button reachable instead of running past the edge.
+REM              (3) The pawn no longer moves mid-narration: for a human, the
+REM              Continue button is held disabled while the voice is still reading
+REM              the card, then released when it finishes (a 20s safety frees a
+REM              stuck voice). Applies to both games. styles.css v17, game.js v17,
+REM              mandate.js v8.
 REM  2026-06-28  Logic parity + enriched knowledge base. (1) Ported The Long
 REM              Road's end-game "Champions" celebration to The Mandate: it now
 REM              crowns Speed (first home), Legacy (deepest legacy) and a champion

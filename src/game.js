@@ -1021,9 +1021,24 @@
   // finished, so we never advance to the next card or player mid-sentence. With
   // narration off (or unsupported) we fall back to a fixed reading pause. A
   // safety cap guards against a voice that never reports it ended.
-  function narrateCard(p, spoken, over, done, fallbackMs) {
+  function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
-    if (!p.isAI) { CG.Narrate.auto(spoken); return; } // human paces with the button
+    if (!p.isAI) {
+      // Human paces with the button, but the token must not move until the
+      // narrator has finished the line: hold Continue disabled while the voice
+      // is still speaking, then release it. A safety timer frees a stuck voice
+      // so the player is never stranded.
+      if (cont && voiced) {
+        cont.disabled = true;
+        let freed = false;
+        const free = () => { if (!freed) { freed = true; cont.disabled = false; } };
+        CG.Narrate.auto(spoken, { onend: free });
+        setTimeout(free, 20000);
+      } else {
+        CG.Narrate.auto(spoken);
+      }
+      return;
+    }
     let advanced = false;
     const advance = () => { if (!advanced) { advanced = true; if (over.parentNode) done(); } };
     if (voiced) {
@@ -1074,7 +1089,7 @@
       over.appendChild(c);
       app().appendChild(over);
       requestAnimationFrame(() => over.classList.add("show"));
-      narrateCard(p, spoken, over, done, 3300);
+      narrateCard(p, spoken, over, done, 3300, cont);
     });
   }
 
@@ -1099,7 +1114,7 @@
       over.appendChild(c);
       app().appendChild(over);
       requestAnimationFrame(() => over.classList.add("show"));
-      narrateCard(p, spoken, over, done, 2600);
+      narrateCard(p, spoken, over, done, 2600, cont);
     });
   }
 
@@ -1146,7 +1161,7 @@
     over.appendChild(c);
     app().appendChild(over);
     requestAnimationFrame(() => over.classList.add("show"));
-    narrateCard(p, spoken, over, finishDone, 3000);
+    narrateCard(p, spoken, over, finishDone, 3000, cont);
   }
 
   // Crowning the table: finishing first is only one way to win. Every player
