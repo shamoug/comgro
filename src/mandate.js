@@ -354,7 +354,7 @@
     const legend = el("div", "mandate-legend");
     legend.innerHTML = [
       { ic: "🏁", name: "The Centre", blurb: "Reach it to accomplish the mission" },
-      { ic: "🪜", name: "Shortcut", blurb: "A secret passage toward the centre" },
+      { ic: "🪙", name: "Golden coins", blurb: "A coin trail toward the centre" },
       { ic: "🕳️", name: "Trap", blurb: "You get lost, back into the hedges" },
       { ic: "🏆", name: "Trophy", blurb: "Recognition, and another roll" },
       { ic: "💎", name: "Diamond", blurb: "A windfall that carries you on" },
@@ -574,13 +574,30 @@
     const ww = cs * 0.30;
     const path = (dd, col, w) =>
       `<path d="${dd}" fill="none" stroke="${col}" stroke-width="${w.toFixed(3)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    // a paving TILE under every cell, so each step the player takes reads as one
+    // physical tile along the corridor (the maze has no wall-cells: every cell
+    // is walkable, the hedges are the thin walls between them).
+    const tw = cs * 0.66, tr = tw * 0.22;
+    let tiles = "";
+    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
+      const x = (c + 0.5) * cs - tw / 2, y = (r + 0.5) * cs - tw / 2;
+      tiles +=
+        `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${tw.toFixed(2)}" height="${tw.toFixed(2)}" ` +
+        `rx="${tr.toFixed(2)}" fill="url(#mazeTile)" stroke="#c7b88a" stroke-width="${(cs * 0.012).toFixed(3)}" opacity="0.95"/>`;
+    }
+
     mazeSvg.innerHTML =
       `<defs>` +
         `<radialGradient id="mazeGround" cx="0.5" cy="0.5" r="0.72">` +
           `<stop offset="0" stop-color="#eef4dc"/><stop offset="1" stop-color="#dde7c4"/>` +
         `</radialGradient>` +
+        `<linearGradient id="mazeTile" x1="0" y1="0" x2="0" y2="1">` +
+          `<stop offset="0" stop-color="#fbf6e6"/><stop offset="1" stop-color="#ece2c4"/>` +
+        `</linearGradient>` +
       `</defs>` +
       `<rect x="0" y="0" width="100" height="100" rx="2.5" fill="url(#mazeGround)"/>` +
+      tiles +                            // the stepping tiles, one per step
       path(d, "#1f5230", ww * 1.08) +   // deep shadow root
       path(d, "#2e7a3d", ww) +          // hedge body
       path(d, "#3f9a4c", ww * 0.62) +   // sunlit top
@@ -588,7 +605,7 @@
   }
 
   // ---- cell markers (centre, gates, specials) ---------------------------
-  const SPECIAL_ICON = { shortcut: "🪜", trap: "🕳️", trophy: "🏆", diamond: "💎", surprise: "❓", note: "★" };
+  const SPECIAL_ICON = { shortcut: "🪙", trap: "🕳️", trophy: "🏆", diamond: "💎", surprise: "❓", note: "★" };
   function cellPctX(c) { return (c + 0.5) * (100 / GRID); }
   function cellPctY(r) { return (r + 0.5) * (100 / GRID); }
 
@@ -953,7 +970,7 @@
       const q = applyQuintet(p, card.tag, +1);
       await showCard(p, card, "shortcut", q);
       if (S.settings.music) CG.Audio.sfx.ladder();
-      toast(`${p.name} slips through a secret passage`, "good");
+      toast(`${p.name} follows a trail of golden coins`, "good");
       if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await warpTo(p, sp.to, "up");
     } else if (sp.kind === "trap") {
@@ -1005,8 +1022,8 @@
   // =======================================================================
   // CARD OVERLAYS
   // =======================================================================
-  const CONT = { shortcut: "Take it ▸", trap: "Lost again ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
-  const BAND = { shortcut: "A SHORTCUT", trap: "A TRAP", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
+  const CONT = { shortcut: "Pocket them ▸", trap: "Lost again ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
+  const BAND = { shortcut: "GOLDEN COINS", trap: "A TRAP", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
 
   function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();

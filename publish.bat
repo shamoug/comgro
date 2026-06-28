@@ -8,6 +8,13 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  Maze polish. (1) The shortcut "ladder" cells are now GOLDEN
+REM              COINS (🪙) on the board, in the legend and on the card (band
+REM              "GOLDEN COINS"); the mechanic is unchanged (a coin trail that
+REM              carries you toward the centre). (2) Every walkable cell now shows
+REM              a paving TILE, so each step a player takes reads as one physical
+REM              tile along the corridor (121 stepping tiles drawn under the
+REM              hedges in the maze SVG). mandate.js v10.
 REM  2026-06-28  THE MANDATE IS NOW A MAZE. Replaced the winding-road / spinner
 REM              game with a random green castle hedge maze. Each player enters
 REM              from a different gate (North/South/East/West) and threads the
