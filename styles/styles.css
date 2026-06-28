@@ -123,6 +123,46 @@ button { font-family: inherit; cursor: pointer; }
 .byline { color: var(--muted); font-size: 13px; margin: 6px 0 0; letter-spacing: .04em; }
 .byline b { color: var(--blue); font-weight: 700; }
 
+/* ---- setup screen: build your table (Human / AI per seat) ------------- */
+.setup-screen { justify-content: flex-start; padding-top: 6vh; }
+.seat-list { display: flex; flex-direction: column; gap: 10px; width: min(480px, 92vw); margin: 14px 0 4px; }
+.seat-row {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--tok);
+  border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow-sm);
+  animation: dealIn .4s cubic-bezier(.2,.8,.2,1) both;
+}
+.seat-badge {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 15px;
+  color: #fff; background: var(--tok); box-shadow: 0 4px 12px -4px var(--tok);
+}
+.seat-type { flex: none; padding: 3px; }
+.seat-type .seg { padding: 7px 13px; font-size: 13px; }
+.seat-type .seg.on { background: linear-gradient(135deg, var(--blue), #1f56d6); box-shadow: 0 6px 14px rgba(47,107,255,.3); }
+.seat-name { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; justify-content: flex-end; }
+.seat-input {
+  flex: 1 1 auto; min-width: 0; width: 100%;
+  border: 1px solid var(--line); border-radius: 10px; background: #f6f9ff;
+  padding: 9px 12px; font-size: 14px; font-weight: 600; color: var(--ink);
+  font-family: inherit; transition: border-color .15s ease, background .15s ease;
+}
+.seat-input:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(47,107,255,.14); }
+.ai-name { flex: 1 1 auto; text-align: right; font-size: 14.5px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reroll {
+  flex: none; border: 1px solid var(--line); background: #fff; border-radius: 10px;
+  padding: 7px 10px; font-size: 15px; box-shadow: var(--shadow-sm); transition: transform .12s ease, border-color .15s ease;
+}
+.reroll:hover { transform: rotate(-18deg); border-color: var(--blue); }
+
+@media (max-width: 480px) {
+  .setup-screen .title { font-size: 40px; }
+  .seat-row { gap: 8px; padding: 9px 10px; }
+  .seat-type .seg { padding: 6px 9px; font-size: 12px; }
+  .seat-badge { width: 26px; height: 26px; font-size: 13px; }
+}
+
 /* deal screen */
 .deal-screen { background: radial-gradient(1000px 600px at 50% -12%, #d6e6ff 0%, transparent 55%), var(--bg-2); }
 .deal-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); margin: 0; font-weight: 700; }
@@ -186,6 +226,21 @@ button { font-family: inherit; cursor: pointer; }
 .sinfo small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sloot { font-size: 12px; margin-top: 2px; display: flex; gap: 6px; }
 .spos { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 19px; color: var(--tok); }
+
+/* UN 2.0 Quintet of Change meter (the human player's five capabilities) */
+.quint-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; box-shadow: var(--shadow-sm); }
+.quint-label { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 6px; }
+.quint-row { display: flex; gap: 6px; }
+.qchip {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  border-radius: 9px; padding: 5px 2px 4px; background: rgba(120,140,170,.1);
+  border: 1px solid transparent; transition: background .25s ease, border-color .25s ease, transform .25s ease;
+}
+.qchip .q-ic { font-size: 15px; line-height: 1; filter: grayscale(.6); opacity: .6; }
+.qchip .q-lv { font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 12px; color: var(--muted); }
+.qchip.on { background: rgba(47,158,84,.14); border-color: rgba(47,158,84,.4); }
+.qchip.on .q-ic { filter: none; opacity: 1; }
+.qchip.on .q-lv { color: #1e6e3a; }
 
 /* board fills the screen */
 .board-stage { position: absolute; inset: 0; padding: 56px 16px calc(116px + env(safe-area-inset-bottom)); display: flex; }
@@ -333,6 +388,16 @@ button { font-family: inherit; cursor: pointer; }
 .ec-fact { background: #f4f8ff; border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; font-size: 14px; line-height: 1.55; text-align: left; color: var(--ink); }
 .ec-fact.big { font-size: 16px; }
 .ec-fact span { display: block; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 800; margin-bottom: 5px; }
+/* the UN 2.0 Quintet nudge, shown on a ladder/snake card */
+.ec-quint { display: flex; align-items: center; gap: 11px; text-align: left; margin-top: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); }
+.ec-quint.up { background: rgba(47,158,84,.1); border-color: rgba(47,158,84,.34); }
+.ec-quint.down { background: rgba(229,86,75,.1); border-color: rgba(229,86,75,.34); }
+.ec-quint .eq-ic { font-size: 22px; line-height: 1; }
+.ec-quint .eq-txt { display: flex; flex-direction: column; line-height: 1.2; font-size: 14px; color: var(--ink); }
+.ec-quint .eq-txt small { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-top: 2px; }
+.ec-quint .eq-delta { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 18px; }
+.ec-quint.up .eq-delta { color: #1e6e3a; }
+.ec-quint.down .eq-delta { color: #b73a30; }
 .ec-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
 
 /* ---- responsive ------------------------------------------------------- */
@@ -342,13 +407,19 @@ button { font-family: inherit; cursor: pointer; }
   .brand span { display: none; }
   .theatre-chip { display: none; }
   /* compact standings as a centred row of avatar + position chips */
-  .standings { top: calc(46px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: nowrap; justify-content: center; gap: 6px; }
+  .standings { top: calc(46px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; }
   .scard { flex: 0 1 auto; min-width: 0; padding: 5px 9px 5px 6px; gap: 6px; }
   .scard.active { transform: none; }
   .sinfo { display: none; }
   .savatar { width: 26px; height: 26px; font-size: 14px; }
   .spos { font-size: 16px; }
-  .board-stage { padding: calc(86px + env(safe-area-inset-top)) 8px calc(90px + env(safe-area-inset-bottom)); }
+  /* the Quintet meter drops to its own line below the standings chips */
+  .quint-panel { flex-basis: 100%; padding: 5px 8px; }
+  .quint-label { display: none; }
+  .quint-row { gap: 5px; max-width: 340px; margin: 0 auto; }
+  .qchip { flex-direction: row; justify-content: center; gap: 4px; padding: 3px 6px; }
+  .qchip .q-ic { font-size: 13px; }
+  .board-stage { padding: calc(128px + env(safe-area-inset-top)) 8px calc(90px + env(safe-area-inset-bottom)); }
   .die { width: 46px; height: 46px; }
   .dice-dock { gap: 10px; padding: 10px 14px; bottom: calc(14px + env(safe-area-inset-bottom)); max-width: calc(100vw - 16px); }
   .turn-tag { min-width: 0; font-size: 12px; }
@@ -420,6 +491,12 @@ button { font-family: inherit; cursor: pointer; }
 .lc-home.lc-yellow { background: rgba(240,180,41,.6); }
 .lc-home.lc-blue { background: rgba(47,107,255,.5); }
 .lc-center { background: conic-gradient(#e5564b 0deg 90deg, #2f9e54 90deg 180deg, #f0b429 180deg 270deg, #2f6bff 270deg 360deg); box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset; }
+.lc-start.lc-red { background: rgba(229,86,75,.32); }
+.lc-start.lc-green { background: rgba(47,158,84,.32); }
+.lc-start.lc-yellow { background: rgba(240,180,41,.36); }
+.lc-start.lc-blue { background: rgba(47,107,255,.3); }
+.lc-special { background: #fff; }
+.lc-ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(9px, 1.5vw, 16px); filter: drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
 .lc-ring {
   position: absolute; width: 4.4%; height: 4.4%; border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -431,10 +508,11 @@ button { font-family: inherit; cursor: pointer; }
 .lc-ring.lc-blue { color: #2f6bff; }
 .ltoken {
   position: absolute; transform: translate(-50%, -50%); border-radius: 50%;
-  border: 2px solid #fff; box-shadow: 0 3px 8px rgba(20,40,70,.45);
+  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.92), var(--tok) 78%);
+  border: 2px solid #fff; box-shadow: 0 3px 8px rgba(20,40,70,.45), 0 0 0 1.5px var(--tok);
   transition: left .16s linear, top .16s linear; z-index: 9;
 }
-.ltoken.done { opacity: .85; }
+.ltoken.done { opacity: .8; }
 .ltoken.movable { cursor: pointer; animation: bob 1s ease-in-out infinite; box-shadow: 0 0 0 3px rgba(255,255,255,.7), 0 0 14px -1px currentColor, 0 3px 8px rgba(20,40,70,.5); z-index: 11; }
 .ludo-screen .board-stage { display: flex; align-items: center; justify-content: center; }
 

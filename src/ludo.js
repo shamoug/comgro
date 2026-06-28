@@ -21,6 +21,19 @@
     return e;
   }
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  // ---- the UN 2.0 Quintet of Change -------------------------------------
+  // Every team carries the five capabilities. A capture is a ladder for the
+  // mover (a capability climbs) and a snake for the captured (one slips); each
+  // team brought home strengthens one too. Shown casually as you go.
+  function newQuintet() { const q = {}; CG.QUINTET.forEach((c) => (q[c.key] = 0)); return q; }
+  function applyQuintet(p, dir) {
+    const key = CG.quintetForTag(null);
+    const meta = CG.quintetMeta(key);
+    p.quintet[key] = Math.max(0, (p.quintet[key] || 0) + dir);
+    return { key, meta, dir, level: p.quintet[key] };
+  }
 
   // ---- the 56-cell main loop (x = col, y = row, 0..14) ------------------
   const LOOP = [
@@ -44,6 +57,26 @@
   // lookup maps for rendering the board
   const loopAt = {}; LOOP.forEach(([x, y], i) => (loopAt[x + "," + y] = i));
   const homeAt = {}; LCOLORS.forEach((c) => c.home.forEach(([x, y]) => (homeAt[x + "," + y] = c.key)));
+  const START_COLOR = { 0: "red", 14: "green", 28: "yellow", 42: "blue" };
+
+  // ---- hazards & bonuses scattered on the track (fresh every game) ------
+  // A setback sets a capability back; a bonus strengthens one (like the board).
+  const SPECIAL_TYPES = [
+    { key: "mine",  icon: "💣", label: "a landmine",   effect: "base" },
+    { key: "skull", icon: "☠️", label: "an ambush",    effect: "back", amount: 10 },
+    { key: "pit",   icon: "🕳️", label: "a sinkhole",   effect: "back", amount: 6 },
+    { key: "boost", icon: "🚀", label: "a fast track",  effect: "forward", amount: 4 },
+    { key: "star",  icon: "⭐", label: "a bonus",       effect: "extra" },
+    { key: "gift",  icon: "🎁", label: "a surprise",    effect: "surprise" },
+  ];
+  function generateSpecials() {
+    const avail = [];
+    for (let i = 0; i < 56; i++) if (!SAFE.has(i)) avail.push(i);
+    for (let i = avail.length - 1; i > 0; i--) { const j = rnd(i + 1); [avail[i], avail[j]] = [avail[j], avail[i]]; }
+    const out = {};
+    for (let i = 0; i < 8 && i < avail.length; i++) out[avail[i]] = SPECIAL_TYPES[rnd(SPECIAL_TYPES.length)];
+    return out;
+  }
 
   function cellPos(x, y) { return { x: ((x + 0.5) / 15) * 100, y: ((y + 0.5) / 15) * 100 }; }
   // absolute board cell for a token at progress p of a colour
@@ -54,7 +87,7 @@
   }
 
   // ---- state -------------------------------------------------------------
-  const S = { players: [], current: 0, busy: false, over: false, pending: null, settings: { music: true, voice: true } };
+  const S = { players: [], current: 0, busy: false, over: false, pending: null, specials: {}, settings: { music: true, voice: true } };
   let boardBox = null, resizeObs = null;
 
   // =======================================================================
@@ -78,21 +111,35 @@
     wrap.appendChild(el("p", "tagline",
       "Roll a six to deploy a team from base. Race all four teams around the board and home to the centre, and bump rivals back to base along the way. First to bring everyone home wins."));
 
-    wrap.appendChild(el("p", "pick-label", "Choose your table"));
-    const modes = el("div", "mode-row");
-    [1, 2, 3].forEach((n) => {
-      const b = el("button", "btn btn-primary", `<span class="mode-n">You + ${n}</span><span class="mode-sub">${n === 1 ? "rival" : "rivals"}</span>`);
-      b.onclick = () => newGame(n + 1);
-      modes.appendChild(b);
-    });
-    wrap.appendChild(modes);
-
     const toggles = el("div", "toggle-row");
     toggles.appendChild(toggle("🎵 Music", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
     toggles.appendChild(toggle("🗣️ Narration", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); }));
     wrap.appendChild(toggles);
+
+    const go = el("button", "btn btn-primary big", "Build your table ▸");
+    go.style.marginTop = "22px";
+    go.onclick = () => { if (CG.Audio) CG.Audio.sfx.click(); openSetup(); };
+    wrap.appendChild(go);
+
+    wrap.appendChild(el("p", "credit",
+      "Each team carries the UN 2.0 Quintet of Change: Data, Innovation, Digital, Strategic Foresight, and Behavioural Science. Captures and home runs strengthen them; setbacks set them back."));
     wrap.appendChild(el("p", "byline", "Designed by <b>Digital Solutions Lab</b>"));
     root.appendChild(wrap);
+  }
+
+  // ---- the table: choose Human or AI for every seat ---------------------
+  function openSetup() {
+    CG.Setup.open({
+      icon: "🎲",
+      title: "Field Ludo",
+      subtitle: "Set the table",
+      intro: "Choose who takes each seat. Pick Human and name your team; pick AI and a rival joins. Two to four teams race.",
+      seatColors: LCOLORS.map((c) => c.color),
+      minSeats: 2, maxSeats: 4, defaultSeats: 2,
+      startLabel: "Take the field ▸",
+      onBack: () => renderTitle(),
+      onStart: (roster) => newGame(roster),
+    });
   }
 
   function toggle(label, on, fn) {
@@ -101,24 +148,24 @@
     return b;
   }
 
-  function newGame(num) {
+  function newGame(roster) {
     if (S.settings.music) CG.Audio.start();
     CG.Narrate.setEnabled(S.settings.voice);
-    const names = shuffle(CG.AGENT_NAMES || ["Amara", "Diego", "Mei", "Kofi"]);
-    S.players = [];
-    for (let i = 0; i < num; i++) {
+    S.players = roster.map((seat, i) => {
       const c = LCOLORS[i];
-      S.players.push({
-        name: i === 0 ? "You" : (names[i - 1] || c.name) + " (" + c.name + ")",
-        isAI: i !== 0, c,
+      return {
+        name: seat.name + " (" + c.name + ")",
+        isAI: seat.isAI, c,
         tokens: [{ p: -1 }, { p: -1 }, { p: -1 }, { p: -1 }],
-      });
-    }
+        quintet: newQuintet(),
+      };
+    });
     S.current = 0; S.over = false; S.busy = false; S.pending = null;
+    S.specials = generateSpecials();
     renderBoard();
-    CG.Narrate.auto("Field Ludo. Roll a six to send your first team out. Bring all four home to win.");
+    CG.Narrate.auto("Field Ludo. Roll a six to send your first team out. Watch for landmines and bonuses on the track. Bring all four home to win, and build the UN 2.0 Quintet of Change as you go.");
     setTurn();
-    if (S.players[0].isAI) scheduleAI();
+    if (S.players[S.current].isAI) scheduleAI();
   }
 
   // =======================================================================
@@ -157,8 +204,13 @@
         const key = x + "," + y;
         if (x === 7 && y === 7) sq.classList.add("lc-center");
         else if (homeAt[key]) sq.classList.add("lc-home", "lc-" + homeAt[key]);
-        else if (loopAt[key] !== undefined) { sq.classList.add("lc-path"); if (SAFE.has(loopAt[key])) sq.classList.add("lc-safe"); }
-        else {
+        else if (loopAt[key] !== undefined) {
+          const li = loopAt[key];
+          sq.classList.add("lc-path");
+          if (START_COLOR[li]) sq.classList.add("lc-start", "lc-" + START_COLOR[li]);
+          else if (SAFE.has(li)) sq.classList.add("lc-safe");
+          if (S.specials[li]) { sq.classList.add("lc-special"); sq.innerHTML = `<span class="lc-ic">${S.specials[li].icon}</span>`; }
+        } else {
           const yard = yardColorAt(x, y);
           if (yard) sq.classList.add("lc-yard", "lc-" + yard);
         }
@@ -230,7 +282,8 @@
       const e = el("div", "ltoken lc-" + p.c.key + (t.p === 61 ? " done" : "") + (canMove ? " movable" : ""));
       e.style.width = size + "px"; e.style.height = size + "px";
       e.style.left = `calc(${pos.x}% + ${off}px)`; e.style.top = pos.y + "%";
-      e.style.background = p.c.color;
+      e.style.setProperty("--tok", p.c.color);
+      e.style.color = p.c.color;
       if (canMove) e.onclick = () => playMove(ti);
       layer.appendChild(e);
     }));
@@ -246,10 +299,37 @@
       card.style.setProperty("--tok", p.c.color);
       card.innerHTML =
         `<span class="savatar" style="--tok:${p.c.color};background:${p.c.color}"></span>` +
-        `<span class="sinfo"><b>${p.name}</b><small>${out} out · ${home}/4 home</small></span>` +
+        `<span class="sinfo"><b>${esc(p.name)}</b><small>${out} out · ${home}/4 home</small></span>` +
         `<span class="spos">${home}</span>`;
       box.appendChild(card);
     });
+    const focus = quintetFocus();
+    if (focus && focus.quintet) box.appendChild(quintPanel(focus));
+  }
+
+  function quintetFocus() {
+    const cur = S.players[S.current];
+    if (cur && !cur.isAI) return cur;
+    return S.players.find((p) => !p.isAI) || S.players[0];
+  }
+
+  // A team's UN 2.0 Quintet of Change, shown casually as a meter.
+  function quintPanel(p) {
+    const panel = el("div", "quint-panel");
+    let chips = "";
+    CG.QUINTET.forEach((q) => {
+      const lvl = p.quintet[q.key] || 0;
+      chips +=
+        `<span class="qchip${lvl > 0 ? " on" : ""}" title="${q.name}: ${q.blurb}">` +
+          `<span class="q-ic">${q.icon}</span><span class="q-lv">${lvl}</span>` +
+        `</span>`;
+    });
+    const multipleHumans = S.players.filter((x) => !x.isAI).length > 1;
+    const label = multipleHumans ? `${esc(p.name)} · Quintet` : "UN 2.0 Quintet of Change";
+    panel.innerHTML =
+      `<div class="quint-label">${label}</div>` +
+      `<div class="quint-row">${chips}</div>`;
+    return panel;
   }
 
   function pips(v) {
@@ -337,10 +417,64 @@
 
   async function resolveMove(p, ti, die) {
     const captured = await doMove(p, ti, die);
+    const special = await resolveSpecial(p, ti, 0);
     renderStandings();
     if (allHome(p)) return finish(p);
     S.busy = false;
-    endTurn(die === 6 || captured);
+    endTurn(die === 6 || captured || special.extra);
+  }
+
+  // a token that ENDS its move on a hazard or bonus cell triggers it. Setbacks
+  // also weaken a Quintet capability; bonuses strengthen one.
+  async function resolveSpecial(p, ti, depth) {
+    const t = p.tokens[ti];
+    if (t.p < 0 || t.p > 54) return { extra: false };
+    const li = (p.c.start + t.p) % 56;
+    const sp = S.specials[li];
+    if (!sp) return { extra: false };
+    const cl = LOOP[li];
+    let eff = sp.effect, extra = false;
+    if (eff === "surprise") eff = ["base", "back", "forward", "extra"][rnd(4)];
+    if (eff === "base") {
+      t.p = -1; renderTokens(); burst(cl, "down");
+      if (S.settings.music) CG.Audio.sfx.snake();
+      toast(`${p.name} hits ${sp.icon} ${sp.label}, back to base!`, "bad");
+      quintTo(p, -1);
+    } else if (eff === "back") {
+      const amt = sp.amount || 8, np = Math.max(0, t.p - amt);
+      if (S.settings.music) CG.Audio.sfx.snake();
+      await stepTo(p, ti, np);
+      burst(LOOP[(p.c.start + t.p) % 56] || cl, "down");
+      toast(`${p.name} hits ${sp.icon} ${sp.label}, back ${amt}`, "bad");
+      quintTo(p, -1);
+    } else if (eff === "forward") {
+      const amt = sp.amount || 4, np = Math.min(61, t.p + amt);
+      if (S.settings.music) CG.Audio.sfx.ladder();
+      await stepTo(p, ti, np);
+      burst(t.p <= 54 ? LOOP[(p.c.start + t.p) % 56] : CENTER, "up");
+      toast(`${p.name} rides ${sp.icon} ${sp.label}, forward ${amt}`, "good");
+      quintTo(p, +1);
+      checkCapture(p, t);
+      if (depth < 2) { const r = await resolveSpecial(p, ti, depth + 1); if (r.extra) extra = true; }
+    } else if (eff === "extra") {
+      extra = true; burst(cl, "up");
+      if (S.settings.music) CG.Audio.sfx.note();
+      toast(`${p.name} lands on ${sp.icon} ${sp.label}, roll again!`, "good");
+      quintTo(p, +1);
+    }
+    return { extra };
+  }
+
+  function quintTo(p, dir) {
+    if (!p.quintet || typeof applyQuintet !== "function") return;
+    const q = applyQuintet(p, dir);
+    if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} ${dir > 0 ? "strengthened" : "set back"}`, dir > 0 ? "good" : "bad");
+  }
+
+  async function stepTo(p, ti, target) {
+    const t = p.tokens[ti];
+    const dir = target > t.p ? 1 : -1;
+    while (t.p !== target) { t.p += dir; renderTokens(); if (S.settings.music) CG.Audio.sfx.step(); await sleep(150); }
   }
 
   async function doMove(p, ti, die) {
@@ -361,7 +495,14 @@
         await sleep(165);
       }
       captured = checkCapture(p, t);
-      if (t.p === 61) { if (S.settings.music) CG.Audio.sfx.note(); burst(CENTER, "up"); toast(`${p.name} brings a team home`, "good"); }
+      if (t.p === 61) {
+        if (S.settings.music) CG.Audio.sfx.note();
+        burst(CENTER, "up");
+        toast(`${p.name} brings a team home`, "good");
+        const q = applyQuintet(p, +1);
+        if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
+        renderStandings();
+      }
     }
     return captured;
   }
@@ -371,11 +512,12 @@
     const li = (p.c.start + t.p) % 56;
     if (SAFE.has(li)) return false;
     let did = false;
+    const hit = new Set();
     S.players.forEach((o) => {
       if (o === p) return;
       o.tokens.forEach((ot) => {
         if (ot.p >= 0 && ot.p <= 54 && (o.c.start + ot.p) % 56 === li) {
-          ot.p = -1; did = true;
+          ot.p = -1; did = true; hit.add(o);
         }
       });
     });
@@ -384,7 +526,15 @@
       burst(cl, "down");
       if (S.settings.music) CG.Audio.sfx.snake();
       toast(`${p.name} sends a rival back to base!`, "bad");
+      // a capture is a ladder for the mover and a snake for the captured
+      const qp = applyQuintet(p, +1);
+      if (!p.isAI) toast(`${qp.meta.icon} ${qp.meta.name} strengthened`, "good");
+      hit.forEach((o) => {
+        const qo = applyQuintet(o, -1);
+        if (!o.isAI) toast(`${qo.meta.icon} ${qo.meta.name} set back`, "bad");
+      });
       renderTokens();
+      renderStandings();
     }
     return did;
   }
@@ -438,17 +588,19 @@
     const youWon = !winner.isAI;
     if (S.settings.music) { youWon ? CG.Audio.sfx.win() : CG.Audio.sfx.lose(); }
     if (youWon) confetti();
-    const line = youWon
-      ? "All four of your teams are home. A clean sweep. Well played."
+    let line = youWon
+      ? `${winner.name} brings all four teams home. A clean sweep. Well played.`
       : winner.name + " brings every team home first. Close one. Run it again.";
+    const built = winner && winner.quintet ? CG.QUINTET.filter((q) => (winner.quintet[q.key] || 0) > 0).map((q) => q.name) : [];
+    if (built.length) line += ` Strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
     CG.Narrate.auto(line);
     const over = el("div", "overlay-card show");
     const c = el("div", "event-card win");
     c.innerHTML =
       `<div class="ec-band">${youWon ? "VICTORY" : "DEFEAT"}</div>` +
       `<div class="ec-icon">${youWon ? "🏆" : "🏁"}</div>` +
-      `<div class="ec-title">${youWon ? "All Teams Home" : winner.name + " wins"}</div>` +
-      `<div class="ec-why">${line}</div>`;
+      `<div class="ec-title">${youWon ? "All Teams Home" : esc(winner.name) + " wins"}</div>` +
+      `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
     const again = el("button", "btn btn-primary", "Play again ▸"); again.onclick = () => { over.remove(); renderTitle(); };
     const games = el("button", "btn btn-ghost", "← Games"); games.onclick = () => { over.remove(); CG.Platform.show(); };
