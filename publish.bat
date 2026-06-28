@@ -8,6 +8,8 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  Mercy intervention now counts tries only once a player has
+REM              reached square 90 (was: within one roll of 100). game.js v13.
 REM  2026-06-28  The Long Road now always ends. Exact-landing on 100 is kept,
 REM              but after 8 failed tries from finishing range (overshoot/bounce,
 REM              or the impossible square 99 with two dice) the field steps in and

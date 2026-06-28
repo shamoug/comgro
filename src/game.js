@@ -190,14 +190,6 @@
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
-  // A player is "in finishing range" when an exact landing on 100 is within one
-  // roll: squares 94-99 with one die, 88-99 with two. Rolls from here that miss
-  // count toward the mercy intervention.
-  function inFinishRange(pos) {
-    const maxRoll = 6 * S.settings.diceCount;
-    return pos >= 100 - maxRoll && pos <= 99;
-  }
-
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
   let decksReady = false;
 
@@ -767,13 +759,13 @@
     const p = S.players[S.current];
 
     // Exact-landing keeps its teeth: you finish ON square 100, never past it.
-    // But no one rolls forever. We count a "try" each turn the player rolls from
-    // within finishing range and fails to land on 100 (overshooting and bouncing,
-    // or stuck on the impossible square 99 with two dice). After 8 failed tries
-    // the field steps in and rolls exactly the number that lands them home.
+    // But no one rolls forever. Once a player has reached square 90, we count a
+    // "try" each turn they roll from there and fail to land on 100 (overshooting
+    // and bouncing, or stuck on the impossible square 99 with two dice). After 8
+    // failed tries the field steps in and rolls exactly what lands them home.
     const dc = S.settings.diceCount;
     const gap = 100 - p.pos;
-    const nearBefore = inFinishRange(p.pos);
+    const nearBefore = p.pos >= 90;
     const mercy = p.finishTries >= 8 && !p.finished;
 
     if (mercy && (gap < dc || gap > 6 * dc)) {
@@ -819,8 +811,8 @@
     await resolveLanding(p, 0);
     setMoving(false); // a roll is coming up: bring the panels back
     if (p.pos === 100 && !p.finished) return playerFinishes(p);
-    // a turn that started in finishing range but did not land on 100 is a failed
-    // try; once these reach 8 the mercy intervention above fires next turn.
+    // a turn that started at square 90 or beyond but did not land on 100 is a
+    // failed try; once these reach 8 the mercy intervention above fires next turn.
     if (nearBefore) p.finishTries++;
 
     const again = doubles || p.bonusRoll;
