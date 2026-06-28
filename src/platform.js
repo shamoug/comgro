@@ -1,9 +1,9 @@
 /* =========================================================================
  * COMMON GROUND, platform.js
  * The game launcher. Boots the page and lets the player choose which game to
- * play. Each game registers itself (CG.SnakesGame, CG.LudoGame) and exposes a
- * show() method; the launcher just mounts the chosen one. Games return here
- * via their own "back to games" link.
+ * play. Each game registers itself (CG.SnakesGame, CG.MandateGame) and exposes
+ * a show() method; the launcher just mounts the chosen one. Games return here
+ * via their own "back to games" link. More games can be added as cards below.
  * ========================================================================= */
 (function () {
   const CG = (window.CG = window.CG || {});
@@ -38,17 +38,17 @@
       `<div class="gc-play">Play ▸</div>`;
     snakes.onclick = () => CG.SnakesGame && CG.SnakesGame.show();
 
-    const ludo = el("button", "game-card ludo-card");
-    ludo.innerHTML =
-      `<div class="gc-icon">🎲🏠</div>` +
-      `<div class="gc-title">Field Ludo</div>` +
-      `<div class="gc-sub">The classic, four colours</div>` +
-      `<div class="gc-desc">Roll a six to deploy, race your four teams home, and send rivals back to base on the way. Simple, tense, and endlessly replayable.</div>` +
+    const mandate = el("button", "game-card mandate-card");
+    mandate.innerHTML =
+      `<div class="gc-icon">🛣️⚖️</div>` +
+      `<div class="gc-title">The Mandate</div>` +
+      `<div class="gc-sub">A journey of choices</div>` +
+      `<div class="gc-desc">Spin the wheel and travel a winding road. At every crossroads decide what you value, then build funding, trust and local capacity. The richest legacy wins, not the fastest finish.</div>` +
       `<div class="gc-play">Play ▸</div>`;
-    ludo.onclick = () => CG.LudoGame && CG.LudoGame.show();
+    mandate.onclick = () => CG.MandateGame && CG.MandateGame.show();
 
     grid.appendChild(snakes);
-    grid.appendChild(ludo);
+    grid.appendChild(mandate);
     wrap.appendChild(grid);
     wrap.appendChild(el("p", "byline", "Designed by <b>Digital Solutions Lab</b>"));
     root.appendChild(wrap);

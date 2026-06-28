@@ -132,9 +132,11 @@
   }
 
   // ---- the UN 2.0 Quintet of Change -------------------------------------
-  // Every player carries the five capabilities. Ladders strengthen one, holes
-  // set one back, and a capability can fall below zero. The capability touched
-  // is inferred from the card's tag, so the nudge fits the event.
+  // The whole table shares one set of five capabilities: the progress the
+  // country team makes together. Every player's ladders strengthen one and
+  // every player's holes set one back, so the counters tally collectively and
+  // a capability can fall below zero. The capability touched is inferred from
+  // the card's tag, so the nudge fits the event.
   function newQuintet() {
     const q = {};
     CG.QUINTET.forEach((c) => (q[c.key] = 0));
@@ -143,9 +145,20 @@
   function applyQuintet(p, tag, dir) {
     const key = CG.quintetForTag(tag);
     const meta = CG.quintetMeta(key);
-    const level = (p.quintet[key] || 0) + dir;   // can climb positive or fall negative
-    p.quintet[key] = level;
+    const level = (S.quintet[key] || 0) + dir;   // shared tally; can climb positive or fall negative
+    S.quintet[key] = level;
+    // Per player: the net push this player gives each capability, and the
+    // perseverance points they bank. Ladders build, holes set back; points
+    // never fall below zero so the score reads as a tally of what you achieved.
+    p.contrib[key] = (p.contrib[key] || 0) + dir;
+    award(p, dir > 0 ? 3 : -2);
     return { key, meta, dir, level };
+  }
+
+  // Bank (or dock) perseverance points; the running score that crowns the
+  // Perseverance champion at the end. It floors at zero.
+  function award(p, pts) {
+    p.points = Math.max(0, (p.points || 0) + pts);
   }
 
   // Fill {role} / {theatre} placeholders for the player who landed here.
@@ -165,6 +178,7 @@
     settings: { music: true, voice: true, diceCount: 1 },
     decks: {},
     zoneSpoken: -1,
+    quintet: {},   // shared team tally, reset each game in startGame()
   };
 
   // Token colours, all distinct from ladder-wood and hole-green.
@@ -281,13 +295,15 @@
       color: COLORS[i % COLORS.length],
       trophies: 0,
       diamonds: 0,
-      quintet: newQuintet(),
+      points: 0,            // perseverance score, built from every gain along the road
+      contrib: newQuintet(), // this player's net contribution to each of the five capabilities
       bonusRoll: false,
       skipNext: false,
       finished: false,
       rank: 0,
     }));
     S.current = 0; S.over = false; S.zoneSpoken = -1;
+    S.quintet = newQuintet();
     renderDeal();
   }
 
@@ -593,7 +609,7 @@
     order.forEach(({ p, i }) => {
       const card = el("div", "scard" + (i === S.current && !S.over ? " active" : "") + (p.finished ? " done" : ""));
       card.style.setProperty("--tok", p.color);
-      let loot = "";
+      let loot = `<span>⭐ ${p.points}</span>`;
       if (p.trophies) loot += `<span>🏆${p.trophies > 1 ? "×" + p.trophies : ""}</span>`;
       if (p.diamonds) loot += `<span>💎${p.diamonds > 1 ? "×" + p.diamonds : ""}</span>`;
       const posCell = p.finished ? (MEDALS[p.rank - 1] || "#" + p.rank) : p.pos;
@@ -603,33 +619,24 @@
         `<span class="spos">${posCell}</span>`;
       box.appendChild(card);
     });
-    // Show the Quintet meter for the player in focus: the one whose turn it is
-    // (so it follows hotseat humans), or the first human otherwise.
-    const focus = quintetFocus();
-    if (focus && focus.quintet) box.appendChild(quintPanel(focus));
+    // One shared Quintet meter for the whole table: it tallies the progress
+    // every player makes together, so it climbs and dips as anyone plays.
+    box.appendChild(quintPanel());
   }
 
-  function quintetFocus() {
-    const cur = S.players[S.current];
-    if (cur && !cur.isAI) return cur;
-    return S.players.find((p) => !p.isAI) || S.players[0];
-  }
-
-  // A player's UN 2.0 Quintet of Change, shown casually as a meter.
-  function quintPanel(p) {
+  // The team's shared UN 2.0 Quintet of Change, shown casually as a meter.
+  function quintPanel() {
     const panel = el("div", "quint-panel");
     let chips = "";
     CG.QUINTET.forEach((q) => {
-      const lvl = p.quintet[q.key] || 0;
+      const lvl = S.quintet[q.key] || 0;
       chips +=
         `<span class="qchip${lvl > 0 ? " on" : lvl < 0 ? " neg" : ""}" title="${q.name}: ${q.blurb}">` +
           `<span class="q-ic">${q.icon}</span><span class="q-lv">${lvl}</span>` +
         `</span>`;
     });
-    const multipleHumans = S.players.filter((x) => !x.isAI).length > 1;
-    const label = multipleHumans ? `${esc(p.name)} · Quintet of Change` : "UN 2.0 Quintet of Change";
     panel.innerHTML =
-      `<div class="quint-label">${label}</div>` +
+      `<div class="quint-label">UN 2.0 Quintet of Change</div>` +
       `<div class="quint-row">${chips}</div>`;
     return panel;
   }
@@ -857,6 +864,7 @@
     } else if (B.trophies.includes(n)) {
       const card = fillCard(S.decks.trophy(), p);
       p.trophies++;
+      award(p, 5);
       await showCard(p, card, "trophy", null);
       if (S.settings.music) CG.Audio.sfx.note();
       burst(n, "up", 18);
@@ -865,6 +873,7 @@
     } else if (B.diamonds.includes(n)) {
       const card = S.decks.diamond();
       p.diamonds++;
+      award(p, 4);
       await showCard(p, card, "diamond", null);
       if (S.settings.music) CG.Audio.sfx.note();
       burst(n, "up", 18);
@@ -886,7 +895,7 @@
     switch (card.effect) {
       case "bonus": p.bonusRoll = true; toast(`${p.name} earns a bonus roll`, "good"); break;
       case "skip": p.skipNext = true; toast(`${p.name} will lose a turn`, "bad"); break;
-      case "gem": p.diamonds++; burst(p.pos, "up", 14); toast(`${p.name} pockets a diamond 💎`, "good"); break;
+      case "gem": p.diamonds++; award(p, 4); burst(p.pos, "up", 14); toast(`${p.name} pockets a diamond 💎`, "good"); break;
       case "advance": toast(`${p.name} jumps ahead`, "good"); await hop(p, 3, depth); break;
       default: break;
     }
@@ -1075,6 +1084,69 @@
     narrateCard(p, spoken, over, finishDone, 3000);
   }
 
+  // Crowning the table: finishing first is only one way to win. Every player
+  // can leave a mark, so we hand out a trophy for each kind of greatness:
+  //   Speed,        first across the line;
+  //   Perseverance, the most points banked along the road;
+  //   and one champion for each UN 2.0 capability, the player who pushed it
+  //   furthest. A category with no clear leader (nobody scored, or it ends in a
+  //   tie at zero) is simply left uncrowned. Ties at a positive score are shared.
+  function computeChampions() {
+    const champs = [];
+    const top = (valueOf) => {
+      const best = Math.max.apply(null, S.players.map(valueOf));
+      if (best <= 0) return null;
+      return { best, who: S.players.filter((p) => valueOf(p) === best) };
+    };
+
+    const speed = S.players.find((p) => p.rank === 1);
+    if (speed) champs.push({
+      icon: "🏃", title: "Speed", who: [speed],
+      note: "first to complete the mandate",
+    });
+
+    const pers = top((p) => p.points || 0);
+    if (pers) champs.push({
+      icon: "💪", title: "Perseverance", who: pers.who,
+      note: `the most points banked, ${pers.best}`,
+    });
+
+    CG.QUINTET.forEach((q) => {
+      const lead = top((p) => p.contrib[q.key] || 0);
+      if (lead) champs.push({
+        icon: q.icon, title: q.name, who: lead.who,
+        note: `pushed ${q.name} furthest, +${lead.best}`,
+      });
+    });
+    return champs;
+  }
+
+  function championsHtml(champs) {
+    if (!champs.length) return "";
+    const rows = champs.map((c) => {
+      const names = c.who
+        .map((p) => `<span class="champ-who" style="color:${p.color}">${esc(p.name)}</span>`)
+        .join(", ");
+      return `<div class="champ-row">` +
+        `<span class="champ-ic">${c.icon}</span>` +
+        `<span class="champ-body"><span class="champ-title">${esc(c.title)} champion</span>` +
+        `<span class="champ-names">${names}</span>` +
+        `<span class="champ-note">${esc(c.note)}</span></span>` +
+      `</div>`;
+    }).join("");
+    return `<div class="champ-head">Champions of the Road</div><div class="champ-list">${rows}</div>`;
+  }
+
+  // Spoken celebration: every champion read out by name, so no winner is missed.
+  function championsLine(champs) {
+    if (!champs.length) return "";
+    const parts = champs.map((c) => {
+      const names = c.who.map((p) => p.name).join(" and ");
+      return `${names}, ${c.title} champion`;
+    });
+    return ` And the champions of the road: ${parts.join("; ")}.`;
+  }
+
   // Every player is home: show the full finishing order and wrap up.
   function endGame() {
     S.over = true; S.busy = false;
@@ -1095,9 +1167,13 @@
     } else {
       line = `${winner.name} leads the field home. Every team completed the road.`;
     }
-    const built = CG.QUINTET.filter((q) => (winner.quintet[q.key] || 0) > 0).map((q) => q.name);
-    if (built.length) line += ` Strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
-    CG.Narrate.auto(line);
+    const built = CG.QUINTET.filter((q) => (S.quintet[q.key] || 0) > 0).map((q) => q.name);
+    if (built.length) line += ` The country team's strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
+    // The champions are shown as their own list below, so the spoken line adds
+    // them but the printed narrative keeps just the story beat.
+    const champs = computeChampions();
+    const spoken = line + championsLine(champs);
+    CG.Narrate.auto(spoken);
 
     let rows = "";
     order.forEach((p) => {
@@ -1120,12 +1196,13 @@
       `<div class="ec-icon">🏁</div>` +
       `<div class="ec-title">The whole table is home</div>` +
       `<div class="final-list">${rows}</div>` +
+      championsHtml(champs) +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
     const again = el("button", "btn btn-primary", "Run the road again ▸");
     again.onclick = () => { over.remove(); CG.Narrate.stop(); renderTitle(); };
     const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
-    speak.onclick = () => CG.Narrate.speak(line);
+    speak.onclick = () => CG.Narrate.speak(spoken);
     actions.appendChild(speak); actions.appendChild(again);
     c.appendChild(actions);
     over.appendChild(c);

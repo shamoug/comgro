@@ -429,6 +429,16 @@ button { font-family: inherit; cursor: pointer; }
 .final-name { font-weight: 800; font-size: 15px; }
 .final-role { font-size: 12.5px; color: var(--muted); }
 .final-loot { margin-left: auto; font-size: 13px; white-space: nowrap; }
+/* Champions of the Road: a trophy for each kind of greatness, not just speed. */
+.champ-head { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); font-weight: 800; margin: 2px 0 9px; text-align: left; }
+.champ-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; text-align: left; }
+.champ-row { display: flex; align-items: center; gap: 11px; padding: 8px 13px; border-radius: 12px; background: rgba(240,180,41,.10); border: 1px solid rgba(240,180,41,.34); }
+.champ-ic { font-size: 21px; flex: none; width: 26px; text-align: center; }
+.champ-body { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.champ-title { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.champ-names { font-weight: 800; font-size: 14.5px; }
+.champ-who + .champ-who { margin-left: 2px; }
+.champ-note { font-size: 12px; color: var(--muted); }
 /* a player who has already reached the end sits dimmed in the standings */
 .scard.done { opacity: .72; }
 .scard.done .spos { font-size: 17px; }
@@ -497,75 +507,148 @@ button { font-family: inherit; cursor: pointer; }
 }
 .game-card:hover { transform: translateY(-4px); box-shadow: 0 26px 56px rgba(40,70,120,.24); }
 .snakes-card { border-top: 4px solid var(--gold); }
-.ludo-card { border-top: 4px solid var(--blue); }
 .gc-icon { font-size: 38px; }
 .gc-title { font-family: "Fraunces", serif; font-size: 24px; font-weight: 700; }
 .gc-sub { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .gc-desc { color: var(--muted); font-size: 14px; line-height: 1.55; margin-top: 8px; }
 .gc-play { margin-top: 14px; align-self: flex-start; background: linear-gradient(135deg, var(--blue), #1f56d6); color: #fff; padding: 9px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; }
-.ludo-card .gc-play { background: linear-gradient(135deg, var(--gold), #d9851a); }
-
-/* ======================================================================= */
-/* FIELD LUDO                                                               */
-/* ======================================================================= */
-.board-box.ludo {
-  width: min(84vh, 96vw); height: min(84vh, 96vw);
-  background: linear-gradient(160deg, #f7fbff, #e7eefb);
-  box-shadow: var(--shadow), 0 0 0 1px rgba(40,80,130,.1) inset;
-}
-.ludo-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); }
-.lc { position: relative; }
-.lc-path { background: #fff; box-shadow: 0 0 0 1px rgba(40,80,130,.12) inset; }
-.lc-safe::after { content: "★"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(40,80,130,.3); font-size: 66%; }
-/* corner yards now drawn as rounded panels; keep cells clean underneath */
-.lc-yard { background: transparent; }
-.lc-home.lc-red { background: rgba(229,86,75,.5); }
-.lc-home.lc-green { background: rgba(47,158,84,.5); }
-.lc-home.lc-yellow { background: rgba(240,180,41,.55); }
-.lc-home.lc-blue { background: rgba(47,107,255,.46); }
-.lc-center { background: conic-gradient(#e5564b 0deg 90deg, #2f9e54 90deg 180deg, #f0b429 180deg 270deg, #2f6bff 270deg 360deg); box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset; }
-/* coloured start cells carry a soft directional chevron */
-.lc-start.lc-red { background: rgba(229,86,75,.34); }
-.lc-start.lc-green { background: rgba(47,158,84,.34); }
-.lc-start.lc-yellow { background: rgba(240,180,41,.4); }
-.lc-start.lc-blue { background: rgba(47,107,255,.32); }
-.lc-start::after { content: "›"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 92%; color: rgba(20,40,70,.4); }
-.lc-special { background: #fff; box-shadow: 0 0 0 1px rgba(40,80,130,.12) inset; }
-.lc-ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(9px, 1.5vw, 16px); filter: drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
-
-/* rounded corner yard panels with an inner home box */
-.ludo-yard { position: absolute; border-radius: 16px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.55), 0 4px 14px -8px rgba(20,40,70,.5); z-index: 1; }
-.ludo-yard::after { content: ""; position: absolute; inset: 17%; background: #fff; border-radius: 11px; box-shadow: inset 0 1px 5px rgba(20,40,70,.16); }
-.ludo-yard.lc-red { background: linear-gradient(145deg, #ff6f64, #e5564b); }
-.ludo-yard.lc-green { background: linear-gradient(145deg, #46b96c, #2f9e54); }
-.ludo-yard.lc-yellow { background: linear-gradient(145deg, #f6c54e, #f0b429); }
-.ludo-yard.lc-blue { background: linear-gradient(145deg, #5a8bff, #2f6bff); }
-/* centre emblem */
-.ludo-center { position: absolute; transform: translate(-50%, -50%); z-index: 6; font-size: clamp(12px, 2.4vw, 24px); filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); pointer-events: none; }
-
-.lc-ring {
-  position: absolute; width: 4.4%; height: 4.4%; border-radius: 50%;
-  transform: translate(-50%, -50%); z-index: 2;
-  background: #fff; border: 2px solid currentColor; box-shadow: inset 0 0 4px rgba(20,40,70,.18);
-}
-.lc-ring.lc-red { color: #e5564b; }
-.lc-ring.lc-green { color: #2f9e54; }
-.lc-ring.lc-yellow { color: #f0b429; }
-.lc-ring.lc-blue { color: #2f6bff; }
-.ltoken {
-  position: absolute; transform: translate(-50%, -50%); border-radius: 50%;
-  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.92), var(--tok) 78%);
-  border: 2px solid #fff; box-shadow: 0 3px 8px rgba(20,40,70,.45), 0 0 0 1.5px var(--tok);
-  transition: left .16s linear, top .16s linear; z-index: 9;
-}
-.ltoken .ltok-face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); pointer-events: none; }
-.ltoken.done { opacity: .8; }
-.ltoken.movable { cursor: pointer; animation: bob 1s ease-in-out infinite; box-shadow: 0 0 0 3px rgba(255,255,255,.7), 0 0 14px -1px currentColor, 0 3px 8px rgba(20,40,70,.5); z-index: 11; }
-.ludo-screen .board-stage { display: flex; align-items: center; justify-content: center; }
 
 @media (max-width: 760px) {
   .game-card { width: 100%; max-width: 360px; }
-  .board-box.ludo { width: min(72vh, 96vw); height: min(72vh, 96vw); }
+}
+
+/* ======================================================================= */
+/* THE MANDATE,  winding-road journey game                                  */
+/* ======================================================================= */
+.mandate-card { border-top: 4px solid var(--green); }
+.mandate-card .gc-play { background: linear-gradient(135deg, var(--green), #1f7d40); }
+.mandate-logo { color: var(--green); text-shadow: 0 8px 30px rgba(47,158,84,.4); }
+
+/* title-screen resource legend */
+.mandate-legend { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 660px; margin: 16px 0 2px; }
+.ml-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; width: 190px; box-shadow: var(--shadow-sm); }
+.ml-ic { font-size: 26px; line-height: 1; }
+.ml-chip b { font-size: 14px; }
+.ml-chip small { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+/* board background + the road surface */
+.mandate-bg {
+  background:
+    radial-gradient(1000px 700px at 80% -10%, #dff1e6 0%, transparent 58%),
+    radial-gradient(900px 700px at 6% 112%, #dfeaff 0%, transparent 55%),
+    var(--bg-2);
+}
+.board-box.road {
+  background:
+    radial-gradient(620px 340px at 82% 8%, rgba(47,158,84,.10), transparent 62%),
+    radial-gradient(540px 440px at 10% 92%, rgba(47,107,255,.08), transparent 60%),
+    linear-gradient(160deg, #f5fbf6, #eaf2ff);
+}
+.road-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.road-shadow { stroke: rgba(35,70,115,.15); }
+.road-fill { stroke: #bcc9dd; }
+.road-fill.alt { stroke: #cdd8ea; }
+.road-dash { stroke: #ffffff; stroke-dasharray: 10 14; opacity: .9; }
+
+/* the squares (stations) along the road. Deliberately SQUARE tiles, flat to the
+   road, so they never read as the round player pawns that sit on top of them. */
+.node-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.mnode {
+  position: absolute; transform: translate(-50%, -50%);
+  border-radius: 28%; display: flex; align-items: center; justify-content: center;
+  background: #fff; border: 2px solid var(--line);
+  box-shadow: 0 2px 5px rgba(20,40,70,.16), inset 0 1px 2px rgba(255,255,255,.75);
+}
+.mnode .mn-ic { line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.12)); }
+.mn-label {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 3px;
+  white-space: nowrap; font-family: "Space Grotesk", sans-serif; font-weight: 700;
+  color: var(--muted); letter-spacing: .04em; text-transform: uppercase;
+}
+.mn-finish .mn-label { top: auto; bottom: 100%; margin: 0 0 3px; }
+.mn-start { border-color: var(--green); background: radial-gradient(circle at 35% 30%, #fff, #dff1e6); }
+.mn-finish { border-color: var(--gold); background: radial-gradient(circle at 35% 30%, #fff, #fdeccc); }
+.mn-crossroads { border-color: var(--violet); background: #f3eeff; }
+.mn-milestone { border-color: var(--gold); background: #fff3d8; animation: mnGlow 2.6s ease-in-out infinite; }
+@keyframes mnGlow { 50% { box-shadow: 0 4px 10px rgba(20,40,70,.18), 0 0 16px -2px var(--gold); } }
+.mn-funding { border-color: var(--blue); background: #e9f0ff; }
+.mn-trust { border-color: #e8439b; background: #fdeaf4; }
+.mn-capacity { border-color: var(--green); background: #e6f5ec; }
+.mn-event { border-color: var(--gold); background: #fff1e2; }
+.mn-note { border-color: var(--line); background: #f4f8ff; opacity: .92; }
+.mn-fork { border-style: dashed; border-color: var(--violet); background: #f3eeff; }
+
+/* player pawns in The Mandate: bold, round, strongly player-coloured game
+   pieces that float ABOVE the square tiles, with a contact shadow so they read
+   as physical pawns standing on the board. White centre keeps the icon legible. */
+.mandate-screen .token .tok-face {
+  background: radial-gradient(circle at 50% 42%, #ffffff 0 40%, var(--tok) 56% 100%);
+  border: 2.5px solid #fff;
+  box-shadow: 0 8px 15px -3px rgba(20,40,70,.55), 0 0 0 2px var(--tok);
+}
+.mandate-screen .token::after {
+  content: ""; position: absolute; left: 50%; bottom: -8%; transform: translateX(-50%);
+  width: 60%; height: 15%; border-radius: 50%; z-index: -1;
+  background: radial-gradient(ellipse at center, rgba(20,40,70,.30), transparent 70%);
+}
+.mandate-screen .token.active { z-index: 13; }
+.mandate-screen .token.active .tok-face {
+  box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 9px 18px -2px rgba(20,40,70,.55), 0 0 20px -1px var(--tok), 0 0 0 5px var(--tok);
+}
+.mandate-screen .token.done .tok-face { opacity: .82; }
+
+/* standings: resource readout under each name */
+.sres { display: flex; gap: 7px; font-size: 11.5px; color: var(--muted); margin-top: 2px; font-weight: 700; }
+.sres span { white-space: nowrap; }
+.mandate-screen .spos { font-size: 17px; }
+
+/* the spinning wheel dock */
+.spin-dock { gap: 14px; }
+.spinner { position: relative; width: 84px; height: 84px; flex: none; }
+.wheel { width: 100%; height: 100%; display: block; transform-origin: 50% 50%; filter: drop-shadow(0 4px 10px rgba(40,70,120,.3)); }
+.spin-ptr {
+  position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent;
+  border-top: 15px solid var(--ink); z-index: 3; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25));
+}
+
+/* effect chips on cards (resource and movement deltas) */
+.ec-effs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+.ec-effs.inline { margin: 5px 0 0; justify-content: flex-start; }
+.ef { font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); }
+.ef.up { color: #1e6e3a; background: rgba(47,158,84,.12); border-color: rgba(47,158,84,.35); }
+.ef.down { color: #b73a30; background: rgba(229,86,75,.12); border-color: rgba(229,86,75,.35); }
+
+/* crossroads decision options */
+.ec-options { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.ec-opt { text-align: left; border: 1px solid var(--line); background: #f7faff; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; transition: transform .14s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease; }
+.ec-opt:hover { border-color: var(--violet); background: #fff; transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.eo-label { font-weight: 800; font-size: 15px; color: var(--ink); }
+.eo-detail { font-size: 13px; color: var(--muted); line-height: 1.45; }
+
+/* card accents for the new card kinds */
+.event-card.funding { border-top-color: var(--blue); }
+.event-card.funding .ec-band { color: var(--blue); }
+.event-card.trust { border-top-color: #e8439b; }
+.event-card.trust .ec-band { color: #c12d7e; }
+.event-card.capacity { border-top-color: var(--green); }
+.event-card.capacity .ec-band { color: #1e6e3a; }
+.event-card.milestone { border-top-color: var(--gold); }
+.event-card.milestone .ec-band { color: var(--gold); }
+.event-card.crossroads, .event-card.fork-card { border-top-color: var(--violet); }
+.event-card.crossroads .ec-band, .event-card.fork-card .ec-band { color: var(--violet); }
+
+@media (max-width: 760px) {
+  .mandate-legend { gap: 8px; }
+  .ml-chip { width: 150px; padding: 9px 10px; }
+  .ml-chip small { display: none; }
+  .spinner { width: 62px; height: 62px; }
+  .spin-ptr { border-top-width: 12px; }
+  /* station labels would crowd a phone board; the icons carry the meaning.
+     The compact standings (avatar + legacy score) stay clean; full resource
+     tallies are read off the cards and the final screen. */
+  .mn-label { display: none; }
+  .mandate-screen .spos { font-size: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
