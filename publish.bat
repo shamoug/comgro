@@ -8,6 +8,13 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  Play button pinned to the bottom on BOTH game title screens, at
+REM              the same vertical location. The "Build your table" button is now
+REM              a fixed footer button (centred, 22px above the bottom edge), so
+REM              it sits identically on The Long Road and The Mandate regardless
+REM              of how much copy each screen carries. The page reserves bottom
+REM              space so the credit and byline clear it. game.js v19,
+REM              mandate.js v12, styles.css v19.
 REM  2026-06-28  KNOWLEDGE BASE GREATLY ENRICHED (web-researched), so the games
 REM              teach new UN staff far more about the UN's overseas field work.
 REM              Roles 68 -> 257 (real job titles across UNHCR, UNICEF, WFP, WHO,
