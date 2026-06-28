@@ -8,10 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
-REM  2026-06-28  The Long Road now actually ends: reaching OR passing square
-REM              100 finishes (removed the must-land-exactly bounce-back rule
-REM              that left the trailing player, esp. AI, bouncing the high
-REM              squares for hundreds of turns). game.js v12.
+REM  2026-06-28  The Long Road now always ends. Exact-landing on 100 is kept,
+REM              but after 8 failed tries from finishing range (overshoot/bounce,
+REM              or the impossible square 99 with two dice) the field steps in and
+REM              rolls the player home. Fixes the endless climb-bounce-snake loop
+REM              on the home stretch. game.js v12.
 REM  2026-06-28  Final standings: show only "Champions of the Road"
 REM              (removed the per-player ranking list). Tap/click outside
 REM              any card to close it. Pull-to-refresh on touch screens
