@@ -232,6 +232,21 @@
       }
     }
     boardBox.appendChild(grid);
+    // soft rounded yard panels in every corner (classic Ludo home base look)
+    LCOLORS.forEach((c) => {
+      const [ox, oy] = c.yard;
+      const panel = el("div", "ludo-yard lc-" + c.key);
+      panel.style.left = (ox / 15 * 100) + "%";
+      panel.style.top = (oy / 15 * 100) + "%";
+      panel.style.width = (6 / 15 * 100) + "%";
+      panel.style.height = (6 / 15 * 100) + "%";
+      boardBox.appendChild(panel);
+    });
+    // a centre emblem where every team finishes
+    const emblem = el("div", "ludo-center", "🏁");
+    const cpos = cellPos(7, 7);
+    emblem.style.left = cpos.x + "%"; emblem.style.top = cpos.y + "%";
+    boardBox.appendChild(emblem);
     // base rings for tokens
     S.players.forEach((p) => p.c.base.forEach(([bx, by]) => {
       const ring = el("div", "lc-ring lc-" + p.c.key);
@@ -502,7 +517,7 @@
     while (t.p !== target) { t.p += dir; renderTokens(); if (S.settings.music) CG.Audio.sfx.step(); await sleep(150); }
   }
 
-  async function doMove(p, ti, die) {
+  async function doMove(p, ti, step) {
     const t = p.tokens[ti];
     let captured = false;
     if (t.p < 0) {
@@ -512,7 +527,7 @@
       await sleep(220);
       captured = checkCapture(p, t);
     } else {
-      const target = t.p + die;
+      const target = t.p + step;
       for (let q = t.p + 1; q <= target; q++) {
         t.p = q;
         renderTokens();
@@ -564,14 +579,14 @@
     return did;
   }
 
-  function aiPick(p, die, moves) {
+  function aiPick(p, step, canDeploy, moves) {
     let best = moves[0], bestScore = -1e9;
     moves.forEach((ti) => {
       const t = p.tokens[ti];
       let score = 0;
       if (t.p < 0) { score = 5; }                 // deploy
       else {
-        const np = t.p + die;
+        const np = t.p + step;
         score = 2 + np * 0.1;                       // progress
         if (np === 61) score += 30;                 // bring a team home
         // would this land capture an unsafe rival?
@@ -598,12 +613,18 @@
 
   function allHome(p) { return p.tokens.every((t) => t.p === 61); }
 
-  async function animateDie(v) {
-    const e = $("#ldie"); if (!e) return;
-    e.classList.add("rolling");
-    for (let i = 0; i < 9; i++) { e.innerHTML = pips(1 + rnd(6)); await sleep(60); }
-    e.innerHTML = pips(v); e.classList.remove("rolling"); e.classList.add("settle");
-    setTimeout(() => e.classList.remove("settle"), 260);
+  async function animateDice(values) {
+    const dice = values.map((_, i) => $("#ldie" + i));
+    dice.forEach((e) => e && e.classList.add("rolling"));
+    for (let i = 0; i < 9; i++) {
+      dice.forEach((e) => e && (e.innerHTML = pips(1 + rnd(6))));
+      await sleep(60);
+    }
+    dice.forEach((e, i) => {
+      if (!e) return;
+      e.innerHTML = pips(values[i]); e.classList.remove("rolling"); e.classList.add("settle");
+    });
+    setTimeout(() => dice.forEach((e) => e && e.classList.remove("settle")), 260);
     await sleep(160);
   }
 

@@ -31,9 +31,9 @@
 
     const snakes = el("button", "game-card snakes-card");
     snakes.innerHTML =
-      `<div class="gc-icon">🪜🐍</div>` +
+      `<div class="gc-icon">🪜🕳️</div>` +
       `<div class="gc-title">The Long Road</div>` +
-      `<div class="gc-sub">Snakes &amp; Ladders</div>` +
+      `<div class="gc-sub">Ladders &amp; Holes</div>` +
       `<div class="gc-desc">Race a hundred squares to a finished mandate. Climb the lucky breaks, dodge the crises, collect trophies and diamonds. A different board every time.</div>` +
       `<div class="gc-play">Play ▸</div>`;
     snakes.onclick = () => CG.SnakesGame && CG.SnakesGame.show();

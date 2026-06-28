@@ -5,7 +5,7 @@ table can be a human (you name them) or an AI rival (named for you). Open it and
 pick how you want to play. Everything runs in the browser, with spoken narration
 and an original cinematic score generated live.
 
-## The Long Road, Snakes &amp; Ladders
+## The Long Road, Ladders &amp; Holes
 
 Roll one or two dice, race a hundred squares to a finished mandate, and learn a
 little about how real crisis response works along the way. **The board is
@@ -99,7 +99,7 @@ styles/styles.css   One self-contained stylesheet (boards, dice, cards are CSS/S
 ```
 
 **To change the story, edit only `data/content.js`.** Add or rewrite snake cards,
-ladder cards, job titles, theatres, and field notes; move the snakes and ladders
+ladder cards, job titles, theatres, and field notes; move the ladders and holes
 on the board; adjust the spoken story beats. The engine never hard-codes flavour
 text.
 
@@ -107,7 +107,7 @@ text.
 
 ## Design notes
 
-- **No external assets.** Board, tokens, dice, snakes and ladders are all CSS and
+- **No external assets.** Board, tokens, dice, ladders and holes are all CSS and
   inline SVG. Audio is synthesised. The only network request is the optional web
   font, which degrades gracefully to system fonts offline.
 - **Accessible-friendly.** Honours `prefers-reduced-motion`, narration is

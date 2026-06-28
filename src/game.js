@@ -200,7 +200,7 @@
     wrap.appendChild(el("h1", "title", "Common Ground"));
     wrap.appendChild(el("p", "subtitle", "The Long Road"));
     wrap.appendChild(el("p", "tagline",
-      "A field-coordination Snakes &amp; Ladders for a UN Country Team. Roll the dice, ride the lucky breaks, survive the crises, collect trophies and diamonds, and race a hundred squares to a finished mandate."));
+      "A field-coordination game of Ladders and Holes for a UN Country Team. Roll the dice, ride the lucky breaks, survive the crises, collect trophies and diamonds, and race a hundred squares to a finished mandate."));
 
     wrap.appendChild(el("p", "pick-label", "Dice"));
     const diceRow = el("div", "seg-row");
@@ -439,27 +439,28 @@
   function buildDefs() {
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML =
-      // ladder rail: solid 3D green, shaded across its width like a cylinder
+      // ladder rail: solid 3D blue, shaded across its width like a cylinder
       `<linearGradient id="ladderRail" x1="0" y1="0" x2="1" y2="0">` +
-        `<stop offset="0" stop-color="#176233"/><stop offset="0.42" stop-color="#5fd083"/>` +
-        `<stop offset="0.58" stop-color="#54c679"/><stop offset="1" stop-color="#176233"/>` +
+        `<stop offset="0" stop-color="#15407a"/><stop offset="0.42" stop-color="#6aa6ee"/>` +
+        `<stop offset="0.58" stop-color="#5f9be6"/><stop offset="1" stop-color="#15407a"/>` +
       `</linearGradient>` +
-      // ladder rung: rounded green bar
+      // ladder rung: rounded blue bar
       `<linearGradient id="ladderRung" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="#6ad592"/><stop offset="1" stop-color="#2f9e54"/>` +
+        `<stop offset="0" stop-color="#7ab0f0"/><stop offset="1" stop-color="#2f63b0"/>` +
       `</linearGradient>` +
-      // tunnel pipe: glossy teal-steel cylinder
+      // tunnel pipe: glossy red cylinder
       `<linearGradient id="portalPipe" x1="0" y1="0" x2="1" y2="0">` +
-        `<stop offset="0" stop-color="#123846"/><stop offset="0.5" stop-color="#3f8aa6"/><stop offset="1" stop-color="#123846"/>` +
+        `<stop offset="0" stop-color="#8a1f1f"/><stop offset="0.42" stop-color="#f2655a"/>` +
+        `<stop offset="0.58" stop-color="#ec5448"/><stop offset="1" stop-color="#8a1f1f"/>` +
       `</linearGradient>` +
-      // the dark mouth of the tunnel, deep in the middle, lit at the rim
+      // the dark mouth of the tunnel, deep in the middle, lit at the red rim
       `<radialGradient id="portalGrad" cx="0.5" cy="0.42" r="0.62">` +
-        `<stop offset="0" stop-color="#05080c"/><stop offset="0.5" stop-color="#0f2230"/>` +
-        `<stop offset="0.82" stop-color="#1f5066"/><stop offset="1" stop-color="#3f8aa6"/>` +
+        `<stop offset="0" stop-color="#1a0606"/><stop offset="0.5" stop-color="#5a1414"/>` +
+        `<stop offset="0.82" stop-color="#b83030"/><stop offset="1" stop-color="#f2655a"/>` +
       `</radialGradient>` +
       // soft glow around the mouth
       `<radialGradient id="portalGlow" cx="0.5" cy="0.5" r="0.5">` +
-        `<stop offset="0" stop-color="#86e6ff" stop-opacity="0.85"/><stop offset="1" stop-color="#86e6ff" stop-opacity="0"/>` +
+        `<stop offset="0" stop-color="#ff9a86" stop-opacity="0.85"/><stop offset="1" stop-color="#ff9a86" stop-opacity="0"/>` +
       `</radialGradient>` +
       `<filter id="soft" x="-40%" y="-40%" width="180%" height="180%">` +
         `<feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#10233f" flood-opacity="0.28"/>` +
@@ -496,10 +497,10 @@
     const tip = { x: tail.x + ux * W, y: tail.y + uy * W };
     mk("path", {
       d: `M ${hL.x} ${hL.y} L ${tL.x} ${tL.y} Q ${tip.x} ${tip.y} ${tR.x} ${tR.y} L ${hR.x} ${hR.y} Z`,
-      fill: "url(#portalPipe)", stroke: "#0e2d3c", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)",
+      fill: "url(#portalPipe)", stroke: "#3a0e0e", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)",
     }, g);
     // glossy highlight running down one side of the pipe
-    mk("path", { d: `M ${head.x + px * W * 0.45} ${head.y + py * W * 0.45} L ${tail.x + px * W * 0.45} ${tail.y + py * W * 0.45}`, fill: "none", stroke: "#cdf2ff", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.35" }, g);
+    mk("path", { d: `M ${head.x + px * W * 0.45} ${head.y + py * W * 0.45} L ${tail.x + px * W * 0.45} ${tail.y + py * W * 0.45}`, fill: "none", stroke: "#ffd9d2", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.35" }, g);
 
     // downward chevrons (it takes you back)
     const arrows = Math.max(1, Math.round(len / (unit * 0.9)));
@@ -508,21 +509,21 @@
       const aw = W * 0.5, ah = W * 0.42;
       mk("path", {
         d: `M ${cx + px * aw - ux * ah} ${cy + py * aw - uy * ah} L ${cx + ux * ah} ${cy + uy * ah} L ${cx - px * aw - ux * ah} ${cy - py * aw - uy * ah}`,
-        fill: "none", stroke: "#e3f7ff", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", "stroke-linejoin": "round", opacity: "0.7",
+        fill: "none", stroke: "#ffe3de", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", "stroke-linejoin": "round", opacity: "0.7",
       }, g);
     }
 
     // exit opening at the bottom
-    mk("ellipse", { cx: tail.x, cy: tail.y, rx: W * 0.72, ry: W * 0.4, fill: "#06141d", opacity: "0.88" }, g);
+    mk("ellipse", { cx: tail.x, cy: tail.y, rx: W * 0.72, ry: W * 0.4, fill: "#1a0606", opacity: "0.88" }, g);
 
     // the lit mouth at the top, in its own group so it can swell on a swallow
     const m = mk("g", { class: "tunnel-mouth" }, g);
     mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.85, ry: W * 1.12, fill: "url(#portalGlow)", opacity: "0.75" }, m);
-    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.5, ry: W * 0.92, fill: "#d2ecf4", stroke: "#5f93a6", "stroke-width": Math.max(0.4, unit * 0.016), filter: "url(#soft)" }, m);
-    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.18, ry: W * 0.7, fill: "#5b8497" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.5, ry: W * 0.92, fill: "#f4d9d2", stroke: "#a6635f", "stroke-width": Math.max(0.4, unit * 0.016), filter: "url(#soft)" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.18, ry: W * 0.7, fill: "#97625b" }, m);
     mk("ellipse", { cx: head.x, cy: head.y, rx: W * 0.95, ry: W * 0.56, fill: "url(#portalGrad)" }, m);
     // a crescent glint on the rim
-    mk("path", { d: `M ${head.x - W * 0.72} ${head.y - W * 0.06} A ${W * 0.85} ${W * 0.48} 0 0 1 ${head.x + W * 0.45} ${head.y - W * 0.44}`, fill: "none", stroke: "#f0ffff", "stroke-width": Math.max(0.3, unit * 0.014), "stroke-linecap": "round", opacity: "0.6" }, m);
+    mk("path", { d: `M ${head.x - W * 0.72} ${head.y - W * 0.06} A ${W * 0.85} ${W * 0.48} 0 0 1 ${head.x + W * 0.45} ${head.y - W * 0.44}`, fill: "none", stroke: "#fff0f0", "stroke-width": Math.max(0.3, unit * 0.014), "stroke-linecap": "round", opacity: "0.6" }, m);
   }
 
   function drawLadder(foot, top, unit, footSq) {
@@ -988,7 +989,7 @@
       over.appendChild(c);
       app().appendChild(over);
       requestAnimationFrame(() => over.classList.add("show"));
-      if (p.isAI) setTimeout(() => { if (over.parentNode) done(); }, 2600);
+      narrateCard(p, spoken, over, done, 2600);
     });
   }
 
