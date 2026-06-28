@@ -376,7 +376,6 @@
     wrap.appendChild(toggles);
 
     const go = el("button", "btn btn-primary big", "Build your table ▸");
-    go.style.marginTop = "22px";
     go.onclick = () => { CG.Audio.sfx.click(); openSetup(); };
     wrap.appendChild(go);
 

@@ -126,6 +126,17 @@ button { font-family: inherit; cursor: pointer; }
 .byline { color: var(--muted); font-size: 13px; margin: 6px 0 0; letter-spacing: .04em; }
 .byline b { color: var(--blue); font-weight: 700; }
 
+/* The main Play button sits at the bottom of BOTH game title screens, at the
+   same vertical location, regardless of how much copy sits above it. It is
+   pinned to the viewport as a fixed footer button; the copy above scrolls. The
+   page reserves bottom space so the credit and byline clear the button.
+   Excludes the setup screen (which has its own flow). */
+.title-screen:not(.setup-screen) { padding-bottom: 92px; }
+.title-screen:not(.setup-screen) > .btn.big {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px;
+  z-index: 6; box-shadow: 0 10px 30px rgba(47,107,255,.35);
+}
+
 /* ---- setup screen: build your table (Human / AI per seat) ------------- */
 .setup-screen { justify-content: flex-start; padding-top: 6vh; }
 .seat-list { display: flex; flex-direction: column; gap: 10px; width: min(480px, 92vw); margin: 14px 0 4px; }
