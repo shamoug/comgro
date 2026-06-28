@@ -1,9 +1,12 @@
 # Common Ground: The Game Room
 
-A small game platform for a UN Country Team, with two games. Each seat at the
-table can be a human (you name them) or an AI rival (named for you). Open it and
-pick how you want to play. Everything runs in the browser, with spoken narration
-and an original cinematic score generated live.
+A small game platform for a UN Country Team. Each seat at the table can be a human
+(you name them) or an AI rival (named for you). Open it and pick how you want to
+play. Everything runs in the browser, with spoken narration and an original
+cinematic score generated live.
+
+The Game Room is built to grow. It currently ships two games, **The Long Road**
+and **The Mandate**, and more can be added as cards on the launcher.
 
 ## The Long Road, Ladders &amp; Holes
 
@@ -22,11 +25,22 @@ you are posted to.
 - **Surprise cards ❓** are a mystery: a bonus, a jump ahead, a found gem, or a lost turn.
 - **Field notes ★** drop a fun fact as you pass.
 
-## Field Ludo
+## The Mandate, a journey of choices
 
-The classic four-colour Ludo. Roll a six to deploy a team from base, race all
-four teams around the cross and home to the centre, and send rivals back to base
-when you land on them. First to bring everyone home wins.
+A game in the spirit of the Game of Life. You do not only race: you **make
+choices** and **build a legacy**. **Spin the wheel** and travel a winding road,
+generated fresh every game with one real **fork** where you pick your route.
+
+- **Crossroads ⚖️** are real dilemmas: speed or trust, fast money or flexible
+  money, your logo or the result. Each option carries a trade-off.
+- **Funding 💰, Trust 🤝 and Capacity 👥** are the three resources you collect.
+- **Milestones ⭐** are the big career markers: worth more, and you spin again.
+- **Events ⚡** are the breaks and setbacks the field really deals.
+- The whole table shares the **UN 2.0 Quintet of Change**, as in The Long Road.
+
+The twist: play runs until the **last** player reaches the handover, and the
+**richest legacy wins, not the fastest finish**. Finishing early earns a bonus,
+but the coordinator who built the deepest legacy completes the mandate.
 
 It is a single static website. No backend, no build step, no accounts, no
 external media. Drop it on GitHub Pages and it just runs.
@@ -88,12 +102,13 @@ Netlify, an S3 bucket, a USB stick). Relative paths keep it working everywhere.
 ## Project layout
 
 ```
-index.html          Loads the data, the two games, then the launcher.
-data/content.js     ALL Long Road content: decks, cards, theatres, names, story.
+index.html          Loads the data, the games, then the launcher.
+data/content.js     ALL content for both games: decks, cards, theatres, names, story.
 src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
 src/narrate.js      Warm English narration (Web Speech API).
+src/setup.js        Shared "build your table" roster screen (Human / AI seats).
 src/game.js         The Long Road: dynamic board, dice, movement, render.
-src/ludo.js         Field Ludo: board, dice, tokens, capture, AI.
+src/mandate.js      The Mandate: winding road, spinner, resources, decisions.
 src/platform.js     The launcher that lets you choose a game.
 styles/styles.css   One self-contained stylesheet (boards, dice, cards are CSS/SVG).
 ```
