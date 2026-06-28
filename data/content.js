@@ -208,6 +208,12 @@
     { icon: "🗃️", name: "Protection Case Worker", aff: "National NGO", tag: "Walks one person from danger to safety, file by file." },
     { icon: "🚐", name: "Logistics Officer", aff: "WFP", tag: "Moves the fleet, the fuel and the freight on time." },
     { icon: "🌍", name: "Refugee Coordinator", aff: "UNHCR", tag: "Leads the refugee response under UNHCR's model." },
+    // UN 2.0 capabilities, rights, cash and localization
+    { icon: "🧠", name: "Behavioural Science Adviser", aff: "UN Innovation", tag: "Designs choices that work with the grain of how people decide." },
+    { icon: "📲", name: "Digital Inclusion Officer", aff: "UN", tag: "Builds services that reach everyone, on the phones they carry." },
+    { icon: "⚖️", name: "Human Rights Officer", aff: "OHCHR", tag: "Monitors, reports, and keeps rights at the centre of the response." },
+    { icon: "💵", name: "Cash Working Group Coordinator", aff: "Inter-Agency", tag: "Turns a dozen overlapping transfers into one predictable payment." },
+    { icon: "🤝", name: "Localization Adviser", aff: "Inter-Agency", tag: "Shifts power and funding to the responders who never leave." },
   ];
 
   /* ----------------------------------------------------------------------
@@ -240,6 +246,9 @@
     { icon: "🪦", name: "The Quieted Province", blurb: "A ceasefire that holds by the hour, returnees trickling back to mined fields and ministries that barely function.", tags: ["displacement", "governance", "community", "access"] },
     { icon: "🏜️", name: "The Tamour Wastes", blurb: "An arid borderland of pastoralists and traders, where a failed rain can empty a market in a week.", tags: ["drought", "community", "data", "access"] },
     { icon: "🌧️", name: "The Monsoon Lowlands", blurb: "A delta of rice and rivers that floods on schedule, where the only safe stock is the stock you moved before the rains.", tags: ["flood", "supply", "climate", "health"] },
+    { icon: "🏴", name: "The Arran Frontier", blurb: "A conflict-scarred dryland where famine has been declared in one besieged town and every road in is bargained for by the day.", tags: ["drought", "access", "displacement", "governance"] },
+    { icon: "🌆", name: "Lower Keddah", blurb: "A heat-blistered megacity where a cholera season, a creaking power grid and rumour on a million phones all peak at once.", tags: ["health", "digital", "info", "governance"] },
+    { icon: "🏝️", name: "The Cinder Atolls", blurb: "Low islands where the king tides now reach the wells, and whole communities are weighing a planned, dignified move inland.", tags: ["climate", "flood", "displacement", "community"] },
   ];
 
   /* ----------------------------------------------------------------------
@@ -354,6 +363,13 @@
     { icon: "🧩", title: "Clusters Multiply Into Confusion", tag: "governance", why: "Too many overlapping groups blur who is accountable for what, and gaps hide in the seams.", fact: "Clusters are activated to clarify, not to proliferate, and they are meant to be handed back as capacity recovers." },
     { icon: "📦", title: "Everyone Sends the Same Item", tag: "governance", why: "Agencies all ship blankets and no one ships water, because nobody checked the shared picture.", fact: "The 4W matrix is the dull, vital tool that designs duplication out of a response." },
     { icon: "🗣️", title: "A Parallel Coordination Body Springs Up", tag: "governance", why: "A new actor sets up its own structure beside the existing one, and partners get two sets of asks.", fact: "Coordination is a means to delivery, never a trophy. People do not eat coordination." },
+    // the funding and protection squeeze of recent years
+    { icon: "🎗️", title: "The Deadliest Year for Aid Workers", tag: "access", why: "A wave of attacks on staff forces a security pause, and whole areas go unreached while the team regroups.", fact: "2024 was the deadliest year on record, with nearly 400 aid workers killed, and states are now a growing share of the threat." },
+    { icon: "📉", title: "A Donor Capital Slashes Its Budget", tag: "funding", why: "A sudden aid cut cascades into ration reductions across every sector at once.", fact: "The global appeal routinely closes the year under a quarter funded, so a hyper-prioritization exercise decides who is reached at all." },
+    { icon: "💳", title: "Cash Programmes Are Wound Back", tag: "funding", why: "With the pipeline short, families lose the choice and dignity that a cash transfer carries.", fact: "Cash and vouchers fell to under a fifth of humanitarian aid in 2024, a second yearly drop, even as the evidence for them grew." },
+    { icon: "🏚️", title: "Famine Is Declared in a Besieged Town", tag: "drought", why: "Access is blocked exactly where the need is worst, and the declaration arrives behind the deaths, not ahead of them.", fact: "Famine means a fifth of households in catastrophe, a third of children acutely malnourished, and two deaths per ten thousand each day." },
+    { icon: "🏃", title: "A Record Year of Displacement", tag: "displacement", why: "New mass movements outrun every plan, and the sites fill faster than the services can.", fact: "Over 123 million people were forcibly displaced by the end of 2024, and most are displaced inside their own countries." },
+    { icon: "🪙", title: "Anticipatory Funds Are Too Small to Matter", tag: "climate", why: "The forecast trips, but the pre-arranged money is a trickle, so the slower and costlier response starts late.", fact: "Less than one percent of humanitarian funding is pre-arranged for anticipatory action, the cheapest help there is." },
   ];
 
   /* ----------------------------------------------------------------------
@@ -458,6 +474,13 @@
     { icon: "🔭", title: "A Foresight Exercise Spots the Next Shock", tag: "foresight", why: "The team games out a scenario and pre-positions for a crisis that has not happened yet.", fact: "Reading the next shock before it lands is one of the five capabilities of a modern UN." },
     { icon: "📚", title: "Children Return to Learning", tag: "youth", why: "Temporary classrooms reopen, and a generation's education does not vanish with the crisis.", fact: "Education in emergencies is protection: a school day is also a safe, structured, watched-over day." },
     { icon: "🤖", title: "A Shared Data Platform Cuts Duplication", tag: "digital", why: "One system replaces a dozen spreadsheets, and the arguments shrink to the real decisions.", fact: "A modern UN is built on data, digital, innovation, foresight and behavioural science, the Quintet of Change." },
+    // the reforms and wins of recent years
+    { icon: "🌍", title: "Half the Pooled Fund Reaches Local Hands", tag: "community", why: "Frontline national organisations are funded directly, and the money lands closer to the need.", fact: "In 2024 country-based pooled funds channelled about half of their allocations to local and national responders, up sharply from the year before." },
+    { icon: "🛡️", title: "Anticipatory Finance Beats the Flood", tag: "climate", why: "Pre-arranged money releases on the forecast, and families act days before the water arrives.", fact: "CERF released funds ahead of floods and droughts across several countries in 2024, and early action in Bangladesh cost ten dollars less per person than waiting." },
+    { icon: "📲", title: "A Global Digital Compact Is Adopted", tag: "digital", why: "Shared digital rules and tools reach the last district, and services follow the signal.", fact: "The Global Digital Compact, agreed in 2024, set the first global framework to close the digital divide." },
+    { icon: "🤝", title: "Donors Back the 25 Percent Target", tag: "funding", why: "More money flows as directly as possible to national responders, cutting the layers it passes through.", fact: "The Grand Bargain set a target of at least a quarter of humanitarian funding for local and national actors, with pooled funds the main vehicle." },
+    { icon: "🏛️", title: "A Pact for the Future Is Signed", tag: "governance", why: "Governments commit to reform and to the generations not yet born, and the team's long bets gain backing.", fact: "The 2024 Pact for the Future was the most comprehensive global agreement in decades, with a Declaration on Future Generations annexed to it." },
+    { icon: "🧠", title: "Behavioural Insight Fills the Clinics", tag: "behaviour", why: "A reminder in the right voice at the right moment does what a whole new building could not.", fact: "Behavioural science, one of the UN 2.0 Quintet, designs choices that work with the grain of how people really decide." },
   ];
 
   /* ----------------------------------------------------------------------
@@ -586,6 +609,20 @@
     "Pre-positioning is unglamorous, and it is the single cheapest way to be fast.",
     "A standby roster puts the specialist you are missing on the ground in days, not months.",
     "The richest legacy completes the mandate, not the fastest finish.",
+    // the numbers behind the work
+    "Around 300 million people need humanitarian aid this year, and the appeal rarely reaches a quarter funded.",
+    "Over 120 million people are forcibly displaced, and most have never crossed a border.",
+    "Most of the world's displaced are internally displaced, still inside their own country.",
+    "Anticipatory action is the cheapest aid there is, and gets less than one percent of the money.",
+    "CERF can release rapid-response funds within seventy-two hours of an agreed request.",
+    "Pooled funds now send about half their money to local and national responders.",
+    "Cash is dignity, yet it is barely a fifth of humanitarian aid, and falling.",
+    "The UN 2.0 Quintet is data, innovation, digital, foresight and behavioural science.",
+    "There are eleven global clusters, each meant to clarify who does what, then hand back.",
+    "Famine needs a fifth of people in catastrophe and two deaths per ten thousand a day. It is a threshold, not a headline.",
+    "The deadliest year on record for aid workers was the most recent one. Look after the team.",
+    "A dollar of early action can return up to seven in the losses it avoids.",
+    "Hyper-prioritization is the grim arithmetic of deciding who gets reached when the money runs short.",
   ];
 
   /* ----------------------------------------------------------------------
@@ -868,6 +905,18 @@
       prompt: "Several agencies could pool budgets into one programme. It means real impact, and surrendering some control.",
       a: { label: "Pool the mandates", detail: "Trade a little autonomy for a great deal of impact.", eff: { capacity: 2, trust: 1, move: -1 } },
       b: { label: "Stay independent", detail: "Keep your own lane, and your own ceiling.", eff: { move: 1, trust: -1 } } },
+    { icon: "✂️", title: "The Money Halved, Who Do You Reach?", tag: "funding",
+      prompt: "A donor cut just halved the budget. You can spread a thin ration to all, or fully reach the most desperate few.",
+      a: { label: "Prioritize the catastrophe", detail: "Save the people closest to famine, and tell the rest to wait.", eff: { trust: 1, capacity: 1, move: -1, quintet: "data", quintetDir: 1 } },
+      b: { label: "Spread it thin", detail: "No one is turned away, and no one gets quite enough.", eff: { move: 1, trust: -1 } } },
+    { icon: "🌍", title: "Direct to Locals, or Through the Broker?", tag: "community",
+      prompt: "You can fund the national NGO directly, or route through an international intermediary that carries the compliance risk.",
+      a: { label: "Fund them directly", detail: "Power and money shift closer to the front line, and you carry the risk.", eff: { capacity: 2, trust: 1, move: -1, quintet: "behaviour", quintetDir: 1 } },
+      b: { label: "Use the intermediary", detail: "Safer on paper, slower in practice, and another layer takes its cut.", eff: { funding: 1, capacity: -1 } } },
+    { icon: "🔮", title: "Act on the Forecast, or Wait for Proof?", tag: "climate",
+      prompt: "The model says a flood is likely. Release pre-arranged funds now, or hold until the water is certain.",
+      a: { label: "Trigger anticipatory action", detail: "Move before the impact, and risk spending on a flood that stays small.", eff: { trust: 2, move: 1, quintet: "foresight", quintetDir: 1 } },
+      b: { label: "Wait for certainty", detail: "Keep the budget intact, and lose the head start that saves the most.", eff: { funding: 1, move: -1 } } },
   ];
 
   // EVENTS,  good and bad turns of fortune drawn on an event square. The engine
@@ -911,6 +960,13 @@
     { icon: "📑", title: "A Counter-Terror Clause Freezes a Partner", kind: "bad", tag: "governance", why: "Strict conditions make supporting a frontline partner legally fraught.", fact: "Principled action reaches by need alone, but the paperwork grows heavier.", eff: { capacity: -1, move: -1 } },
     { icon: "🧱", title: "A Bank De-Risks You", kind: "bad", tag: "funding", why: "A nervous bank closes the account, and cash cannot reach partners.", fact: "Financial de-risking can choke a lawful operation like any checkpoint.", eff: { funding: -1, capacity: -1 } },
     { icon: "📵", title: "A Communications Blackout Falls", kind: "bad", tag: "info", why: "Authorities cut the networks, and teams lose contact with the field.", fact: "When connectivity dies, every digital plan reverts to paper and runners.", eff: { capacity: -1, move: -1 } },
+    // grounded in recent reform and recent strain
+    { icon: "🌍", title: "The Pooled Fund Backs Local Responders", kind: "good", tag: "community", why: "Frontline national organisations are funded directly, and the money lands closer to the need.", fact: "Country-based pooled funds now send about half of their allocations to local and national actors.", eff: { capacity: 2, trust: 1 } },
+    { icon: "📲", title: "A Global Digital Compact Lands", kind: "good", tag: "digital", why: "Shared digital rules and tools reach the last district, and services follow the signal.", fact: "The 2024 Global Digital Compact set the first global framework to close the digital divide.", eff: { capacity: 1, quintet: "digital", quintetDir: 1 } },
+    { icon: "🏛️", title: "A Pact for the Future Is Signed", kind: "good", tag: "governance", why: "Governments commit to reform and to the generations not yet born, and your long bets gain backing.", fact: "The 2024 Pact was the most comprehensive global agreement in decades.", eff: { trust: 2, quintet: "foresight", quintetDir: 1 } },
+    { icon: "📊", title: "Hyper-Prioritization Bites", kind: "bad", tag: "funding", why: "With the appeal under a quarter funded, you must choose who is reached and who waits.", fact: "When the money runs short, prioritization is the grim arithmetic of triage at scale.", eff: { funding: -2, trust: -1 } },
+    { icon: "💳", title: "Cash Assistance Is Wound Back", kind: "bad", tag: "funding", why: "The pipeline shrinks, and families lose the choice and dignity of a cash transfer.", fact: "Cash and vouchers fell below a fifth of humanitarian aid in 2024, even as evidence for them grew.", eff: { funding: -1, trust: -1 } },
+    { icon: "🎗️", title: "Attacks on Staff Force a Pause", kind: "bad", tag: "access", why: "A wave of incidents halts movement, and whole areas go unreached while the team regroups.", fact: "The deadliest year on record saw nearly 400 aid workers killed, with states a growing share of the threat.", eff: { capacity: -2, move: -2 } },
   ];
 
   // FUNDING squares,  a small win for the wallet.
@@ -930,6 +986,8 @@
     { icon: "🏗️", title: "A Private Partner Steps In", tag: "funding", why: "A company funds a slice of the response and lends its logistics for free.", fact: "Resourcefulness is a coordination superpower.", eff: { funding: 1, capacity: 1 } },
     { icon: "📊", title: "Clean Audit, Restored Trust", tag: "funding", why: "A spotless audit reopens a donor's chequebook.", fact: "Credibility compounds. Last year's clean books pay out today.", eff: { funding: 1, trust: 1 } },
     { icon: "💵", title: "The Flash Appeal Is Funded", tag: "funding", why: "The appeal hits a hundred percent, and the plan finally has money behind it.", fact: "A flash appeal sets the strategy for the early months of a crisis.", eff: { funding: 2, move: 1 } },
+    { icon: "🛡️", title: "Pre-Arranged Finance Triggers", tag: "climate", why: "Anticipatory funds release on the forecast, well before the shock makes landfall.", fact: "A dollar of early action can return up to seven in the losses it avoids.", eff: { funding: 2, move: 1, quintet: "foresight", quintetDir: 1 } },
+    { icon: "🎗️", title: "An Underfunded Crisis Is Noticed", tag: "funding", why: "A neglected emergency finally draws an allocation no headline would have won it.", fact: "CERF keeps a dedicated window for the crises the world forgot.", eff: { funding: 2 } },
   ];
 
   // TRUST squares,  a win for relationships and standing.
@@ -949,6 +1007,8 @@
     { icon: "🎖️", title: "Credit Goes to the Team", tag: "any", why: "You name every local colleague at the podium, and the room leans in.", fact: "The best legacy carries no single logo.", eff: { trust: 2 } },
     { icon: "🤝", title: "A Government Champion Emerges", tag: "governance", why: "A well-placed official clears three stuck approvals in an afternoon.", fact: "Trust, once earned, moves faster than any memo.", eff: { trust: 2 } },
     { icon: "📲", title: "A Hotline Goes Live", tag: "digital", why: "People can reach someone who can actually act, and they do.", fact: "Accountability means closing the loop.", eff: { trust: 2, quintet: "digital", quintetDir: 1 } },
+    { icon: "🌍", title: "Local Partners Get the Mic", tag: "community", why: "At the donor table, you hand the seat to the national responders who do the work.", fact: "Localization is sharing power, not subcontracting risk.", eff: { trust: 2, capacity: 1 } },
+    { icon: "⚖️", title: "Rights Are Kept on the Agenda", tag: "governance", why: "A quiet word keeps protection and human rights from being traded away for access.", fact: "Neutrality is not silence in the face of atrocity.", eff: { trust: 2 } },
   ];
 
   // CAPACITY squares,  a win for the people and systems that will remain.
@@ -968,6 +1028,8 @@
     { icon: "🚐", title: "An Air Bridge Opens", tag: "access", why: "A humanitarian air service starts flying staff and cargo where roads cannot.", fact: "When the ground closes, common air services keep everyone moving.", eff: { capacity: 2, move: 1 } },
     { icon: "🏭", title: "A Shared Warehouse Opens", tag: "supply", why: "Agencies pool storage, and there is room and reach for everyone's stock.", fact: "Common services exist because no one agency can do it alone.", eff: { capacity: 2 } },
     { icon: "🌅", title: "Livelihoods Restart", tag: "community", why: "Early-recovery grants get markets and incomes moving again.", fact: "Recovery starts before the cameras leave.", eff: { capacity: 1, trust: 1 } },
+    { icon: "🧠", title: "Behavioural Science Is Built In", tag: "behaviour", why: "The team designs services around how people really decide, and uptake climbs.", fact: "Behavioural science is one of the five UN 2.0 capabilities, working with the grain of human nature.", eff: { capacity: 2, quintet: "behaviour", quintetDir: 1 } },
+    { icon: "🔭", title: "A Foresight Unit Stands Up", tag: "foresight", why: "A small team starts gaming out the next shock, and the response stops being caught flat.", fact: "Strategic foresight is reading the next shock before it lands, then deciding better today.", eff: { capacity: 2, quintet: "foresight", quintetDir: 1 } },
   ];
 
   // MILESTONES,  the big career markers. Worth more to your legacy, and they
@@ -990,6 +1052,9 @@
     { icon: "📡", title: "Connectivity Reaches the Last District", why: "A new tower lights up a corner of {theatre} that was invisible on the map.", fact: "Without connectivity, every other digital plan is a drawing on a wall." },
     { icon: "🎓", title: "A National Team Stands Alone", why: "The colleagues you mentored in {theatre} now run the response without you.", fact: "Local capacity is the only kind that stays after the mission leaves." },
     { icon: "🏥", title: "Health Services Are Handed Over", why: "National authorities take the lead on health across {theatre}, with the UN in support.", fact: "Primary responsibility rests with national authorities. The goal is to support them." },
+    { icon: "🤝", title: "The 25 Percent Target Is Met", why: "As {role}, you steer a quarter of the funding in {theatre} directly to local and national responders.", fact: "The Grand Bargain's localization target is about shifting power, not just money, to the front line." },
+    { icon: "🔭", title: "Anticipatory Action Is Institutionalised", why: "Pre-arranged finance and agreed triggers become standard practice across {theatre}, not a pilot.", fact: "Anticipatory action is the cheapest aid there is, and a dollar of it can return up to seven." },
+    { icon: "📲", title: "A Digital Public Good Is Adopted", why: "An open, shared digital system becomes the way {theatre} registers, pays and reports.", fact: "The Global Digital Compact set the first global rules to close the divide and govern shared digital goods." },
   ];
 
   // NARRATOR LINES for The Mandate, in the same warm voice.
