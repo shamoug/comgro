@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  KNOWLEDGE BASE GREATLY ENRICHED (web-researched), so the games
+REM              teach new UN staff far more about the UN's overseas field work.
+REM              Roles 68 -> 257 (real job titles across UNHCR, UNICEF, WFP, WHO,
+REM              FAO, OCHA, IOM, UNDP, UNFPA, UN Women, OHCHR, UNEP, UN-Habitat,
+REM              UNESCO, ILO, UNODC, UNAIDS, DPPA/DPO, RC system and partners).
+REM              Crisis theatres 27 -> 63. Field-note facts 125 -> 1144. Hole
+REM              cards 73 -> 149, ladder cards 64 -> 138, diamonds 23 -> 54,
+REM              surprises 35 -> 65, trophies 27 -> 57. Every new card carries a
+REM              tag, and CG.ROLE_TAG_RULES was extended to cover the wider roster
+REM              (development, peace, environment, economy, statistics, etc.) so
+REM              each player still draws role-relevant cards. English only, zero em
+REM              or en dashes (verified). content.js v16.
 REM  2026-06-28  PLAYER-CUSTOMISED JOURNEYS (rule for all games, now and future).
 REM              Every card a player draws is now biased to their own job title
 REM              and affiliation, on top of the scenario (theatre) they were
