@@ -1175,27 +1175,12 @@
     const spoken = line + championsLine(champs);
     CG.Narrate.auto(spoken);
 
-    let rows = "";
-    order.forEach((p) => {
-      const loot = [];
-      if (p.trophies) loot.push(`🏆${p.trophies > 1 ? "×" + p.trophies : ""}`);
-      if (p.diamonds) loot.push(`💎${p.diamonds > 1 ? "×" + p.diamonds : ""}`);
-      rows +=
-        `<div class="final-row">` +
-          `<span class="final-medal">${MEDALS[p.rank - 1] || "#" + p.rank}</span>` +
-          `<span class="final-name" style="color:${p.color}">${esc(p.name)}</span>` +
-          `<span class="final-role">${esc(p.role.name)}</span>` +
-          `<span class="final-loot">${loot.join(" ")}</span>` +
-        `</div>`;
-    });
-
     const over = el("div", "overlay-card show");
     const c = el("div", "event-card win");
     c.innerHTML =
       `<div class="ec-band">FINAL STANDINGS</div>` +
       `<div class="ec-icon">🏁</div>` +
       `<div class="ec-title">The whole table is home</div>` +
-      `<div class="final-list">${rows}</div>` +
       championsHtml(champs) +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
