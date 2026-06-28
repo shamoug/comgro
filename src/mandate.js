@@ -915,11 +915,17 @@
     capacity: { band: "CAPACITY", cls: "capacity", cont: "Build it ▸" },
   };
 
+  // A short spoken aside naming the capability a card just moved, so narration
+  // matches the on-card Quintet block (mirrors The Long Road's showCard).
+  function quintSpoken(q) {
+    return q ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.` : "";
+  }
+
   function showResourceCard(p, card, kind, q) {
     return new Promise((resolve) => {
       const m = RES_META[kind];
       const why = fillText(card.why, p), fact = fillText(card.fact, p);
-      const spoken = `${card.title}. ${why} ${fact}`;
+      const spoken = `${card.title}. ${why} ${fact}${quintSpoken(q)}`;
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${m.cls}`);
       c.innerHTML =
@@ -955,7 +961,7 @@
 
   function showEventCard(p, card, q) {
     return new Promise((resolve) => {
-      const spoken = `${card.title}. ${card.why} ${card.fact}`;
+      const spoken = `${card.title}. ${card.why} ${card.fact}${quintSpoken(q)}`;
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${card.kind === "bad" ? "snake" : "ladder"}`);
       c.innerHTML =
@@ -1113,6 +1119,54 @@
     narrateCard(p, spoken, over, fin, 3000);
   }
 
+  // Crowning the table, the same spirit as The Long Road: finishing first is
+  // only one way to be remembered. We hand out a champion for each kind of
+  // greatness, Speed (first to the handover), Legacy (the deepest legacy
+  // banked), and one for each UN 2.0 capability the player pushed furthest. A
+  // category with no clear leader is simply left uncrowned; positive ties share.
+  function computeChampions() {
+    const champs = [];
+    const top = (valueOf) => {
+      const best = Math.max.apply(null, S.players.map(valueOf));
+      if (best <= 0) return null;
+      return { best, who: S.players.filter((p) => valueOf(p) === best) };
+    };
+
+    const speed = S.players.find((p) => p.rank === 1);
+    if (speed) champs.push({ icon: "🏃", title: "Speed", who: [speed], note: "first to the handover" });
+
+    const leg = top((p) => legacy(p));
+    if (leg) champs.push({ icon: "🏛️", title: "Legacy", who: leg.who, note: `the deepest legacy, ${leg.best}` });
+
+    CG.QUINTET.forEach((q) => {
+      const lead = top((p) => (p.contrib && p.contrib[q.key]) || 0);
+      if (lead) champs.push({ icon: q.icon, title: q.name, who: lead.who, note: `pushed ${q.name} furthest, +${lead.best}` });
+    });
+    return champs;
+  }
+
+  function championsHtml(champs) {
+    if (!champs.length) return "";
+    const rows = champs.map((c) => {
+      const names = c.who
+        .map((p) => `<span class="champ-who" style="color:${p.color}">${esc(p.name)}</span>`)
+        .join(", ");
+      return `<div class="champ-row">` +
+        `<span class="champ-ic">${c.icon}</span>` +
+        `<span class="champ-body"><span class="champ-title">${esc(c.title)} champion</span>` +
+        `<span class="champ-names">${names}</span>` +
+        `<span class="champ-note">${esc(c.note)}</span></span>` +
+      `</div>`;
+    }).join("");
+    return `<div class="champ-head">Champions of the Mandate</div><div class="champ-list">${rows}</div>`;
+  }
+
+  function championsLine(champs) {
+    if (!champs.length) return "";
+    const parts = champs.map((c) => `${c.who.map((p) => p.name).join(" and ")}, ${c.title} champion`);
+    return ` And the champions of the mandate: ${parts.join("; ")}.`;
+  }
+
   function endGame() {
     S.over = true; S.busy = false;
     setMoving(false);
@@ -1128,7 +1182,8 @@
     else line = `${winner.name} ${CG.MANDATE_STORY.winOther}`;
     const built = CG.QUINTET.filter((q) => (S.quintet[q.key] || 0) > 0).map((q) => q.name);
     if (built.length) line += ` The table's strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
-    CG.Narrate.auto(line);
+    const champs = computeChampions();
+    CG.Narrate.auto(line + championsLine(champs));
 
     let rows = "";
     order.forEach((p, i) => {
@@ -1148,6 +1203,7 @@
       `<div class="ec-icon">🏛️</div>` +
       `<div class="ec-title">${esc(winner.name)} leaves the deepest legacy</div>` +
       `<div class="final-list">${rows}</div>` +
+      championsHtml(champs) +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
     const again = el("button", "btn btn-primary", "Run it again ▸");
