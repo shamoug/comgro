@@ -272,7 +272,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* tunnels & ladders (most styling is inline px; classes carry colours) */
 .overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.ladder-edge { stroke: #11532b; stroke-linecap: round; }
+.ladder-edge { stroke: #123a6b; stroke-linecap: round; }
 .ladder-rail { stroke: url(#ladderRail); stroke-linecap: round; }
 .ladder-rung { stroke: url(#ladderRung); stroke-linecap: round; }
 
@@ -494,31 +494,43 @@ button { font-family: inherit; cursor: pointer; }
 /* ======================================================================= */
 .board-box.ludo {
   width: min(84vh, 96vw); height: min(84vh, 96vw);
-  background: linear-gradient(160deg, #ffffff, #eef4fc);
+  background: linear-gradient(160deg, #f7fbff, #e7eefb);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(40,80,130,.1) inset;
 }
 .ludo-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); }
 .lc { position: relative; }
 .lc-path { background: #fff; box-shadow: 0 0 0 1px rgba(40,80,130,.12) inset; }
-.lc-safe::after { content: "★"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(40,80,130,.32); font-size: 70%; }
-.lc-yard.lc-red { background: rgba(229,86,75,.16); }
-.lc-yard.lc-green { background: rgba(47,158,84,.16); }
-.lc-yard.lc-yellow { background: rgba(240,180,41,.18); }
-.lc-yard.lc-blue { background: rgba(47,107,255,.16); }
-.lc-home.lc-red { background: rgba(229,86,75,.55); }
-.lc-home.lc-green { background: rgba(47,158,84,.55); }
-.lc-home.lc-yellow { background: rgba(240,180,41,.6); }
-.lc-home.lc-blue { background: rgba(47,107,255,.5); }
+.lc-safe::after { content: "★"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(40,80,130,.3); font-size: 66%; }
+/* corner yards now drawn as rounded panels; keep cells clean underneath */
+.lc-yard { background: transparent; }
+.lc-home.lc-red { background: rgba(229,86,75,.5); }
+.lc-home.lc-green { background: rgba(47,158,84,.5); }
+.lc-home.lc-yellow { background: rgba(240,180,41,.55); }
+.lc-home.lc-blue { background: rgba(47,107,255,.46); }
 .lc-center { background: conic-gradient(#e5564b 0deg 90deg, #2f9e54 90deg 180deg, #f0b429 180deg 270deg, #2f6bff 270deg 360deg); box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset; }
-.lc-start.lc-red { background: rgba(229,86,75,.32); }
-.lc-start.lc-green { background: rgba(47,158,84,.32); }
-.lc-start.lc-yellow { background: rgba(240,180,41,.36); }
-.lc-start.lc-blue { background: rgba(47,107,255,.3); }
-.lc-special { background: #fff; }
+/* coloured start cells carry a soft directional chevron */
+.lc-start.lc-red { background: rgba(229,86,75,.34); }
+.lc-start.lc-green { background: rgba(47,158,84,.34); }
+.lc-start.lc-yellow { background: rgba(240,180,41,.4); }
+.lc-start.lc-blue { background: rgba(47,107,255,.32); }
+.lc-start::after { content: "›"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 92%; color: rgba(20,40,70,.4); }
+.lc-special { background: #fff; box-shadow: 0 0 0 1px rgba(40,80,130,.12) inset; }
 .lc-ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(9px, 1.5vw, 16px); filter: drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
+
+/* rounded corner yard panels with an inner home box */
+.ludo-yard { position: absolute; border-radius: 16px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.55), 0 4px 14px -8px rgba(20,40,70,.5); z-index: 1; }
+.ludo-yard::after { content: ""; position: absolute; inset: 17%; background: #fff; border-radius: 11px; box-shadow: inset 0 1px 5px rgba(20,40,70,.16); }
+.ludo-yard.lc-red { background: linear-gradient(145deg, #ff6f64, #e5564b); }
+.ludo-yard.lc-green { background: linear-gradient(145deg, #46b96c, #2f9e54); }
+.ludo-yard.lc-yellow { background: linear-gradient(145deg, #f6c54e, #f0b429); }
+.ludo-yard.lc-blue { background: linear-gradient(145deg, #5a8bff, #2f6bff); }
+/* centre emblem */
+.ludo-center { position: absolute; transform: translate(-50%, -50%); z-index: 6; font-size: clamp(12px, 2.4vw, 24px); filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); pointer-events: none; }
+
 .lc-ring {
   position: absolute; width: 4.4%; height: 4.4%; border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff; border: 2px solid currentColor;
+  transform: translate(-50%, -50%); z-index: 2;
+  background: #fff; border: 2px solid currentColor; box-shadow: inset 0 0 4px rgba(20,40,70,.18);
 }
 .lc-ring.lc-red { color: #e5564b; }
 .lc-ring.lc-green { color: #2f9e54; }
