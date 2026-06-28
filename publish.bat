@@ -8,6 +8,15 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  The Mandate: livelier, longer road. Five rows / 35 stations
+REM              (was four / 28), TWO real forks instead of one, and a mix that
+REM              leans on crossroads, events and milestones so the journey stays
+REM              eventful. Job title now shows under each player's name in the
+REM              Mandate standings. NEW: hover (or tap) any player token or
+REM              standings row in BOTH games to see a card with their name, job
+REM              title, affiliation, score and personal Quintet of Change. Added
+REM              an "affiliation" to every role in content.js. mandate.js v5,
+REM              game.js v15, setup.js v5, content.js v11, styles.css v15.
 REM  2026-06-28  Mercy intervention now counts tries only once a player has
 REM              reached square 90 (was: within one roll of 100). game.js v13.
 REM  2026-06-28  The Long Road now always ends. Exact-landing on 100 is kept,

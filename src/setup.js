@@ -23,6 +23,86 @@
 
   const NAMES = () => (CG.AGENT_NAMES && CG.AGENT_NAMES.length ? CG.AGENT_NAMES : ["Amara", "Diego", "Mei", "Kofi"]);
 
+  /* ----------------------------------------------------------------------
+   * SHARED PLAYER HOVER CARD,  used by both games. Hover (or tap, on touch
+   * screens) a player token or standings row to see their name, job title,
+   * affiliation, current score, and their Quintet of Change contribution.
+   * A single floating card is reused, positioned in viewport coordinates.
+   * -------------------------------------------------------------------- */
+  CG.Hover = (function () {
+    let tip = null, hideTimer = null;
+
+    function ensure() {
+      if (!tip) {
+        tip = el("div", "phover");
+        document.body.appendChild(tip);
+      }
+      return tip;
+    }
+
+    function build(info) {
+      const quint = (info.quintet || [])
+        .map((q) =>
+          `<span class="pq ${q.lvl > 0 ? "pos" : q.lvl < 0 ? "neg" : ""}">` +
+            `<span class="pq-ic">${q.icon}</span>` +
+            `<span class="pq-lv">${q.lvl > 0 ? "+" : ""}${q.lvl}</span>` +
+          `</span>`).join("");
+      return (
+        `<div class="ph-head">` +
+          `<span class="ph-ic" style="--c:${info.color || "#2f6bff"}">${info.icon || "◆"}</span>` +
+          `<div class="ph-id">` +
+            `<div class="ph-name">${esc(info.name)}</div>` +
+            `<div class="ph-role">${esc(info.role || "")}</div>` +
+          `</div>` +
+        `</div>` +
+        `<div class="ph-aff"><span>🏛️</span>${esc(info.aff || "UN Country Team")}</div>` +
+        `<div class="ph-score"><span>${esc(info.scoreLabel || "Score")}</span><b>${info.score}</b></div>` +
+        (quint
+          ? `<div class="ph-qlabel">UN 2.0 Quintet of Change</div><div class="ph-quint">${quint}</div>`
+          : "")
+      );
+    }
+
+    function place(anchor) {
+      const t = ensure();
+      const r = anchor.getBoundingClientRect();
+      const tw = t.offsetWidth, th = t.offsetHeight;
+      let x = r.left + r.width / 2 - tw / 2;
+      let y = r.top - th - 10;                 // prefer above the anchor
+      if (y < 8) y = r.bottom + 10;            // flip below if no room
+      x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+      y = Math.max(8, Math.min(y, window.innerHeight - th - 8));
+      t.style.left = x + "px";
+      t.style.top = y + "px";
+    }
+
+    function show(anchor, info) {
+      const t = ensure();
+      clearTimeout(hideTimer);
+      t.innerHTML = build(info);
+      t.classList.add("show");
+      place(anchor);
+    }
+    function hide() { if (tip) tip.classList.remove("show"); }
+
+    return {
+      hide,
+      // bind(element, () => infoObject). Re-call on every render; cheap.
+      bind(anchor, getInfo) {
+        if (!anchor) return;
+        anchor.style.pointerEvents = "auto";
+        anchor.addEventListener("mouseenter", () => show(anchor, getInfo()));
+        anchor.addEventListener("mouseleave", hide);
+        anchor.addEventListener("click", (e) => {
+          e.stopPropagation();
+          show(anchor, getInfo());
+          clearTimeout(hideTimer);
+          hideTimer = setTimeout(hide, 3200);   // auto-dismiss the tap card
+        });
+      },
+    };
+  })();
+
   // A random name not already taken by another AI seat.
   function pickName(taken) {
     const pool = NAMES().filter((n) => taken.indexOf(n) < 0);

@@ -47,9 +47,9 @@
   const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
   // ---- layout constants --------------------------------------------------
-  const ROWS = 4;             // the road winds down in four rows
+  const ROWS = 5;             // the road winds down in five rows
   const PER = 7;              // squares per row (boustrophedon)
-  const SPINE = ROWS * PER;   // 28 squares on the main spine
+  const SPINE = ROWS * PER;   // 35 squares on the main spine
   const XL = 8, XR = 92;      // horizontal margins, percent
   const NS = "http://www.w3.org/2000/svg";
 
@@ -59,10 +59,11 @@
     CG.QUINTET.forEach((c) => (q[c.key] = 0));
     return q;
   }
-  function applyQuintet(tag, dir) {
+  function applyQuintet(tag, dir, p) {
     const key = CG.quintetForTag(tag);
     const meta = CG.quintetMeta(key);
     S.quintet[key] = (S.quintet[key] || 0) + dir;
+    if (p && p.contrib) p.contrib[key] = (p.contrib[key] || 0) + dir;
     return { key, meta, dir, level: S.quintet[key] };
   }
 
@@ -117,6 +118,28 @@
            (p.milestones || 0) * 3 + (p.finishBonus || 0);
   }
 
+  // Data shown in the shared hover card for one player.
+  function playerInfo(p) {
+    return {
+      name: p.name, role: p.role.name, aff: p.role.aff, icon: p.role.icon, color: p.color,
+      scoreLabel: "Legacy", score: legacy(p),
+      quintet: CG.QUINTET.map((q) => ({ icon: q.icon, name: q.name, lvl: (p.contrib && p.contrib[q.key]) || 0 })),
+    };
+  }
+
+  // The identity banner shown at the top of every in-play card, so it is
+  // always clear which player the card is for: their name, job title and
+  // affiliation, tinted with their token colour.
+  function whoHtml(p) {
+    return `<div class="ec-who" style="--who:${p.color}">` +
+        `<span class="ec-who-ic">${p.role.icon}</span>` +
+        `<span class="ec-who-id">` +
+          `<b>${esc(p.name)}</b>` +
+          `<small>${esc(p.role.name)} · ${esc(p.role.aff)}</small>` +
+        `</span>` +
+      `</div>`;
+  }
+
   let roadBox = null, roadSvg = null, resizeObs = null, relayoutHandler = null;
   let decksReady = false;
 
@@ -154,28 +177,38 @@
     nodes[0].type = "start";
     nodes[SPINE - 1].type = "finish";
 
-    // One fork: replace a same-row triple F..F+3 with a parallel high road.
+    // Forks: each replaces a same-row triple F..F+3 with a parallel high road.
     // Both routes are three hops, so finishing distance is identical and the
-    // choice is purely which squares you pass. Keep it mid-row so it bows into
-    // open space above the road.
-    const r = rnd(1, ROWS - 2);                 // an interior row
-    const F = r * PER + rnd(0, PER - 4);        // F..F+3 stay inside the row
-    const J = F + 3;
-    const b1 = { id: SPINE, type: null, depth: nodes[F + 1].depth, branch: true,
-                 x: nodes[F + 1].x, y: nodes[F + 1].y - 13, next: [SPINE + 1] };
-    const b2 = { id: SPINE + 1, type: null, depth: nodes[F + 2].depth, branch: true,
-                 x: nodes[F + 2].x, y: nodes[F + 2].y - 13, next: [J] };
-    nodes.push(b1, b2);
-    nodes[F].next = [F + 1, b1.id];             // route A (low) and route B (high)
-    nodes[F].type = "fork";
-    S.fork = { F, J, low: [F + 1, F + 2], high: [b1.id, b2.id] };
+    // choice is purely which squares you pass. We bow the branch up into the
+    // open space above the row. With a taller board there is room for two real
+    // decision points, on different rows, so no two branches collide.
+    const lift = Math.min(13, (72 / (ROWS - 1)) * 0.62);
+    const interior = shuffle((function () { const a = []; for (let r = 1; r <= ROWS - 2; r++) a.push(r); return a; })());
+    const forkRows = interior.slice(0, 2);      // up to two forks
+    S.forks = [];
+    let bid = SPINE;
+    forkRows.forEach((r) => {
+      const F = r * PER + rnd(0, PER - 4);      // F..F+3 stay inside the row
+      const J = F + 3;
+      const b1 = { id: bid, type: null, depth: nodes[F + 1].depth, branch: true,
+                   x: nodes[F + 1].x, y: nodes[F + 1].y - lift, next: [bid + 1] };
+      const b2 = { id: bid + 1, type: null, depth: nodes[F + 2].depth, branch: true,
+                   x: nodes[F + 2].x, y: nodes[F + 2].y - lift, next: [J] };
+      nodes.push(b1, b2);
+      nodes[F].next = [F + 1, b1.id];           // route A (low) and route B (high)
+      nodes[F].type = "fork";
+      S.forks.push({ F, J, low: [F + 1, F + 2], high: [b1.id, b2.id] });
+      bid += 2;
+    });
 
     // Assign square types to every node that is not start / finish / fork.
+    // The mix leans on the lively squares (crossroads, events, milestones) so a
+    // longer road stays eventful rather than turning into a string of notes.
     const open = nodes.filter((n) => n.type == null).map((n) => n.id);
     const bag = [];
     const want = [
-      ["crossroads", 5], ["milestone", 3], ["funding", 4],
-      ["trust", 4], ["capacity", 4], ["event", 4], ["note", 3],
+      ["crossroads", 7], ["milestone", 4], ["funding", 5],
+      ["trust", 5], ["capacity", 5], ["event", 7], ["note", 3],
     ];
     want.forEach(([type, n]) => { for (let i = 0; i < n; i++) bag.push(type); });
     while (bag.length < open.length) bag.push("note");
@@ -278,6 +311,7 @@
       color: COLORS[i % COLORS.length],
       funding: 0, trust: 0, capacity: 0, milestones: 0,
       finishBonus: 0,
+      contrib: newQuintet(),   // this player's net push to each of the five capabilities
       bonusSpin: false,
       skipNext: false,
       finished: false,
@@ -454,21 +488,22 @@
     const roadW = Math.max(14, unit * 0.052);
     roadSvg.setAttribute("viewBox", `0 0 ${bw} ${bh}`);
 
-    // the main spine, then the high-road branch.
+    // the main spine, then each high-road branch.
     const mainPts = [];
     for (let i = 0; i < SPINE; i++) mainPts.push(px(i, bw, bh));
-    const f = S.fork;
-    const branchPts = [px(f.F, bw, bh), px(f.high[0], bw, bh), px(f.high[1], bw, bh), px(f.J, bw, bh)];
+    const branches = (S.forks || []).map((f) =>
+      spline([px(f.F, bw, bh), px(f.high[0], bw, bh), px(f.high[1], bw, bh), px(f.J, bw, bh)]));
 
     const path = (d, cls, w) => `<path d="${d}" class="${cls}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="${w}"/>`;
-    const dMain = spline(mainPts), dBranch = spline(branchPts);
-    roadSvg.innerHTML =
-      path(dMain, "road-shadow", roadW + 6) +
-      path(dBranch, "road-shadow", roadW * 0.78 + 6) +
-      path(dBranch, "road-fill alt", roadW * 0.78) +
-      path(dMain, "road-fill", roadW) +
-      path(dBranch, "road-dash", Math.max(1.5, roadW * 0.07)) +
-      path(dMain, "road-dash", Math.max(1.6, roadW * 0.08));
+    const dMain = spline(mainPts);
+    const bw78 = roadW * 0.78;
+    let svg = path(dMain, "road-shadow", roadW + 6);
+    branches.forEach((d) => { svg += path(d, "road-shadow", bw78 + 6); });
+    branches.forEach((d) => { svg += path(d, "road-fill alt", bw78); });
+    svg += path(dMain, "road-fill", roadW);
+    branches.forEach((d) => { svg += path(d, "road-dash", Math.max(1.5, roadW * 0.07)); });
+    svg += path(dMain, "road-dash", Math.max(1.6, roadW * 0.08));
+    roadSvg.innerHTML = svg;
   }
 
   // ---- nodes ------------------------------------------------------------
@@ -529,6 +564,7 @@
       t.style.left = `calc(${n.x}% + ${spread}px)`;
       t.style.top = n.y + "%";
       t.innerHTML = `<span class="tok-face" style="font-size:${size * 0.5}px">${p.role.icon}</span>`;
+      if (CG.Hover) CG.Hover.bind(t, () => playerInfo(p));
       layer.appendChild(t);
     });
   }
@@ -555,8 +591,9 @@
         (p.milestones ? `<span>⭐${p.milestones}</span>` : "") + `</span>`;
       card.innerHTML =
         `<span class="savatar" style="--tok:${p.color}">${p.role.icon}</span>` +
-        `<span class="sinfo"><b>${esc(p.name)}</b>${res}</span>` +
+        `<span class="sinfo"><b>${esc(p.name)}</b><small>${esc(p.role.name)}</small>${res}</span>` +
         `<span class="spos" title="Legacy score">${p.finished ? "🏁 " : ""}${legacy(p)}</span>`;
+      if (CG.Hover) CG.Hover.bind(card, () => playerInfo(p));
       box.appendChild(card);
     });
     box.appendChild(quintPanel());
@@ -711,6 +748,7 @@
       const over = el("div", "overlay-card show");
       const c = el("div", "event-card fork-card");
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">THE ROAD FORKS</div>` +
         `<div class="ec-icon">⑂</div>` +
         `<div class="ec-title">Which way?</div>` +
@@ -798,9 +836,11 @@
       }
     });
     if (eff.quintet) {
-      S.quintet[eff.quintet] = (S.quintet[eff.quintet] || 0) + (eff.quintetDir || 1);
+      const dir = eff.quintetDir || 1;
+      S.quintet[eff.quintet] = (S.quintet[eff.quintet] || 0) + dir;
+      if (p.contrib) p.contrib[eff.quintet] = (p.contrib[eff.quintet] || 0) + dir;
     } else if (tag) {
-      applyQuintet(tag, eff.funding || eff.trust || eff.capacity ? 1 : 1);
+      applyQuintet(tag, 1, p);
     }
     if (parts.length) toast(`${p.name}: ${parts.join("  ")}`, parts.some((s) => s[0] === "-") ? "bad" : "good");
     renderStandings();
@@ -844,6 +884,7 @@
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${m.cls}`);
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">${m.band}</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${esc(card.title)}</div>` +
@@ -861,6 +902,7 @@
       const over = el("div", "overlay-card");
       const c = el("div", "event-card milestone");
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">MILESTONE</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${esc(card.title)}</div>` +
@@ -877,6 +919,7 @@
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${card.kind === "bad" ? "snake" : "ladder"}`);
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">${card.kind === "bad" ? "A SETBACK" : "A BREAK"}</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${esc(card.title)}</div>` +
@@ -894,6 +937,7 @@
       const over = el("div", "overlay-card");
       const c = el("div", "event-card note");
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">FIELD NOTE</div>` +
         `<div class="ec-icon">★</div>` +
         `<div class="ec-fact big"><span>From the field</span>${note}</div>`;
@@ -925,6 +969,7 @@
       const over = el("div", "overlay-card");
       const c = el("div", "event-card crossroads");
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">CROSSROADS</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${esc(card.title)}</div>` +

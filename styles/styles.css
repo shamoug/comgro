@@ -397,6 +397,22 @@ button { font-family: inherit; cursor: pointer; }
 .event-card.diamond { border-top-color: var(--cyan); }
 .event-card.surprise { border-top-color: var(--violet); }
 .event-card.note, .event-card.win { border-top-color: var(--gold); }
+.ec-who {
+  display: flex; align-items: center; gap: 10px;
+  justify-content: center; text-align: left;
+  margin: -6px 0 14px; padding: 8px 14px;
+  background: color-mix(in srgb, var(--who, #2f6bff) 9%, #fff);
+  border: 1px solid color-mix(in srgb, var(--who, #2f6bff) 24%, var(--line));
+  border-radius: 999px;
+}
+.ec-who-ic {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 16px;
+  background: color-mix(in srgb, var(--who, #2f6bff) 18%, #fff);
+}
+.ec-who-id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.ec-who-id b { font-size: 14px; font-weight: 800; color: var(--ink); }
+.ec-who-id small { font-size: 11px; color: var(--muted); font-weight: 600; }
 .ec-band { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
 .event-card.ladder .ec-band { color: var(--gold); }
 .event-card.snake .ec-band { color: var(--red); }
@@ -671,3 +687,58 @@ button { font-family: inherit; cursor: pointer; }
 .ptr-arrow { font-size: 16px; transition: transform .2s ease; }
 .ptr.ready .ptr-arrow { transform: rotate(180deg); color: var(--blue); }
 .ptr.ready { color: var(--blue); }
+
+/* ---- shared player hover card (both games) ----------------------------- */
+/* Tokens and standings rows are hoverable (or tappable on touch). A single
+   floating card is reused, positioned in viewport coordinates by Hover.bind. */
+.token { pointer-events: auto; cursor: pointer; }
+.scard { cursor: pointer; }
+
+.phover {
+  position: fixed; z-index: 240; left: 0; top: 0;
+  width: max-content; max-width: 248px;
+  padding: 11px 13px 12px; border-radius: 14px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px -10px rgba(20, 40, 70, .42), 0 2px 8px rgba(20, 40, 70, .12);
+  color: var(--ink); font-size: 12.5px; line-height: 1.4;
+  pointer-events: none;
+  opacity: 0; transform: translateY(4px) scale(.98); transform-origin: 50% 100%;
+  transition: opacity .14s ease, transform .14s ease;
+}
+.phover.show { opacity: 1; transform: translateY(0) scale(1); }
+.phover .ph-head { display: flex; align-items: center; gap: 9px; }
+.phover .ph-ic {
+  width: 34px; height: 34px; flex: none; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  background: color-mix(in srgb, var(--c) 16%, #fff); border: 2px solid var(--c);
+}
+.phover .ph-id { min-width: 0; }
+.phover .ph-name { font-weight: 800; font-size: 14.5px; line-height: 1.15; }
+.phover .ph-role { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+.phover .ph-aff {
+  display: flex; align-items: center; gap: 5px; margin-top: 9px;
+  font-size: 12px; font-weight: 700; color: var(--blue);
+}
+.phover .ph-aff span { font-size: 12px; }
+.phover .ph-score {
+  display: flex; align-items: baseline; gap: 6px; margin-top: 5px;
+  font-family: "Space Grotesk", sans-serif;
+}
+.phover .ph-score span { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.phover .ph-score b { font-size: 16px; color: var(--ink); }
+.phover .ph-qlabel {
+  margin-top: 10px; font-size: 9.5px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.phover .ph-quint { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.phover .pq {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 7px; border-radius: 999px;
+  background: rgba(40, 80, 130, .07); border: 1px solid var(--line);
+  font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 11.5px;
+}
+.phover .pq .pq-ic { font-size: 12px; }
+.phover .pq.pos { color: #1e6e3a; background: rgba(47, 158, 84, .14); border-color: rgba(47, 158, 84, .38); }
+.phover .pq.neg { color: #b73a30; background: rgba(229, 86, 75, .14); border-color: rgba(229, 86, 75, .38); }
+.phover .pq:not(.pos):not(.neg) { color: var(--muted); opacity: .82; }

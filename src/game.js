@@ -161,6 +161,28 @@
     p.points = Math.max(0, (p.points || 0) + pts);
   }
 
+  // Build the data shown in the shared hover card for one player.
+  function playerInfo(p) {
+    return {
+      name: p.name, role: p.role.name, aff: p.role.aff, icon: p.role.icon, color: p.color,
+      scoreLabel: "Perseverance", score: p.points || 0,
+      quintet: CG.QUINTET.map((q) => ({ icon: q.icon, name: q.name, lvl: (p.contrib && p.contrib[q.key]) || 0 })),
+    };
+  }
+
+  // The identity banner shown at the top of every in-play card, so it is
+  // always clear which player the card is for: their name, job title and
+  // affiliation, tinted with their token colour.
+  function whoHtml(p) {
+    return `<div class="ec-who" style="--who:${p.color}">` +
+        `<span class="ec-who-ic">${p.role.icon}</span>` +
+        `<span class="ec-who-id">` +
+          `<b>${esc(p.name)}</b>` +
+          `<small>${esc(p.role.name)} · ${esc(p.role.aff)}</small>` +
+        `</span>` +
+      `</div>`;
+  }
+
   // Fill {role} / {theatre} placeholders for the player who landed here.
   function fillCard(card, p) {
     const role = p.role.name, theatre = (S.theatre && S.theatre.name) || "";
@@ -618,6 +640,7 @@
         `<span class="savatar" style="--tok:${p.color}">${p.role.icon}</span>` +
         `<span class="sinfo"><b>${p.name}</b><small>${p.role.name}</small>${loot ? `<span class="sloot">${loot}</span>` : ""}</span>` +
         `<span class="spos">${posCell}</span>`;
+      if (CG.Hover) CG.Hover.bind(card, () => playerInfo(p));
       box.appendChild(card);
     });
     // One shared Quintet meter for the whole table: it tallies the progress
@@ -677,6 +700,7 @@
       t.style.left = `calc(${c.x}% + ${spread}px)`;
       t.style.top = c.y + "%";
       t.innerHTML = `<span class="tok-face" style="font-size:${size * 0.5}px">${p.role.icon}</span>`;
+      if (CG.Hover) CG.Hover.bind(t, () => playerInfo(p));
       layer.appendChild(t);
     });
   }
@@ -1030,6 +1054,7 @@
           `</div>`
         : "";
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">${BAND[kind] || ""}</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${card.title}</div>` +
@@ -1058,6 +1083,7 @@
       const over = el("div", "overlay-card");
       const c = el("div", "event-card note");
       c.innerHTML =
+        whoHtml(p) +
         `<div class="ec-band">FIELD NOTE</div>` +
         `<div class="ec-icon">★</div>` +
         `<div class="ec-fact big"><span>From the field</span>${note}</div>`;
