@@ -118,11 +118,19 @@
   // challenges and openings fit where you are posted. Avoid repeating the last
   // card so back-to-back draws stay varied.
   const lastDrawn = new WeakMap();
-  function weightedDraw(cards, tags) {
+  // Draw a card customised to the player: weight it up if its tag matches the
+  // player's job title and affiliation (role tags) or the scenario they were
+  // posted to (theatre tags). So every card a player draws relates to them.
+  function weightedDraw(cards, p) {
+    const roleTags = (p && p.tags) || [];
+    const theatreTags = (S.theatre && S.theatre.tags) || [];
     const pool = [];
     cards.forEach((c) => {
-      const match = c.tag && c.tag !== "any" && tags && tags.indexOf(c.tag) >= 0;
-      const w = match ? 3 : 1;
+      let w = 1;
+      if (c.tag && c.tag !== "any") {
+        if (roleTags.indexOf(c.tag) >= 0) w += 3;       // job title / affiliation
+        if (theatreTags.indexOf(c.tag) >= 0) w += 1;    // scenario
+      }
       for (let i = 0; i < w; i++) pool.push(c);
     });
     let pick = pool[Math.floor(Math.random() * pool.length)], tries = 0;
@@ -184,10 +192,12 @@
       `</div>`;
   }
 
-  // Fill {role} / {theatre} placeholders for the player who landed here.
+  // Fill {role} / {aff} / {theatre} placeholders for the player who landed
+  // here, so any card can address them by job title, affiliation and scenario.
   function fillCard(card, p) {
-    const role = p.role.name, theatre = (S.theatre && S.theatre.name) || "";
-    const sub = (s) => String(s).replace(/\{role\}/g, role).replace(/\{theatre\}/g, theatre);
+    const role = p.role.name, aff = CG.affShort(p.role.aff), theatre = (S.theatre && S.theatre.name) || "";
+    const sub = (s) => String(s == null ? "" : s)
+      .replace(/\{role\}/g, role).replace(/\{aff\}/g, aff).replace(/\{theatre\}/g, theatre);
     return Object.assign({}, card, { title: sub(card.title), why: sub(card.why), fact: sub(card.fact) });
   }
 
@@ -221,10 +231,10 @@
   // =======================================================================
   function ensureDecks() {
     if (decksReady) return;
+    // Field notes are plain wisdom strings (no tag), so they cycle as a deck.
+    // Every other deck is drawn per player via weightedDraw, customised to
+    // their job title, affiliation and scenario.
     S.decks.note = makeDeck(CG.FIELD_NOTES);
-    S.decks.trophy = makeDeck(CG.TROPHY_CARDS);
-    S.decks.diamond = makeDeck(CG.DIAMOND_CARDS);
-    S.decks.surprise = makeDeck(CG.SURPRISE_CARDS);
     decksReady = true;
   }
 
@@ -314,6 +324,7 @@
       name: seat.name,
       isAI: seat.isAI,
       role: roles[i % roles.length],
+      tags: CG.roleTags(roles[i % roles.length]),  // job-title/affiliation domains, to customise this player's cards
       pos: 1,
       color: COLORS[i % COLORS.length],
       trophies: 0,
@@ -905,10 +916,9 @@
   async function resolveLanding(p, depth) {
     depth = depth || 0;
     const B = S.board;
-    const tags = (S.theatre && S.theatre.tags) || [];
     const n = p.pos;
     if (B.ladders[n]) {
-      const card = weightedDraw(CG.LADDER_CARDS, tags);
+      const card = fillCard(weightedDraw(CG.LADDER_CARDS, p), p);
       const q = applyQuintet(p, card.tag, +1);
       await showCard(p, card, "ladder", B.ladders[n], q);
       if (S.settings.music) CG.Audio.sfx.ladder();
@@ -916,7 +926,7 @@
       if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await slide(p, B.ladders[n], "up", n);
     } else if (B.snakes[n]) {
-      const card = weightedDraw(CG.SNAKE_CARDS, tags);
+      const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
       const q = applyQuintet(p, card.tag, -1);
       await showCard(p, card, "snake", B.snakes[n], q);
       if (S.settings.music) CG.Audio.sfx.snake();
@@ -925,7 +935,7 @@
       shake();
       await slide(p, B.snakes[n], "down", n);
     } else if (B.trophies.includes(n)) {
-      const card = fillCard(S.decks.trophy(), p);
+      const card = fillCard(weightedDraw(CG.TROPHY_CARDS, p), p);
       p.trophies++;
       award(p, 5);
       await showCard(p, card, "trophy", null);
@@ -934,7 +944,7 @@
       p.bonusRoll = true;
       toast(`${p.name} collects a trophy 🏆`, "good");
     } else if (B.diamonds.includes(n)) {
-      const card = S.decks.diamond();
+      const card = fillCard(weightedDraw(CG.DIAMOND_CARDS, p), p);
       p.diamonds++;
       award(p, 4);
       await showCard(p, card, "diamond", null);
@@ -943,7 +953,7 @@
       toast(`${p.name} finds a diamond 💎`, "good");
       await hop(p, 3, depth);
     } else if (B.surprises.includes(n)) {
-      const card = S.decks.surprise();
+      const card = fillCard(weightedDraw(CG.SURPRISE_CARDS, p), p);
       await showCard(p, card, "surprise", null);
       await applySurprise(p, card, depth);
     } else if (B.fieldNotes.includes(n)) {

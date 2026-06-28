@@ -8,6 +8,19 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  PLAYER-CUSTOMISED JOURNEYS (rule for all games, now and future).
+REM              Every card a player draws is now biased to their own job title
+REM              and affiliation, on top of the scenario (theatre) they were
+REM              posted to. A new CG.roleTags() infers each role's field domains
+REM              (health, funding, supply, displacement, access, data, etc.) from
+REM              the job title and agency; weightedDraw weights matching cards up
+REM              (role x4, scenario x2) so a WASH specialist in a flood delta
+REM              draws roughly 3x more water/health cards than a generic player.
+REM              The bias now covers ALL decks (holes/ladders, golden coins/traps,
+REM              trophies, diamonds, surprises), not just holes and ladders. Cards
+REM              can also address the player by {role}, {aff} and {theatre}.
+REM              Applied symmetrically to both games. content.js v15, game.js v18,
+REM              mandate.js v11.
 REM  2026-06-28  Maze polish. (1) The shortcut "ladder" cells are now GOLDEN
 REM              COINS (🪙) on the board, in the legend and on the card (band
 REM              "GOLDEN COINS"); the mechanic is unchanged (a coin trail that
