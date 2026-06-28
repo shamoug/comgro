@@ -40,10 +40,10 @@
 
     const mandate = el("button", "game-card mandate-card");
     mandate.innerHTML =
-      `<div class="gc-icon">🛣️⚖️</div>` +
+      `<div class="gc-icon">🌿🏁</div>` +
       `<div class="gc-title">The Mandate</div>` +
-      `<div class="gc-sub">A journey of choices</div>` +
-      `<div class="gc-desc">Spin the wheel and travel a winding road. At every crossroads decide what you value, then build funding, trust and local capacity. The richest legacy wins, not the fastest finish.</div>` +
+      `<div class="gc-sub">A castle hedge maze</div>` +
+      `<div class="gc-desc">Enter a great green maze from your own gate and thread the corridors to the fountain at the centre. Roll the die, ride the shortcuts, dodge the traps that get you lost. A new maze every time, solved only when the last team is home.</div>` +
       `<div class="gc-play">Play ▸</div>`;
     mandate.onclick = () => CG.MandateGame && CG.MandateGame.show();
 

@@ -8,6 +8,22 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  THE MANDATE IS NOW A MAZE. Replaced the winding-road / spinner
+REM              game with a random green castle hedge maze. Each player enters
+REM              from a different gate (North/South/East/West) and threads the
+REM              corridors to the fountain at the centre, where the mission is
+REM              accomplished; it is solved only when the LAST player arrives.
+REM              The maze is a fresh perfect maze every game (randomised DFS,
+REM              lightly braided), so a path to the centre always exists. Runs on
+REM              The Long Road's exact mechanics and decks: roll a die, spend
+REM              every step (so the dice push you past turnings and you get lost),
+REM              choose at junctions. Shortcuts (secret passages) cut you toward
+REM              the centre and strengthen a UN 2.0 capability; traps get you lost
+REM              and set one back; trophies, diamonds, surprises and field notes
+REM              are the same shared decks. End-game crowns Speed / Perseverance /
+REM              Quintet champions. Updated narration, platform card and title
+REM              copy. mandate.js v9, styles.css v18, content.js v14,
+REM              platform.js v9.
 REM  2026-06-28  Mobile polish, three fixes. (1) Header no longer truncated:
 REM              the launcher and title/deal screens used vertical centring that
 REM              clipped the logo and title off the top on short phones; switched

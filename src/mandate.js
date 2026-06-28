@@ -1,15 +1,23 @@
 /* =========================================================================
  * COMMON GROUND, THE MANDATE,  mandate.js
- * The second game on the platform, in the spirit of the Game of Life. You
- * travel a winding road of squares, but you do not only race: you make choices
- * and build a legacy. Three resources travel with each player (Funding, Trust,
- * Capacity) and the whole table shares the UN 2.0 Quintet of Change, exactly as
- * in The Long Road. The HIGHEST LEGACY completes the mandate, so the fastest
- * finish is not always the winning one.
+ * The second game on the platform: a HEDGE MAZE. Each player enters from a
+ * different gate on a different side of a great green maze, the kind you see in
+ * the gardens of European castles, and tries to thread the corridors to the
+ * fountain at the centre, where the mission is accomplished. The maze is random
+ * every game, but it is a perfect maze (a spanning tree, lightly braided), so a
+ * path from every gate to the centre always exists.
+ *
+ * It runs on exactly the mechanics of The Long Road: roll a die, walk the
+ * corridors, and let the surprises carry you. Shortcuts (secret passages) cut
+ * you toward the centre and strengthen a UN 2.0 capability; traps get you lost
+ * and set one back; trophies, diamonds, surprises and field notes are all the
+ * same decks. You must spend every step you roll, so the dice push you past
+ * turnings and into dead ends: that is how you get lost. Reach the centre and
+ * you are home. The mission is accomplished only when the LAST player arrives.
  *
  * Vanilla JS, no framework, no build step. All flavour text lives in
- * data/content.js; this file is mechanics + DOM only. The road, the nodes, the
- * spinner and the tokens are all CSS and inline SVG, no external images, and
+ * data/content.js; this file is mechanics + DOM only. The maze, the hedges, the
+ * die and the tokens are all CSS and inline SVG, no external images, and
  * everything redraws on resize.
  * ========================================================================= */
 (function () {
@@ -46,62 +54,6 @@
   }
   const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
-  // ---- layout constants --------------------------------------------------
-  const ROWS = 5;             // the road winds down in five rows
-  const PER = 7;              // squares per row (boustrophedon)
-  const SPINE = ROWS * PER;   // 35 squares on the main spine
-  const XL = 8, XR = 92;      // horizontal margins, percent
-  const NS = "http://www.w3.org/2000/svg";
-
-  // ---- the UN 2.0 Quintet (shared team tally) ---------------------------
-  function newQuintet() {
-    const q = {};
-    CG.QUINTET.forEach((c) => (q[c.key] = 0));
-    return q;
-  }
-  // Resolve which capability a card touches, and in which direction, WITHOUT
-  // mutating, so the very same result can be shown on the card and then applied.
-  // Explicit eff.quintet wins; otherwise it is inferred from the card's tag,
-  // and a setback (defaultDir < 0) sets the capability back instead of building it.
-  function resolveQuintet(eff, tag, defaultDir) {
-    if (eff && eff.quintet) {
-      const key = eff.quintet;
-      return { key, meta: CG.quintetMeta(key), dir: eff.quintetDir || 1 };
-    }
-    if (tag) {
-      const key = CG.quintetForTag(tag);
-      return { key, meta: CG.quintetMeta(key), dir: defaultDir || 1 };
-    }
-    return null;
-  }
-  // Commit a resolved quintet nudge to the shared tally and the player, then
-  // pulse its chip in the standings panel so the change never passes unseen.
-  function commitQuintet(p, q) {
-    if (!q) return null;
-    S.quintet[q.key] = (S.quintet[q.key] || 0) + q.dir;
-    if (p && p.contrib) p.contrib[q.key] = (p.contrib[q.key] || 0) + q.dir;
-    q.level = S.quintet[q.key];
-    return q;
-  }
-  function flashQuint(key, dir) {
-    const chip = $('#standings [data-q="' + key + '"]');
-    if (!chip) return;
-    const cls = dir > 0 ? "pulse-up" : "pulse-down";
-    chip.classList.remove(cls); void chip.offsetWidth; chip.classList.add(cls);
-    setTimeout(() => chip.classList.remove(cls), 950);
-  }
-  // The UN 2.0 Quintet block shown on an event / resource card, so the player
-  // sees which of the five capabilities a movement just strengthened or set back.
-  function quintBlockHtml(q) {
-    if (!q) return "";
-    return `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}">` +
-        `<span class="eq-ic">${q.meta.icon}</span>` +
-        `<span class="eq-txt"><b>${esc(q.meta.name)}</b> ${q.dir > 0 ? "strengthened" : "set back"}` +
-          `<small>UN 2.0 Quintet of Change</small></span>` +
-        `<span class="eq-delta">${q.dir > 0 ? "+1" : "−1"}</span>` +
-      `</div>`;
-  }
-
   // weighted, theatre-aware draw that avoids repeating the last card
   const lastDrawn = new WeakMap();
   function weightedDraw(cards, tags) {
@@ -117,54 +69,68 @@
     return pick;
   }
 
-  function fillText(s, p) {
-    const role = p.role.name, theatre = (S.theatre && S.theatre.name) || "";
-    return String(s).replace(/\{role\}/g, role).replace(/\{theatre\}/g, theatre);
-  }
-
-  // ---- state -------------------------------------------------------------
-  const S = {
-    players: [],
-    current: 0,
-    theatre: null,
-    busy: false,
-    over: false,
-    settings: { music: true, voice: true },
-    nodes: [],          // the road graph
-    startId: 0,
-    finishId: 0,
-    finishDepth: 1,
-    zoneSpoken: -1,
-    finishedCount: 0,
-    quintet: {},
-    spinRot: 0,
-    decks: {},
+  // ---- layout constants --------------------------------------------------
+  const GRID = 11;                 // odd, so the maze has a true centre cell
+  const MID = (GRID - 1) / 2;      // 5: the middle row / column
+  const NS = "http://www.w3.org/2000/svg";
+  const CENTER = { r: MID, c: MID };
+  const DIRS = {
+    N: { dr: -1, dc: 0, opp: "S" }, S: { dr: 1, dc: 0, opp: "N" },
+    E: { dr: 0, dc: 1, opp: "W" }, W: { dr: 0, dc: -1, opp: "E" },
   };
+  const ARROW = { N: "⬆️", S: "⬇️", E: "➡️", W: "⬅️" };
+  const DIRNAME = { N: "North", S: "South", E: "East", W: "West" };
 
-  const COLORS = ["#2f9e54", "#2f6bff", "#e8439b", "#ef9f25"];
-  const MEDALS = ["🥇", "🥈", "🥉", "🎖️"];
-  const FINISH_BONUS = [10, 6, 3, 1];      // legacy bonus by finishing place
-  function ordinal(n) {
-    const s = ["th", "st", "nd", "rd"], v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  // the four gates, one per side; players take them in this order, so two
+  // players always face each other across the maze.
+  const SIDES = [
+    { gate: "N", name: "the North gate", cell: { r: 0, c: MID } },
+    { gate: "S", name: "the South gate", cell: { r: GRID - 1, c: MID } },
+    { gate: "E", name: "the East gate", cell: { r: MID, c: GRID - 1 } },
+    { gate: "W", name: "the West gate", cell: { r: MID, c: 0 } },
+  ];
+
+  // ---- the UN 2.0 Quintet (shared team tally) ---------------------------
+  function newQuintet() {
+    const q = {};
+    CG.QUINTET.forEach((c) => (q[c.key] = 0));
+    return q;
   }
-  function legacy(p) {
-    return (p.funding || 0) + (p.trust || 0) + (p.capacity || 0) +
-           (p.milestones || 0) * 3 + (p.finishBonus || 0);
+  // A shortcut strengthens a capability, a trap sets one back; the capability
+  // is inferred from the card's tag, exactly as in The Long Road.
+  function applyQuintet(p, tag, dir) {
+    const key = CG.quintetForTag(tag);
+    const meta = CG.quintetMeta(key);
+    S.quintet[key] = (S.quintet[key] || 0) + dir;
+    p.contrib[key] = (p.contrib[key] || 0) + dir;
+    award(p, dir > 0 ? 3 : -2);
+    return { key, meta, dir, level: S.quintet[key] };
+  }
+  function award(p, pts) { p.points = Math.max(0, (p.points || 0) + pts); }
+  function flashQuint(key, dir) {
+    const chip = $('#standings [data-q="' + key + '"]');
+    if (!chip) return;
+    const cls = dir > 0 ? "pulse-up" : "pulse-down";
+    chip.classList.remove(cls); void chip.offsetWidth; chip.classList.add(cls);
+    setTimeout(() => chip.classList.remove(cls), 950);
+  }
+
+  function fillCard(card, p) {
+    const role = p.role.name, theatre = (S.theatre && S.theatre.name) || "";
+    const sub = (s) => String(s).replace(/\{role\}/g, role).replace(/\{theatre\}/g, theatre);
+    return Object.assign({}, card, { title: sub(card.title), why: sub(card.why), fact: sub(card.fact) });
   }
 
   // Data shown in the shared hover card for one player.
   function playerInfo(p) {
     return {
       name: p.name, role: p.role.name, aff: p.role.aff, icon: p.role.icon, color: p.color,
-      scoreLabel: "Legacy", score: legacy(p),
+      scoreLabel: "Perseverance", score: p.points || 0,
       quintet: CG.QUINTET.map((q) => ({ icon: q.icon, name: q.name, lvl: (p.contrib && p.contrib[q.key]) || 0 })),
     };
   }
 
-  // The identity banner shown at the top of every in-play card, so it is
-  // always clear which player the card is for: their name, job title and
-  // affiliation, tinted with their token colour.
+  // The identity banner shown at the top of every in-play card.
   function whoHtml(p) {
     return `<div class="ec-who" style="--who:${p.color}">` +
         `<span class="ec-who-ic">${p.role.icon}</span>` +
@@ -176,94 +142,194 @@
       `</div>`;
   }
 
-  let roadBox = null, roadSvg = null, resizeObs = null, relayoutHandler = null;
+  // ---- state -------------------------------------------------------------
+  const S = {
+    players: [],
+    current: 0,
+    theatre: null,
+    busy: false,
+    over: false,
+    settings: { music: true, voice: true },
+    cells: [],          // GRID x GRID, each { walls:{N,E,S,W} }
+    dist: [],           // GRID x GRID distance (in steps) to the centre
+    maxDist: 1,
+    special: {},        // "r,c" -> { kind, to? }
+    gates: [],          // open border openings, one per player
+    quintet: {},
+    zoneSpoken: -1,
+    finishedCount: 0,
+    decks: {},
+  };
+
+  const COLORS = ["#2f6bff", "#e8439b", "#7c4dff", "#ef9f25"];
+  const MEDALS = ["🥇", "🥈", "🥉", "🎖️"];
+  function ordinal(n) {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  let mazeBox = null, mazeSvg = null, resizeObs = null, relayoutHandler = null;
   let decksReady = false;
 
   function ensureDecks() {
     if (decksReady) return;
-    S.decks.decision = makeDeck(CG.MANDATE_DECISIONS);
-    S.decks.event = makeDeck(CG.MANDATE_EVENTS);
-    S.decks.funding = makeDeck(CG.MANDATE_FUNDING);
-    S.decks.trust = makeDeck(CG.MANDATE_TRUST);
-    S.decks.capacity = makeDeck(CG.MANDATE_CAPACITY);
-    S.decks.milestone = makeDeck(CG.MANDATE_MILESTONES);
+    S.decks.shortcut = null;  // shortcuts/traps use weightedDraw on the live decks
+    S.decks.trophy = makeDeck(CG.TROPHY_CARDS);
+    S.decks.diamond = makeDeck(CG.DIAMOND_CARDS);
+    S.decks.surprise = makeDeck(CG.SURPRISE_CARDS);
     S.decks.note = makeDeck(CG.FIELD_NOTES);
     decksReady = true;
   }
 
   // =======================================================================
-  // THE ROAD,  a fresh winding graph every game, with one real fork.
+  // THE MAZE,  a fresh perfect maze every game, lightly braided.
   // =======================================================================
-  function rowY(r) { return 15 + r * (72 / (ROWS - 1)); }   // 15..87 percent
+  const key = (r, c) => r + "," + c;
+  const inGrid = (r, c) => r >= 0 && r < GRID && c >= 0 && c < GRID;
+  const cellAt = (r, c) => S.cells[r][c];
+  const isCenter = (cell) => cell.r === CENTER.r && cell.c === CENTER.c;
+  const atCenter = (p) => isCenter(p.cell);
+  const distOf = (cell) => S.dist[cell.r][cell.c];
 
-  function spinePos(i) {
-    const r = Math.floor(i / PER), col = i % PER;
-    const t = col / (PER - 1);
-    const x = (r % 2 === 0) ? (XL + t * (XR - XL)) : (XR - t * (XR - XL));
-    const y = rowY(r) + Math.sin(i * 1.27) * 1.6;   // gentle, tidy undulation
-    return { x, y };
-  }
-
-  function generateRoad() {
-    const nodes = [];
-    for (let i = 0; i < SPINE; i++) {
-      const pos = spinePos(i);
-      nodes.push({ id: i, x: pos.x, y: pos.y, type: null, next: i < SPINE - 1 ? [i + 1] : [], depth: i, branch: false });
+  // open passages out of a cell (no hedge between), as {r,c,dir}
+  function openNeighbors(cell) {
+    const out = [];
+    const w = cellAt(cell.r, cell.c).walls;
+    for (const d in DIRS) {
+      if (w[d]) continue;
+      const nr = cell.r + DIRS[d].dr, nc = cell.c + DIRS[d].dc;
+      if (inGrid(nr, nc)) out.push({ r: nr, c: nc, dir: d });
     }
-    nodes[0].type = "start";
-    nodes[SPINE - 1].type = "finish";
-
-    // Forks: each replaces a same-row triple F..F+3 with a parallel high road.
-    // Both routes are three hops, so finishing distance is identical and the
-    // choice is purely which squares you pass. We bow the branch up into the
-    // open space above the row. With a taller board there is room for two real
-    // decision points, on different rows, so no two branches collide.
-    const lift = Math.min(13, (72 / (ROWS - 1)) * 0.62);
-    const interior = shuffle((function () { const a = []; for (let r = 1; r <= ROWS - 2; r++) a.push(r); return a; })());
-    const forkRows = interior.slice(0, 2);      // up to two forks
-    S.forks = [];
-    let bid = SPINE;
-    forkRows.forEach((r) => {
-      const F = r * PER + rnd(0, PER - 4);      // F..F+3 stay inside the row
-      const J = F + 3;
-      const b1 = { id: bid, type: null, depth: nodes[F + 1].depth, branch: true,
-                   x: nodes[F + 1].x, y: nodes[F + 1].y - lift, next: [bid + 1] };
-      const b2 = { id: bid + 1, type: null, depth: nodes[F + 2].depth, branch: true,
-                   x: nodes[F + 2].x, y: nodes[F + 2].y - lift, next: [J] };
-      nodes.push(b1, b2);
-      nodes[F].next = [F + 1, b1.id];           // route A (low) and route B (high)
-      nodes[F].type = "fork";
-      S.forks.push({ F, J, low: [F + 1, F + 2], high: [b1.id, b2.id] });
-      bid += 2;
-    });
-
-    // Assign square types to every node that is not start / finish / fork.
-    // The mix leans on the lively squares (crossroads, events, milestones) so a
-    // longer road stays eventful rather than turning into a string of notes.
-    const open = nodes.filter((n) => n.type == null).map((n) => n.id);
-    const bag = [];
-    const want = [
-      ["crossroads", 7], ["milestone", 4], ["funding", 5],
-      ["trust", 5], ["capacity", 5], ["event", 7], ["note", 3],
-    ];
-    want.forEach(([type, n]) => { for (let i = 0; i < n; i++) bag.push(type); });
-    while (bag.length < open.length) bag.push("note");
-    const deck = shuffle(bag).slice(0, open.length);
-    open.forEach((id, k) => (nodes[id].type = deck[k]));
-
-    // prevOf: first parent of each node, for backward moves.
-    const prevOf = {};
-    nodes.forEach((n) => n.next.forEach((c) => { if (prevOf[c] == null) prevOf[c] = n.id; }));
-    S.prevOf = prevOf;
-
-    S.nodes = nodes;
-    S.startId = 0;
-    S.finishId = SPINE - 1;
-    S.finishDepth = nodes[SPINE - 1].depth;
-    return nodes;
+    return out;
   }
 
-  const node = (id) => S.nodes[id];
+  // carve a perfect maze with a randomised depth-first backtracker from the
+  // centre outward, then braid a few dead ends so there are real choices.
+  function generateMaze() {
+    const cells = [];
+    for (let r = 0; r < GRID; r++) {
+      const row = [];
+      for (let c = 0; c < GRID; c++) row.push({ walls: { N: true, E: true, S: true, W: true } });
+      cells.push(row);
+    }
+    S.cells = cells;
+
+    const seen = new Set();
+    const stack = [{ r: CENTER.r, c: CENTER.c }];
+    seen.add(key(CENTER.r, CENTER.c));
+    while (stack.length) {
+      const cur = stack[stack.length - 1];
+      const opts = [];
+      for (const d in DIRS) {
+        const nr = cur.r + DIRS[d].dr, nc = cur.c + DIRS[d].dc;
+        if (inGrid(nr, nc) && !seen.has(key(nr, nc))) opts.push({ d, nr, nc });
+      }
+      if (!opts.length) { stack.pop(); continue; }
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      cells[cur.r][cur.c].walls[pick.d] = false;
+      cells[pick.nr][pick.nc].walls[DIRS[pick.d].opp] = false;
+      seen.add(key(pick.nr, pick.nc));
+      stack.push({ r: pick.nr, c: pick.nc });
+    }
+
+    // braid: knock one extra wall on roughly a third of dead ends, to add loops
+    // and alternative routes (more ways to get lost, fewer pure dead ends).
+    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
+      const w = cells[r][c].walls;
+      const walls = ["N", "E", "S", "W"].filter((d) => w[d]);
+      if (walls.length >= 3 && Math.random() < 0.34) {
+        const cands = shuffle(walls).filter((d) => {
+          const nr = r + DIRS[d].dr, nc = c + DIRS[d].dc;
+          return inGrid(nr, nc);
+        });
+        if (cands.length) {
+          const d = cands[0], nr = r + DIRS[d].dr, nc = c + DIRS[d].dc;
+          cells[r][c].walls[d] = false;
+          cells[nr][nc].walls[DIRS[d].opp] = false;
+        }
+      }
+    }
+
+    computeDist();
+    placeSpecials();
+  }
+
+  // breadth-first distance from the centre to every cell (a path always exists)
+  function computeDist() {
+    const dist = [];
+    for (let r = 0; r < GRID; r++) dist.push(new Array(GRID).fill(-1));
+    dist[CENTER.r][CENTER.c] = 0;
+    let frontier = [{ r: CENTER.r, c: CENTER.c }], max = 0;
+    while (frontier.length) {
+      const next = [];
+      frontier.forEach((cell) => {
+        openNeighbors(cell).forEach((n) => {
+          if (dist[n.r][n.c] === -1) {
+            dist[n.r][n.c] = dist[cell.r][cell.c] + 1;
+            if (dist[n.r][n.c] > max) max = dist[n.r][n.c];
+            next.push({ r: n.r, c: n.c });
+          }
+        });
+      });
+      frontier = next;
+    }
+    S.dist = dist;
+    S.maxDist = Math.max(1, max);
+  }
+
+  // sprinkle the special cells across the maze (never on the centre or a gate).
+  function placeSpecials() {
+    S.special = {};
+    const gateKeys = new Set(SIDES.map((s) => key(s.cell.r, s.cell.c)));
+    const pool = shuffle((function () {
+      const a = [];
+      for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
+        if (isCenter({ r, c })) continue;
+        if (gateKeys.has(key(r, c))) continue;
+        if (S.dist[r][c] < 1) continue;
+        a.push({ r, c });
+      }
+      return a;
+    })());
+
+    let i = 0;
+    const take = (n) => pool.slice(i, (i += n));
+
+    // shortcuts (secret passages) cut TOWARD the centre; traps get you LOST.
+    take(5).forEach((cell) => (S.special[key(cell.r, cell.c)] = { kind: "shortcut", to: toward(cell, rnd(3, 5)) }));
+    take(5).forEach((cell) => (S.special[key(cell.r, cell.c)] = { kind: "trap", to: away(cell, rnd(3, 7)) }));
+    take(4).forEach((cell) => (S.special[key(cell.r, cell.c)] = { kind: "trophy" }));
+    take(5).forEach((cell) => (S.special[key(cell.r, cell.c)] = { kind: "diamond" }));
+    take(6).forEach((cell) => (S.special[key(cell.r, cell.c)] = { kind: "surprise" }));
+    take(5).forEach((cell) => (S.special[key(cell.r, cell.c)] = { kind: "note" }));
+  }
+
+  const specialAt = (cell) => S.special[key(cell.r, cell.c)] || null;
+
+  // a cell roughly k steps closer to the centre, along an actual maze path
+  // (never the centre itself, so a shortcut never wins the game outright).
+  function toward(cell, k) {
+    let cur = { r: cell.r, c: cell.c }, prev = null;
+    for (let s = 0; s < k; s++) {
+      if (distOf(cur) <= 1) break;
+      const nb = openNeighbors(cur).filter((n) => distOf(n) < distOf(cur));
+      if (!nb.length) break;
+      const nx = nb[Math.floor(Math.random() * nb.length)];
+      prev = cur; cur = { r: nx.r, c: nx.c };
+    }
+    return cur;
+  }
+  // a cell roughly k steps FARTHER from the centre: where the trap leaves you lost.
+  function away(cell, k) {
+    let cur = { r: cell.r, c: cell.c };
+    for (let s = 0; s < k; s++) {
+      const nb = openNeighbors(cur).filter((n) => distOf(n) > distOf(cur));
+      if (!nb.length) break;
+      const nx = nb[Math.floor(Math.random() * nb.length)];
+      cur = { r: nx.r, c: nx.c };
+    }
+    return cur;
+  }
 
   // =======================================================================
   // SCREENS
@@ -283,12 +349,18 @@
     wrap.appendChild(el("h1", "title", "Common Ground"));
     wrap.appendChild(el("p", "subtitle", "The Mandate"));
     wrap.appendChild(el("p", "tagline",
-      "A journey of choices for a UN Country Team, in the spirit of the Game of Life. Spin the wheel, travel a winding road, and at every fork decide what you value: speed or trust, funding or independence, your logo or the result. Build funding, trust and local capacity. The richest legacy completes the mandate, not the fastest finish."));
+      "A great green hedge maze, the kind that hides in the gardens of old castles. Every player enters from a different gate and threads the corridors toward the fountain at the centre, where the mission is accomplished. Roll the die, ride the shortcuts and surprises, dodge the traps that get you lost, and do not stop rolling until you find the path home. A different maze every time."));
 
     const legend = el("div", "mandate-legend");
-    legend.innerHTML =
-      CG.MANDATE_RESOURCES.map((r) =>
-        `<span class="ml-chip"><span class="ml-ic">${r.icon}</span><b>${r.name}</b><small>${r.blurb}</small></span>`).join("");
+    legend.innerHTML = [
+      { ic: "🏁", name: "The Centre", blurb: "Reach it to accomplish the mission" },
+      { ic: "🪜", name: "Shortcut", blurb: "A secret passage toward the centre" },
+      { ic: "🕳️", name: "Trap", blurb: "You get lost, back into the hedges" },
+      { ic: "🏆", name: "Trophy", blurb: "Recognition, and another roll" },
+      { ic: "💎", name: "Diamond", blurb: "A windfall that carries you on" },
+      { ic: "❓", name: "Surprise", blurb: "A mystery, for better or worse" },
+    ].map((r) =>
+      `<span class="ml-chip"><span class="ml-ic">${r.ic}</span><b>${r.name}</b><small>${r.blurb}</small></span>`).join("");
     wrap.appendChild(legend);
 
     const toggles = el("div", "toggle-row");
@@ -323,7 +395,7 @@
       icon: "◆",
       title: "The Mandate",
       subtitle: "Set the table",
-      intro: "Choose who takes each seat. Pick Human and name yourself; pick AI and a rival coordinator joins the field. Two to four play.",
+      intro: "Choose who takes each seat. Pick Human and name yourself; pick AI and a rival coordinator joins the field. Two to four play, each entering the maze from their own gate.",
       seatColors: COLORS,
       minSeats: 2, maxSeats: 4, defaultSeats: 2,
       startLabel: "Deal the postings ▸",
@@ -337,22 +409,27 @@
     CG.Narrate.setEnabled(S.settings.voice);
 
     S.theatre = CG.THEATRES[Math.floor(Math.random() * CG.THEATRES.length)];
-    generateRoad();
+    generateMaze();
     const roles = shuffle(CG.ROLES);
-    S.players = roster.map((seat, i) => ({
-      name: seat.name,
-      isAI: seat.isAI,
-      role: roles[i % roles.length],
-      node: S.startId,
-      color: COLORS[i % COLORS.length],
-      funding: 0, trust: 0, capacity: 0, milestones: 0,
-      finishBonus: 0,
-      contrib: newQuintet(),   // this player's net push to each of the five capabilities
-      bonusSpin: false,
-      skipNext: false,
-      finished: false,
-      rank: 0,
-    }));
+    S.gates = [];
+    S.players = roster.map((seat, i) => {
+      const side = SIDES[i % SIDES.length];
+      S.gates.push({ gate: side.gate, cell: { r: side.cell.r, c: side.cell.c } });
+      return {
+        name: seat.name,
+        isAI: seat.isAI,
+        role: roles[i % roles.length],
+        entry: side,
+        cell: { r: side.cell.r, c: side.cell.c },
+        prev: null,
+        color: COLORS[i % COLORS.length],
+        trophies: 0, diamonds: 0,
+        points: 0,
+        contrib: newQuintet(),
+        bonusRoll: false, skipNext: false,
+        finished: false, rank: 0,
+      };
+    });
     S.current = 0; S.over = false; S.zoneSpoken = -1; S.finishedCount = 0;
     S.quintet = newQuintet();
     renderDeal();
@@ -382,12 +459,13 @@
         `<div class="deal-avatar" style="--tok:${p.color}">${p.role.icon}</div>` +
         `<div class="deal-label" style="color:${p.color}">${esc(p.name)}</div>` +
         `<div class="deal-title small">${p.role.name}</div>` +
-        `<div class="deal-text">${p.role.tag}</div>`;
+        `<div class="deal-text">${p.role.tag}</div>` +
+        `<div class="deal-entry">Enters from ${esc(p.entry.name)}</div>`;
       row.appendChild(c);
     });
     wrap.appendChild(row);
 
-    const go = el("button", "btn btn-primary big", "Begin the Mandate ▸");
+    const go = el("button", "btn btn-primary big", "Enter the maze ▸");
     go.onclick = () => { CG.Audio.sfx.pick(); renderBoard(); kickOff(); };
     wrap.appendChild(go);
     root.appendChild(wrap);
@@ -400,14 +478,14 @@
   function teardown() {
     if (resizeObs) { try { resizeObs.disconnect(); } catch (e) {} resizeObs = null; }
     if (relayoutHandler) { window.removeEventListener("resize", relayoutHandler); relayoutHandler = null; }
-    roadBox = null; roadSvg = null;
+    mazeBox = null; mazeSvg = null;
   }
 
   function renderBoard() {
     teardown();
     const root = app();
     root.innerHTML = "";
-    const wrap = el("div", "screen board-screen mandate-screen");
+    const wrap = el("div", "screen board-screen mandate-screen maze-screen");
     wrap.appendChild(el("div", "bg-layer mandate-bg"));
 
     const bar = el("header", "hud-top");
@@ -426,24 +504,24 @@
     const standings = el("aside", "standings"); standings.id = "standings";
     wrap.appendChild(standings);
 
-    const stage = el("div", "board-stage");
-    roadBox = el("div", "board-box road"); roadBox.id = "roadBox";
-    roadSvg = document.createElementNS(NS, "svg");
-    roadSvg.setAttribute("class", "road-svg");
-    roadBox.appendChild(roadSvg);
-    const nodeLayer = el("div", "node-layer"); nodeLayer.id = "nodeLayer"; roadBox.appendChild(nodeLayer);
-    const fx = el("div", "fx"); fx.id = "fx"; roadBox.appendChild(fx);
-    const tokens = el("div", "token-layer"); tokens.id = "tokens"; roadBox.appendChild(tokens);
-    stage.appendChild(roadBox);
+    const stage = el("div", "board-stage maze-stage");
+    mazeBox = el("div", "board-box maze-box"); mazeBox.id = "mazeBox";
+    mazeSvg = document.createElementNS(NS, "svg");
+    mazeSvg.setAttribute("class", "maze-svg");
+    mazeSvg.setAttribute("viewBox", "0 0 100 100");
+    mazeBox.appendChild(mazeSvg);
+    const cellLayer = el("div", "cell-layer"); cellLayer.id = "cellLayer"; mazeBox.appendChild(cellLayer);
+    const fx = el("div", "fx"); fx.id = "fx"; mazeBox.appendChild(fx);
+    const tokens = el("div", "token-layer"); tokens.id = "tokens"; mazeBox.appendChild(tokens);
+    stage.appendChild(mazeBox);
     wrap.appendChild(stage);
 
-    // the spinner dock
-    const dock = el("div", "dice-dock spin-dock"); dock.id = "dock";
-    const tag = el("div", "turn-tag"); tag.id = "turnTag"; tag.innerHTML = "Your move";
-    const spinnerWrap = el("div", "spinner");
-    spinnerWrap.innerHTML = `<div class="spin-ptr"></div>` + buildWheel();
-    const btn = el("button", "btn btn-roll", "🌀 Spin"); btn.id = "spinBtn"; btn.onclick = onSpin;
-    dock.appendChild(tag); dock.appendChild(spinnerWrap); dock.appendChild(btn);
+    const dock = el("div", "dice-dock"); dock.id = "dock";
+    dock.innerHTML =
+      `<div class="turn-tag" id="turnTag">Your move</div>` +
+      `<div class="dice" id="dice"><div class="die" id="die0">${pips(1)}</div></div>`;
+    const btn = el("button", "btn btn-roll", "🎲 Roll"); btn.id = "rollBtn"; btn.onclick = onRoll;
+    dock.appendChild(btn);
     wrap.appendChild(dock);
 
     const toasts = el("div", "toast-area"); toasts.id = "toasts"; wrap.appendChild(toasts);
@@ -454,181 +532,161 @@
     relayout();
     relayoutHandler = () => relayout();
     window.addEventListener("resize", relayoutHandler);
-    try { resizeObs = new ResizeObserver(() => relayout()); resizeObs.observe(roadBox); }
+    try { resizeObs = new ResizeObserver(() => relayout()); resizeObs.observe(mazeBox.parentNode); }
     catch (e) { /* window resize still covers it */ }
   }
 
+  // keep the maze a true square inside the stage, then redraw everything.
+  function sizeBox() {
+    if (!mazeBox) return;
+    const stage = mazeBox.parentNode;
+    const cs = getComputedStyle(stage);
+    const availW = stage.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+    const availH = stage.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+    const size = Math.max(40, Math.min(availW, availH));
+    mazeBox.style.width = size + "px";
+    mazeBox.style.height = size + "px";
+  }
+
   function relayout() {
-    if (!roadBox) return;
-    drawRoad();
-    renderNodes();
+    if (!mazeBox) return;
+    sizeBox();
+    drawMaze();
+    renderCells();
     renderTokens();
   }
 
-  // ---- the spinning wheel (1..6) ----------------------------------------
-  const WHEEL_COLORS = ["#2f9e54", "#2f6bff", "#7c4dff", "#e8439b", "#ef9f25", "#11aecb"];
-  function wheelPt(cx, cy, r, deg) {
-    const a = (deg - 90) * Math.PI / 180;
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-  }
-  function buildWheel() {
-    const C = 50, R = 47;
-    let inner = "";
-    for (let i = 0; i < 6; i++) {
-      const a0 = i * 60, a1 = a0 + 60;
-      const p0 = wheelPt(C, C, R, a0), p1 = wheelPt(C, C, R, a1);
-      inner += `<path d="M ${C} ${C} L ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${R} ${R} 0 0 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} Z" fill="${WHEEL_COLORS[i]}" stroke="#fff" stroke-width="1"/>`;
-      const tp = wheelPt(C, C, R * 0.64, a0 + 30);
-      inner += `<text x="${tp.x.toFixed(2)}" y="${tp.y.toFixed(2)}" fill="#fff" font-size="15" font-weight="800" font-family="Space Grotesk, sans-serif" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`;
+  // ---- draw the hedges --------------------------------------------------
+  function drawMaze() {
+    if (!mazeSvg) return;
+    const cs = 100 / GRID;
+    const gate = (r, c, side) => S.gates.some((g) => g.cell.r === r && g.cell.c === c && g.gate === side);
+    const segs = [];
+    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
+      const w = cellAt(r, c).walls;
+      const x = c * cs, y = r * cs;
+      if (w.N && !gate(r, c, "N")) segs.push([x, y, x + cs, y]);
+      if (w.W && !gate(r, c, "W")) segs.push([x, y, x, y + cs]);
+      if (r === GRID - 1 && w.S && !gate(r, c, "S")) segs.push([x, y + cs, x + cs, y + cs]);
+      if (c === GRID - 1 && w.E && !gate(r, c, "E")) segs.push([x + cs, y, x + cs, y + cs]);
     }
-    return `<svg class="wheel" id="wheel" viewBox="0 0 100 100">${inner}` +
-      `<circle cx="50" cy="50" r="9" fill="#fff" stroke="#d7e0ee" stroke-width="1.5"/>` +
-      `<circle cx="50" cy="50" r="3.4" fill="#2a4366"/></svg>`;
+    const d = segs.map((s) => `M ${s[0].toFixed(2)} ${s[1].toFixed(2)} L ${s[2].toFixed(2)} ${s[3].toFixed(2)}`).join(" ");
+    const ww = cs * 0.30;
+    const path = (dd, col, w) =>
+      `<path d="${dd}" fill="none" stroke="${col}" stroke-width="${w.toFixed(3)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    mazeSvg.innerHTML =
+      `<defs>` +
+        `<radialGradient id="mazeGround" cx="0.5" cy="0.5" r="0.72">` +
+          `<stop offset="0" stop-color="#eef4dc"/><stop offset="1" stop-color="#dde7c4"/>` +
+        `</radialGradient>` +
+      `</defs>` +
+      `<rect x="0" y="0" width="100" height="100" rx="2.5" fill="url(#mazeGround)"/>` +
+      path(d, "#1f5230", ww * 1.08) +   // deep shadow root
+      path(d, "#2e7a3d", ww) +          // hedge body
+      path(d, "#3f9a4c", ww * 0.62) +   // sunlit top
+      path(d, "#7cc06a", ww * 0.20);    // bright highlight
   }
 
-  async function spinWheel(value) {
-    const wheel = $("#wheel");
-    if (!wheel) { await sleep(200); return; }
-    const sectorCenter = (value - 1) * 60 + 30;
-    const jitter = (Math.random() - 0.5) * 36;           // stays inside the sector
-    const target = (360 - sectorCenter + jitter);
-    let next = S.spinRot + 360 * 5;
-    next += ((target - (next % 360)) % 360 + 360) % 360; // land on the value
-    S.spinRot = next;
-    wheel.style.transition = "transform 1.15s cubic-bezier(.17,.67,.2,1)";
-    wheel.style.transform = `rotate(${next}deg)`;
-    await sleep(1230);
-  }
+  // ---- cell markers (centre, gates, specials) ---------------------------
+  const SPECIAL_ICON = { shortcut: "🪜", trap: "🕳️", trophy: "🏆", diamond: "💎", surprise: "❓", note: "★" };
+  function cellPctX(c) { return (c + 0.5) * (100 / GRID); }
+  function cellPctY(r) { return (r + 0.5) * (100 / GRID); }
 
-  // ---- draw the road ----------------------------------------------------
-  function px(id, bw, bh) { const n = node(id); return { x: n.x / 100 * bw, y: n.y / 100 * bh }; }
-
-  // Catmull-Rom through points -> a smooth bezier path string.
-  function spline(pts) {
-    if (pts.length < 2) return "";
-    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-      const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-    }
-    return d;
-  }
-
-  function drawRoad() {
-    if (!roadBox || !roadSvg) return;
-    const bw = roadBox.clientWidth, bh = roadBox.clientHeight;
-    if (!bw || !bh) return;
-    const unit = Math.min(bw, bh);
-    const roadW = Math.max(14, unit * 0.052);
-    roadSvg.setAttribute("viewBox", `0 0 ${bw} ${bh}`);
-
-    // the main spine, then each high-road branch.
-    const mainPts = [];
-    for (let i = 0; i < SPINE; i++) mainPts.push(px(i, bw, bh));
-    const branches = (S.forks || []).map((f) =>
-      spline([px(f.F, bw, bh), px(f.high[0], bw, bh), px(f.high[1], bw, bh), px(f.J, bw, bh)]));
-
-    const path = (d, cls, w) => `<path d="${d}" class="${cls}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="${w}"/>`;
-    const dMain = spline(mainPts);
-    const bw78 = roadW * 0.78;
-    let svg = path(dMain, "road-shadow", roadW + 6);
-    branches.forEach((d) => { svg += path(d, "road-shadow", bw78 + 6); });
-    branches.forEach((d) => { svg += path(d, "road-fill alt", bw78); });
-    svg += path(dMain, "road-fill", roadW);
-    branches.forEach((d) => { svg += path(d, "road-dash", Math.max(1.5, roadW * 0.07)); });
-    svg += path(dMain, "road-dash", Math.max(1.6, roadW * 0.08));
-    roadSvg.innerHTML = svg;
-  }
-
-  // ---- nodes ------------------------------------------------------------
-  const NODE_ICON = {
-    start: "🚩", finish: "🏁", crossroads: "⚖️", milestone: "⭐",
-    funding: "💰", trust: "🤝", capacity: "👥", event: "⚡", note: "★", fork: "⑂",
-  };
-  const NODE_LABEL = { start: "Day One", finish: "Handover", crossroads: "Crossroads", milestone: "Milestone", fork: "The road forks" };
-
-  // Stations are deliberately a touch smaller than the pawns, so the player
-  // pieces always read as the foreground and the tiles as the board beneath.
-  function nodeSize() {
-    if (!roadBox) return 26;
-    return Math.max(19, Math.min(roadBox.clientWidth, roadBox.clientHeight) * 0.062);
-  }
-
-  function renderNodes() {
-    const layer = $("#nodeLayer");
+  function renderCells() {
+    const layer = $("#cellLayer");
     if (!layer) return;
     layer.innerHTML = "";
-    const size = nodeSize();
-    S.nodes.forEach((n) => {
-      const d = el("div", "mnode mn-" + n.type + (n.branch ? " branch" : ""));
-      d.style.width = size + "px"; d.style.height = size + "px";
-      d.style.left = n.x + "%"; d.style.top = n.y + "%";
-      d.style.fontSize = (size * 0.46) + "px";
-      d.innerHTML = `<span class="mn-ic">${NODE_ICON[n.type] || ""}</span>`;
-      if (NODE_LABEL[n.type] && !n.branch) {
-        const lab = el("span", "mn-label", NODE_LABEL[n.type]);
-        lab.style.fontSize = Math.max(8, size * 0.26) + "px";
-        d.appendChild(lab);
-      }
+    const cw = (mazeBox ? mazeBox.clientWidth : 480) / GRID;
+    const ic = Math.max(11, cw * 0.5);
+
+    const place = (r, c, cls, html, fontPx) => {
+      const d = el("div", "maze-cell " + cls, html);
+      d.style.left = cellPctX(c) + "%";
+      d.style.top = cellPctY(r) + "%";
+      if (fontPx) d.style.fontSize = fontPx + "px";
       layer.appendChild(d);
+      return d;
+    };
+
+    // the gates, tinted in each player's colour
+    S.players.forEach((p) => {
+      const g = place(p.entry.cell.r, p.entry.cell.c, "mc-gate",
+        `<span class="mg-ring" style="--tok:${p.color}"></span>`, null);
+      g.style.setProperty("--tok", p.color);
     });
+
+    // the specials
+    Object.keys(S.special).forEach((k) => {
+      const sp = S.special[k];
+      const [r, c] = k.split(",").map(Number);
+      place(r, c, "mc-sp mc-" + sp.kind, `<span class="mc-ic">${SPECIAL_ICON[sp.kind]}</span>`, ic);
+    });
+
+    // the centre, the fountain at the heart of the maze
+    const goal = place(CENTER.r, CENTER.c, "mc-goal",
+      `<span class="mc-ic">🏁</span><span class="mc-label">The Centre</span>`, ic * 1.04);
+    goal.style.setProperty("--tok", "#ef9f25");
   }
 
   // ---- tokens -----------------------------------------------------------
   function tokenSize() {
-    if (!roadBox) return 32;
-    return Math.max(24, Math.min(roadBox.clientWidth, roadBox.clientHeight) * 0.082);
+    if (!mazeBox) return 30;
+    return Math.max(22, mazeBox.clientWidth / GRID * 0.74);
   }
   function renderTokens() {
     const layer = $("#tokens");
     if (!layer) return;
     layer.innerHTML = "";
     const size = tokenSize();
-    const byNode = {};
-    S.players.forEach((p, i) => (byNode[p.node] = byNode[p.node] || []).push(i));
+    const byCell = {};
+    S.players.forEach((p, i) => (byCell[key(p.cell.r, p.cell.c)] = byCell[key(p.cell.r, p.cell.c)] || []).push(i));
     S.players.forEach((p, i) => {
-      const n = node(p.node);
-      const group = byNode[p.node];
+      const group = byCell[key(p.cell.r, p.cell.c)];
       const k = group.indexOf(i);
-      const spread = group.length > 1 ? (k - (group.length - 1) / 2) * (size * 0.52) : 0;
+      const spread = group.length > 1 ? (k - (group.length - 1) / 2) * (size * 0.5) : 0;
       const t = el("div", "token" + (i === S.current && !S.over ? " active" : "") + (p.finished ? " done" : ""));
       t.id = "tok" + i;
       t.style.setProperty("--tok", p.color);
       t.style.width = size + "px"; t.style.height = size + "px";
-      t.style.left = `calc(${n.x}% + ${spread}px)`;
-      t.style.top = n.y + "%";
+      t.style.left = `calc(${cellPctX(p.cell.c)}% + ${spread}px)`;
+      t.style.top = cellPctY(p.cell.r) + "%";
       t.innerHTML = `<span class="tok-face" style="font-size:${size * 0.5}px">${p.role.icon}</span>`;
       if (CG.Hover) CG.Hover.bind(t, () => playerInfo(p));
       layer.appendChild(t);
     });
   }
-  function moveTokenTo(i, id) {
+  function moveToken(i) {
     const t = $("#tok" + i);
     if (!t) return;
-    const n = node(id);
-    t.style.left = n.x + "%";
-    t.style.top = n.y + "%";
+    const p = S.players[i];
+    t.style.left = cellPctX(p.cell.c) + "%";
+    t.style.top = cellPctY(p.cell.r) + "%";
   }
 
-  // ---- standings (ranked by legacy) -------------------------------------
+  // ---- standings --------------------------------------------------------
   function renderStandings() {
     const box = $("#standings");
     if (!box) return;
     box.innerHTML = "";
-    const order = S.players.map((p, i) => ({ p, i }))
-      .sort((a, b) => legacy(b.p) - legacy(a.p) || (a.p.rank || 9) - (b.p.rank || 9));
+    // finishers float to the top in placing order; the rest sort by how close
+    // they are to the centre (smaller distance = nearer home).
+    const order = S.players.map((p, i) => ({ p, i })).sort((a, b) => {
+      if (a.p.finished && b.p.finished) return a.p.rank - b.p.rank;
+      if (a.p.finished) return -1;
+      if (b.p.finished) return 1;
+      return distOf(a.p.cell) - distOf(b.p.cell);
+    });
     order.forEach(({ p, i }) => {
       const card = el("div", "scard" + (i === S.current && !S.over ? " active" : "") + (p.finished ? " done" : ""));
       card.style.setProperty("--tok", p.color);
-      const res =
-        `<span class="sres"><span>💰${p.funding}</span><span>🤝${p.trust}</span><span>👥${p.capacity}</span>` +
-        (p.milestones ? `<span>⭐${p.milestones}</span>` : "") + `</span>`;
+      let loot = `<span>⭐ ${p.points}</span>`;
+      if (p.trophies) loot += `<span>🏆${p.trophies > 1 ? "×" + p.trophies : ""}</span>`;
+      if (p.diamonds) loot += `<span>💎${p.diamonds > 1 ? "×" + p.diamonds : ""}</span>`;
+      const posCell = p.finished ? (MEDALS[p.rank - 1] || "#" + p.rank) : "🧭 " + distOf(p.cell);
       card.innerHTML =
         `<span class="savatar" style="--tok:${p.color}">${p.role.icon}</span>` +
-        `<span class="sinfo"><b>${esc(p.name)}</b><small>${esc(p.role.name)}</small>${res}</span>` +
-        `<span class="spos" title="Legacy score">${p.finished ? "🏁 " : ""}${legacy(p)}</span>`;
+        `<span class="sinfo"><b>${esc(p.name)}</b><small>${esc(p.role.name)}</small><span class="sloot">${loot}</span></span>` +
+        `<span class="spos" title="${p.finished ? "Finishing place" : "Corridors to the centre"}">${posCell}</span>`;
       if (CG.Hover) CG.Hover.bind(card, () => playerInfo(p));
       box.appendChild(card);
     });
@@ -648,6 +706,14 @@
     return panel;
   }
 
+  function pips(v) {
+    const map = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+    const on = new Set(map[v] || []);
+    let html = "";
+    for (let i = 0; i < 9; i++) html += `<i class="pip${on.has(i) ? " on" : ""}"></i>`;
+    return html;
+  }
+
   // ---- fx ---------------------------------------------------------------
   function toast(msg, kind) {
     const area = $("#toasts");
@@ -658,14 +724,13 @@
     setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 350); }, 2600);
     while (area.children.length > 4) area.removeChild(area.firstChild);
   }
-  function burst(id, kind, count) {
+  function burst(cell, kind, count) {
     const fx = $("#fx");
     if (!fx) return;
-    const n = node(id);
     count = count || 14;
     for (let i = 0; i < count; i++) {
       const p = el("div", "particle " + kind);
-      p.style.left = n.x + "%"; p.style.top = n.y + "%";
+      p.style.left = cellPctX(cell.c) + "%"; p.style.top = cellPctY(cell.r) + "%";
       let ang, dist;
       if (kind === "down") { ang = Math.PI / 2 + (Math.random() - 0.5) * 1.4; dist = 12 + Math.random() * 22; }
       else { ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.3; dist = 18 + Math.random() * 30; }
@@ -677,14 +742,15 @@
     }
   }
   function shake() {
-    if (!roadBox) return;
-    roadBox.classList.remove("shake"); void roadBox.offsetWidth; roadBox.classList.add("shake");
-    setTimeout(() => roadBox.classList.remove("shake"), 500);
+    if (!mazeBox) return;
+    mazeBox.classList.remove("shake"); void mazeBox.offsetWidth; mazeBox.classList.add("shake");
+    setTimeout(() => mazeBox.classList.remove("shake"), 500);
   }
   function setMoving(on) {
     const s = $(".board-screen");
     if (s) s.classList.toggle("moving", !!on);
   }
+  function progress(p) { return Math.round((1 - distOf(p.cell) / S.maxDist) * 100); }
 
   // =======================================================================
   // TURN FLOW
@@ -694,44 +760,43 @@
   function setTurnTag() {
     const tt = $("#turnTag");
     const p = S.players[S.current];
-    if (tt) tt.innerHTML = S.over ? "Mandate complete" :
+    if (tt) tt.innerHTML = S.over ? "Mission complete" :
       `<span class="dot" style="background:${p.color}"></span>${p.isAI ? esc(p.name) + " is moving…" : "Your move"}`;
-    const btn = $("#spinBtn");
+    const btn = $("#rollBtn");
     if (btn) { btn.disabled = S.busy || S.over || p.isAI; btn.classList.toggle("ai", p.isAI && !S.over); }
   }
   function scheduleAI() {
     if (S.over) return;
     setTurnTag();
-    setTimeout(() => { if (!S.over && S.players[S.current].isAI) onSpin(); }, 850);
+    setTimeout(() => { if (!S.over && S.players[S.current].isAI) onRoll(); }, 850);
   }
 
-  async function onSpin() {
+  async function onRoll() {
     if (S.busy || S.over) return;
     S.busy = true;
-    const btn = $("#spinBtn"); if (btn) btn.disabled = true;
+    const btn = $("#rollBtn"); if (btn) btn.disabled = true;
     const p = S.players[S.current];
 
     const value = rnd(1, 6);
     if (S.settings.music) CG.Audio.sfx.dice();
-    await spinWheel(value);
-    toast(`${p.name} spins a ${value}`, "roll");
+    await animateDice([value]);
+    toast(`${p.name} rolls a ${value}`, "roll");
 
     setMoving(true);
-    await walk(p, value);
-    await resolveLanding(p, 0);
+    const reached = await stepThrough(p, value);
+    if (reached) { setMoving(false); return playerFinishes(p); }
+    await resolveLanding(p);
     setMoving(false);
+    if (atCenter(p) && !p.finished) return playerFinishes(p);
 
-    if (node(p.node).type === "finish" && !p.finished) return playerFinishes(p);
-
-    if (p.bonusSpin && !S.over) {
-      p.bonusSpin = false;
+    const again = p.bonusRoll; p.bonusRoll = false;
+    if (again && !S.over) {
       if (S.settings.music) CG.Audio.sfx.doubles();
-      toast(`${p.name} spins again`, "good");
+      toast(`${p.name} rolls again`, "good");
       S.busy = false; setTurnTag();
       if (p.isAI) scheduleAI();
       return;
     }
-    p.bonusSpin = false;
     endTurn();
   }
 
@@ -749,112 +814,177 @@
     if (!S.over && S.players[S.current].isAI) scheduleAI();
   }
 
-  // walk N squares along the graph, pausing at the fork to choose a route.
-  async function walk(p, steps) {
+  async function animateDice(values) {
+    const dice = values.map((_, i) => $("#die" + i));
+    dice.forEach((e) => e && e.classList.add("rolling"));
+    for (let i = 0; i < 9; i++) {
+      dice.forEach((e) => e && (e.innerHTML = pips(1 + Math.floor(Math.random() * 6))));
+      await sleep(65);
+    }
+    dice.forEach((e, i) => {
+      if (!e) return;
+      e.innerHTML = pips(values[i]); e.classList.remove("rolling"); e.classList.add("settle");
+    });
+    setTimeout(() => dice.forEach((e) => e && e.classList.remove("settle")), 260);
+    await sleep(200);
+  }
+
+  // the moves available from a cell: open passages, minus the one we came from,
+  // unless this is a dead end (then we must turn back). Returns {r,c,dir}[].
+  function movesFrom(p) {
+    const nb = openNeighbors(p.cell);
+    if (!p.prev) return nb;
+    const fwd = nb.filter((n) => !(n.r === p.prev.r && n.c === p.prev.c));
+    return fwd.length ? fwd : nb;
+  }
+
+  // walk exactly `steps` corridors. Corridors are forced; junctions are a
+  // choice (human picks, AI mostly heads for the centre but sometimes wanders);
+  // dead ends bounce you back. Stop early only if you reach the centre.
+  async function stepThrough(p, steps) {
     const idx = S.players.indexOf(p);
-    let remaining = steps;
-    while (remaining > 0) {
-      const n = node(p.node);
-      if (!n.next || n.next.length === 0) break;          // already home
-      let nextId = n.next[0];
-      if (n.next.length > 1) nextId = await chooseFork(p, n.next);
-      p.node = nextId;
-      moveTokenTo(idx, nextId);
+    let reached = false;
+    for (let s = 0; s < steps; s++) {
+      const moves = movesFrom(p);
+      if (!moves.length) break;                  // fully boxed in (cannot happen)
+      let mv;
+      if (moves.length === 1) mv = moves[0];
+      else mv = await chooseDir(p, moves);
+      p.prev = { r: p.cell.r, c: p.cell.c };
+      p.cell = { r: mv.r, c: mv.c };
+      moveToken(idx);
       if (S.settings.music) { CG.Audio.sfx.step(); CG.Audio.setProgress(progress(p)); }
       maybeSpeakZone(p);
       renderStandings();
-      await sleep(240);
-      remaining--;
-      if (node(nextId).type === "finish") break;
+      await sleep(225);
+      if (atCenter(p)) { reached = true; break; }
     }
     renderTokens();
+    return reached;
   }
 
-  function progress(p) { return Math.round(node(p.node).depth / S.finishDepth * 100); }
-
-  function maybeSpeakZone(p) {
-    if (p.isAI) return;
-    const z = Math.min(3, Math.floor(node(p.node).depth / (S.finishDepth / 4 + 0.001)));
-    if (z > S.zoneSpoken) { S.zoneSpoken = z; CG.Narrate.auto(CG.MANDATE_STORY.zones[z]); }
-  }
-
-  function chooseFork(p, nexts) {
+  // the junction overlay: which passage to take.
+  function chooseDir(p, moves) {
     return new Promise((resolve) => {
-      if (p.isAI) { setTimeout(() => resolve(nexts[Math.floor(Math.random() * nexts.length)]), 420); return; }
+      if (p.isAI) {
+        let pick;
+        if (Math.random() < 0.62) {
+          const best = Math.min.apply(null, moves.map((m) => S.dist[m.r][m.c]));
+          const good = moves.filter((m) => S.dist[m.r][m.c] === best);
+          pick = good[Math.floor(Math.random() * good.length)];
+        } else pick = moves[Math.floor(Math.random() * moves.length)];
+        setTimeout(() => resolve(pick), 360);
+        return;
+      }
       const over = el("div", "overlay-card show");
-      const c = el("div", "event-card fork-card");
+      const c = el("div", "event-card fork-card maze-junction");
       c.innerHTML =
         whoHtml(p) +
-        `<div class="ec-band">THE ROAD FORKS</div>` +
-        `<div class="ec-icon">⑂</div>` +
+        `<div class="ec-band">A JUNCTION</div>` +
+        `<div class="ec-icon">🧭</div>` +
         `<div class="ec-title">Which way?</div>` +
-        `<div class="ec-why">Two roads, the same distance, different squares ahead. Trust your instinct.</div>`;
-      const actions = el("div", "ec-actions");
-      const hi = el("button", "btn btn-primary", "↑ The high road");
-      const lo = el("button", "btn btn-ghost", "↓ The main road");
-      const pick = (id) => { over.classList.remove("show"); setTimeout(() => over.remove(), 220); CG.Audio.sfx.click(); resolve(id); };
-      hi.onclick = () => pick(nexts[1]);
-      lo.onclick = () => pick(nexts[0]);
-      actions.appendChild(hi); actions.appendChild(lo);
-      c.appendChild(actions);
+        `<div class="ec-why">The hedges branch. The fountain is at the centre, but the dice make you spend every step, so choose with care, or get gloriously lost.</div>`;
+      const grid = el("div", "maze-dirs");
+      moves.forEach((m) => {
+        const b = el("button", "btn btn-ghost maze-dir");
+        b.innerHTML = `<span class="md-arrow">${ARROW[m.dir]}</span><span class="md-name">${DIRNAME[m.dir]}</span>`;
+        b.onclick = () => {
+          over.classList.remove("show"); setTimeout(() => over.remove(), 200);
+          CG.Audio.sfx.click(); resolve(m);
+        };
+        grid.appendChild(b);
+      });
+      c.appendChild(grid);
       over.appendChild(c);
       app().appendChild(over);
     });
   }
 
-  // a forward / backward hop driven by a card's move effect
-  async function hop(p, n) {
+  // a forward dash toward the centre (diamond / lucky break)
+  async function hopToward(p, k) {
     const idx = S.players.indexOf(p);
-    const back = n < 0;
-    let steps = Math.abs(n);
-    while (steps-- > 0) {
-      const cur = node(p.node);
-      const nid = back ? S.prevOf[p.node] : (cur.next && cur.next[0]);
-      if (nid == null) break;
-      p.node = nid;
-      moveTokenTo(idx, nid);
+    for (let i = 0; i < k; i++) {
+      if (atCenter(p)) break;
+      const nb = openNeighbors(p.cell).filter((n) => distOf(n) < distOf(p.cell));
+      if (!nb.length) break;
+      const nx = nb[Math.floor(Math.random() * nb.length)];
+      p.prev = { r: p.cell.r, c: p.cell.c };
+      p.cell = { r: nx.r, c: nx.c };
+      moveToken(idx);
       if (S.settings.music) { CG.Audio.sfx.step(); CG.Audio.setProgress(progress(p)); }
       renderStandings();
-      await sleep(220);
-      if (!back && node(nid).type === "finish") break;
+      await sleep(215);
     }
     renderTokens();
+  }
+
+  // a warp along a special's pre-computed exit (shortcut forward, trap back).
+  async function warpTo(p, dest, kind) {
+    const idx = S.players.indexOf(p);
+    const t = $("#tok" + idx);
+    if (t) t.classList.add("sliding");
+    if (kind === "up") animateGate(idx);
+    p.prev = null;
+    p.cell = { r: dest.r, c: dest.c };
+    moveToken(idx);
+    burst(p.cell, kind, kind === "up" ? 18 : 14);
+    await sleep(780);
+    if (t) t.classList.remove("sliding");
+    if (S.settings.music) CG.Audio.setProgress(progress(p));
+    renderStandings(); renderTokens();
+  }
+  function animateGate() { /* reserved for future hedge flourish */ }
+
+  function maybeSpeakZone(p) {
+    if (p.isAI) return;
+    const z = Math.min(3, Math.floor(progress(p) / 25));
+    if (z > S.zoneSpoken) { S.zoneSpoken = z; CG.Narrate.auto(CG.MANDATE_STORY.zones[z]); }
   }
 
   // =======================================================================
   // LANDINGS
   // =======================================================================
-  async function resolveLanding(p, depth) {
-    const t = node(p.node).type;
+  async function resolveLanding(p) {
+    const sp = specialAt(p.cell);
+    if (!sp) return;
     const tags = (S.theatre && S.theatre.tags) || [];
-    if (t === "funding" || t === "trust" || t === "capacity") {
-      const deck = S.decks[t];
-      const card = deck();
-      const q = resolveQuintet(card.eff, card.tag, 1);
-      await showResourceCard(p, card, t, q);
-      if (S.settings.music) CG.Audio.sfx.note();
-      await applyEffects(p, card.eff, card.tag, null, q);
-    } else if (t === "milestone") {
-      const card = S.decks.milestone();
-      p.milestones++;
-      p.bonusSpin = true;
-      await showMilestoneCard(p, card);
+    if (sp.kind === "shortcut") {
+      const card = weightedDraw(CG.LADDER_CARDS, tags);
+      const q = applyQuintet(p, card.tag, +1);
+      await showCard(p, card, "shortcut", q);
       if (S.settings.music) CG.Audio.sfx.ladder();
-      burst(p.node, "up", 20);
-      toast(`${p.name} reaches a milestone ⭐`, "good");
-    } else if (t === "event") {
-      const card = weightedDraw(CG.MANDATE_EVENTS, tags);
-      const q = resolveQuintet(card.eff, card.tag, card.kind === "bad" ? -1 : 1);
-      await showEventCard(p, card, q);
-      if (S.settings.music) (card.kind === "bad" ? CG.Audio.sfx.snake : CG.Audio.sfx.ladder)();
-      if (card.kind === "bad") shake();
-      await applyEffects(p, card.eff, card.tag, null, q);
-    } else if (t === "crossroads") {
-      const card = weightedDraw(CG.MANDATE_DECISIONS, tags);
-      const choice = await showDecision(p, card);
-      if (S.settings.music) CG.Audio.sfx.pick();
-      await applyEffects(p, choice.eff, card.tag, choice.label);
-    } else if (t === "note") {
+      toast(`${p.name} slips through a secret passage`, "good");
+      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
+      await warpTo(p, sp.to, "up");
+    } else if (sp.kind === "trap") {
+      const card = weightedDraw(CG.SNAKE_CARDS, tags);
+      const q = applyQuintet(p, card.tag, -1);
+      await showCard(p, card, "trap", q);
+      if (S.settings.music) CG.Audio.sfx.snake();
+      toast(`${p.name} gets lost in the hedges`, "bad");
+      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
+      shake();
+      await warpTo(p, sp.to, "down");
+    } else if (sp.kind === "trophy") {
+      const card = fillCard(S.decks.trophy(), p);
+      p.trophies++; award(p, 5); p.bonusRoll = true;
+      await showCard(p, card, "trophy", null);
+      if (S.settings.music) CG.Audio.sfx.note();
+      burst(p.cell, "up", 18);
+      toast(`${p.name} collects a trophy 🏆`, "good");
+    } else if (sp.kind === "diamond") {
+      const card = S.decks.diamond();
+      p.diamonds++; award(p, 4);
+      await showCard(p, card, "diamond", null);
+      if (S.settings.music) CG.Audio.sfx.note();
+      burst(p.cell, "up", 18);
+      toast(`${p.name} finds a diamond 💎`, "good");
+      await hopToward(p, 3);
+    } else if (sp.kind === "surprise") {
+      const card = S.decks.surprise();
+      await showCard(p, card, "surprise", null);
+      await applySurprise(p, card);
+    } else if (sp.kind === "note") {
       const note = S.decks.note();
       if (S.settings.music) CG.Audio.sfx.note();
       await showNote(p, note);
@@ -862,45 +992,25 @@
     renderStandings();
   }
 
-  // apply a card / choice effect: resources, a Quintet nudge, then movement.
-  async function applyEffects(p, eff, tag, choiceLabel, q) {
-    if (!eff) return;
-    const parts = [];
-    ["funding", "trust", "capacity"].forEach((k) => {
-      if (eff[k]) {
-        p[k] = Math.max(0, (p[k] || 0) + eff[k]);
-        const ic = { funding: "💰", trust: "🤝", capacity: "👥" }[k];
-        parts.push(`${eff[k] > 0 ? "+" : ""}${eff[k]} ${ic}`);
-      }
-    });
-    // Quintet of Change: use the result already shown on the card when given,
-    // otherwise resolve one now (a building move, +1).
-    if (q === undefined) q = resolveQuintet(eff, tag, 1);
-    commitQuintet(p, q);
-    if (parts.length) toast(`${p.name}: ${parts.join("  ")}`, parts.some((s) => s[0] === "-") ? "bad" : "good");
-    renderStandings();
-    if (q) {
-      flashQuint(q.key, q.dir);
-      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} ${q.dir > 0 ? "strengthened" : "set back"}`, q.dir > 0 ? "good" : "bad");
-    }
-    if (eff.skip) { p.skipNext = true; toast(`${p.name} will lose a turn`, "muted"); }
-    if (eff.bonus) { p.bonusSpin = true; toast(`${p.name} spins again`, "good"); }
-    if (eff.move) {
-      await sleep(220);
-      toast(`${p.name} ${eff.move > 0 ? "moves ahead " + eff.move : "slips back " + Math.abs(eff.move)}`, eff.move > 0 ? "good" : "bad");
-      await hop(p, eff.move);
+  async function applySurprise(p, card) {
+    switch (card.effect) {
+      case "bonus": p.bonusRoll = true; toast(`${p.name} earns a bonus roll`, "good"); break;
+      case "skip": p.skipNext = true; toast(`${p.name} will lose a turn`, "bad"); break;
+      case "gem": p.diamonds++; award(p, 4); burst(p.cell, "up", 14); toast(`${p.name} pockets a diamond 💎`, "good"); break;
+      case "advance": toast(`${p.name} threads ahead`, "good"); await hopToward(p, 3); break;
+      default: break;
     }
   }
 
   // =======================================================================
   // CARD OVERLAYS
   // =======================================================================
+  const CONT = { shortcut: "Take it ▸", trap: "Lost again ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
+  const BAND = { shortcut: "A SHORTCUT", trap: "A TRAP", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
+
   function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
     if (!p.isAI) {
-      // Human paces with the button, but the pawn must not move until the
-      // narrator has finished: hold Continue disabled while the voice speaks,
-      // then release it. A safety timer frees a stuck voice.
       if (cont && voiced) {
         cont.disabled = true;
         let freed = false;
@@ -923,72 +1033,44 @@
     }
   }
 
-  const RES_META = {
-    funding: { band: "FUNDING", cls: "funding", cont: "Bank it ▸" },
-    trust: { band: "TRUST", cls: "trust", cont: "Earn it ▸" },
-    capacity: { band: "CAPACITY", cls: "capacity", cont: "Build it ▸" },
-  };
-
-  // A short spoken aside naming the capability a card just moved, so narration
-  // matches the on-card Quintet block (mirrors The Long Road's showCard).
-  function quintSpoken(q) {
-    return q ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.` : "";
-  }
-
-  function showResourceCard(p, card, kind, q) {
+  function showCard(p, card, kind, q) {
     return new Promise((resolve) => {
-      const m = RES_META[kind];
-      const why = fillText(card.why, p), fact = fillText(card.fact, p);
-      const spoken = `${card.title}. ${why} ${fact}${quintSpoken(q)}`;
+      const quintSpoken = q
+        ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.`
+        : "";
+      const text = `${card.why} ${card.fact}`;
+      const spoken = `${card.title}. ${text}${quintSpoken}`;
       const over = el("div", "overlay-card");
-      const c = el("div", `event-card ${m.cls}`);
+      const c = el("div", `event-card ${kind === "shortcut" ? "ladder" : kind === "trap" ? "snake" : kind}`);
+      const quintHtml = q
+        ? `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}">` +
+            `<span class="eq-ic">${q.meta.icon}</span>` +
+            `<span class="eq-txt"><b>${esc(q.meta.name)}</b> ${q.dir > 0 ? "strengthened" : "set back"}` +
+            `<small>UN 2.0 Quintet of Change</small></span>` +
+            `<span class="eq-delta">${q.dir > 0 ? "+1" : "−1"}</span>` +
+          `</div>`
+        : "";
       c.innerHTML =
         whoHtml(p) +
-        `<div class="ec-band">${m.band}</div>` +
+        `<div class="ec-band">${BAND[kind] || ""}</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${esc(card.title)}</div>` +
-        effChips(card.eff) +
-        `<div class="ec-why">${why}</div>` +
-        `<div class="ec-fact"><span>Side fact</span>${fact}</div>` +
-        quintBlockHtml(q);
-      finishOverlay(c, over, kind, spoken, p, resolve, m.cont, why + " " + fact, 3000);
-    });
-  }
-
-  function showMilestoneCard(p, card) {
-    return new Promise((resolve) => {
-      const why = fillText(card.why, p), fact = fillText(card.fact, p);
-      const spoken = `Milestone. ${card.title}. ${why} ${fact}`;
-      const over = el("div", "overlay-card");
-      const c = el("div", "event-card milestone");
-      c.innerHTML =
-        whoHtml(p) +
-        `<div class="ec-band">MILESTONE</div>` +
-        `<div class="ec-icon">${card.icon}</div>` +
-        `<div class="ec-title">${esc(card.title)}</div>` +
-        `<div class="ec-move">+3 legacy · spin again</div>` +
-        `<div class="ec-why">${why}</div>` +
-        `<div class="ec-fact"><span>Side fact</span>${fact}</div>`;
-      finishOverlay(c, over, "milestone", spoken, p, resolve, "Collect ▸", why + " " + fact, 3000);
-    });
-  }
-
-  function showEventCard(p, card, q) {
-    return new Promise((resolve) => {
-      const spoken = `${card.title}. ${card.why} ${card.fact}${quintSpoken(q)}`;
-      const over = el("div", "overlay-card");
-      const c = el("div", `event-card ${card.kind === "bad" ? "snake" : "ladder"}`);
-      c.innerHTML =
-        whoHtml(p) +
-        `<div class="ec-band">${card.kind === "bad" ? "A SETBACK" : "A BREAK"}</div>` +
-        `<div class="ec-icon">${card.icon}</div>` +
-        `<div class="ec-title">${esc(card.title)}</div>` +
-        effChips(card.eff) +
         `<div class="ec-why">${card.why}</div>` +
         `<div class="ec-fact"><span>Side fact</span>${card.fact}</div>` +
-        quintBlockHtml(q);
-      finishOverlay(c, over, card.kind === "bad" ? "snake" : "ladder", spoken, p, resolve,
-        card.kind === "bad" ? "Take the hit ▾" : "Ride it ▸", card.why + " " + card.fact, 3000);
+        quintHtml;
+      const actions = el("div", "ec-actions");
+      const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
+      speak.onclick = () => CG.Narrate.speak(`${card.title}. ${text}`);
+      const cont = el("button", "btn btn-primary", CONT[kind] || "Continue ▸");
+      const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
+      cont.onclick = done;
+      actions.appendChild(speak); actions.appendChild(cont);
+      c.appendChild(actions);
+      over.appendChild(c);
+      app().appendChild(over);
+      if (q) flashQuint(q.key, q.dir);
+      requestAnimationFrame(() => over.classList.add("show"));
+      narrateCard(p, spoken, over, done, 3300, cont);
     });
   }
 
@@ -1002,93 +1084,19 @@
         `<div class="ec-band">FIELD NOTE</div>` +
         `<div class="ec-icon">★</div>` +
         `<div class="ec-fact big"><span>From the field</span>${note}</div>`;
-      finishOverlay(c, over, "note", spoken, p, resolve, "Carry on ▸", note, 2600);
-    });
-  }
-
-  // shared scaffolding: read-aloud + continue buttons, voice pacing for AI.
-  function finishOverlay(c, over, kind, spoken, p, resolve, contLabel, readText, fallbackMs) {
-    const actions = el("div", "ec-actions");
-    const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
-    speak.onclick = () => CG.Narrate.speak(readText);
-    const cont = el("button", "btn btn-primary", contLabel);
-    const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
-    cont.onclick = done;
-    actions.appendChild(speak); actions.appendChild(cont);
-    c.appendChild(actions);
-    over.appendChild(c);
-    app().appendChild(over);
-    requestAnimationFrame(() => over.classList.add("show"));
-    narrateCard(p, spoken, over, done, fallbackMs, cont);
-  }
-
-  // the crossroads: a choice with consequences. Resolves to the chosen option.
-  function showDecision(p, card) {
-    return new Promise((resolve) => {
-      const prompt = fillText(card.prompt, p);
-      const spoken = `Crossroads. ${card.title}. ${prompt}`;
-      const over = el("div", "overlay-card");
-      const c = el("div", "event-card crossroads");
-      c.innerHTML =
-        whoHtml(p) +
-        `<div class="ec-band">CROSSROADS</div>` +
-        `<div class="ec-icon">${card.icon}</div>` +
-        `<div class="ec-title">${esc(card.title)}</div>` +
-        `<div class="ec-why">${prompt}</div>`;
-      const opts = el("div", "ec-options");
-      [card.a, card.b].forEach((opt) => {
-        const b = el("button", "ec-opt");
-        b.innerHTML =
-          `<span class="eo-label">${esc(opt.label)}</span>` +
-          `<span class="eo-detail">${esc(opt.detail)}</span>` +
-          `<span class="eo-eff">${effChips(opt.eff, true)}</span>`;
-        b.onclick = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 220); resolve(opt); };
-        opts.appendChild(b);
-      });
-      c.appendChild(opts);
       const actions = el("div", "ec-actions");
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
-      speak.onclick = () => CG.Narrate.speak(`${card.title}. ${prompt}`);
-      actions.appendChild(speak);
+      speak.onclick = () => CG.Narrate.speak(`Field note. ${note}`);
+      const cont = el("button", "btn btn-primary", "Carry on ▸");
+      const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
+      cont.onclick = done;
+      actions.appendChild(speak); actions.appendChild(cont);
       c.appendChild(actions);
       over.appendChild(c);
       app().appendChild(over);
       requestAnimationFrame(() => over.classList.add("show"));
-
-      if (p.isAI) {
-        CG.Narrate.auto(spoken);
-        const score = (o) => (o.eff.funding || 0) + (o.eff.trust || 0) + (o.eff.capacity || 0) +
-          (o.eff.move || 0) + (o.eff.bonus ? 2 : 0) - (o.eff.skip ? 2 : 0);
-        const choice = score(card.b) > score(card.a) ? card.b
-          : score(card.a) > score(card.b) ? card.a
-          : (Math.random() < 0.5 ? card.a : card.b);
-        setTimeout(() => {
-          if (!over.parentNode) return;
-          over.classList.remove("show"); setTimeout(() => over.remove(), 220); resolve(choice);
-        }, CG.Narrate.isEnabled() && CG.Narrate.supported() ? 2600 : 1800);
-      } else {
-        CG.Narrate.auto(spoken);
-      }
+      narrateCard(p, spoken, over, done, 2600, cont);
     });
-  }
-
-  // small +/- resource chips shown on a card or option
-  function effChips(eff, inline) {
-    if (!eff) return "";
-    const map = { funding: "💰", trust: "🤝", capacity: "👥" };
-    const chips = [];
-    ["funding", "trust", "capacity"].forEach((k) => {
-      if (eff[k]) chips.push(`<span class="ef ${eff[k] > 0 ? "up" : "down"}">${eff[k] > 0 ? "+" : ""}${eff[k]} ${map[k]}</span>`);
-    });
-    if (eff.move) chips.push(`<span class="ef ${eff.move > 0 ? "up" : "down"}">${eff.move > 0 ? "▲" : "▼"}${Math.abs(eff.move)}</span>`);
-    if (eff.quintet) {
-      const qm = CG.quintetMeta(eff.quintet), qd = eff.quintetDir || 1;
-      chips.push(`<span class="ef ${qd > 0 ? "up" : "down"}" title="${esc(qm.name)} · UN 2.0 Quintet">${qm.icon} ${qd > 0 ? "+" : "−"}1</span>`);
-    }
-    if (eff.bonus) chips.push(`<span class="ef up">spin again</span>`);
-    if (eff.skip) chips.push(`<span class="ef down">lose a turn</span>`);
-    if (!chips.length) return "";
-    return `<div class="ec-effs${inline ? " inline" : ""}">${chips.join("")}</div>`;
   }
 
   // =======================================================================
@@ -1099,30 +1107,30 @@
     p.finished = true;
     S.finishedCount++;
     p.rank = S.finishedCount;
-    p.finishBonus = FINISH_BONUS[p.rank - 1] || 0;
+    award(p, 6);
     S.busy = false;
     setMoving(false);
     const isLast = S.players.every((x) => x.finished);
     if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
-    burst(p.node, "up", 22);
+    if (!p.isAI) confetti();
+    burst(p.cell, "up", 22);
     renderStandings(); renderTokens(); setTurnTag();
-    toast(`${p.name} reaches the handover · ${ordinal(p.rank)} home (+${p.finishBonus} legacy)`, "good");
+    toast(`${p.name} reaches the centre · ${ordinal(p.rank)} home`, "good");
     showFinishCard(p, isLast, () => { if (isLast) return endGame(); endTurn(); });
   }
 
   function showFinishCard(p, isLast, done) {
-    const spoken = `${p.name} reaches the handover, ${ordinal(p.rank)} of the field, with a finishing bonus of ${p.finishBonus} to their legacy.`;
+    const spoken = `${p.name} reaches the centre of the maze, ${ordinal(p.rank)} of the field. The mission is accomplished here.`;
     const over = el("div", "overlay-card");
-    const c = el("div", "event-card milestone");
+    const c = el("div", "event-card trophy");
     c.innerHTML =
       `<div class="ec-band">${ordinal(p.rank).toUpperCase()} HOME</div>` +
       `<div class="ec-icon">${MEDALS[p.rank - 1] || "🏁"}</div>` +
-      `<div class="ec-title">${esc(p.name)} reaches the handover</div>` +
-      `<div class="ec-move">+${p.finishBonus} legacy · total ${legacy(p)}</div>` +
-      `<div class="ec-why">${esc(p.role.name)} completes the journey ${ordinal(p.rank)}.` +
-        `${isLast ? " Every team is home now. Time to count the legacy." : " The race for legacy plays on."}</div>`;
+      `<div class="ec-title">${esc(p.name)} reaches the centre</div>` +
+      `<div class="ec-why">${esc(p.role.name)} threads the last hedge and accomplishes the mission ${ordinal(p.rank)}.` +
+        `${isLast ? " Every team is home now. The maze is solved." : " The rest of the field is still finding the way."}</div>`;
     const actions = el("div", "ec-actions");
-    const cont = el("button", "btn btn-primary", isLast ? "Final legacy ▸" : "Play on ▸");
+    const cont = el("button", "btn btn-primary", isLast ? "Final standings ▸" : "Play on ▸");
     const fin = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
     cont.onclick = fin;
     actions.appendChild(cont);
@@ -1133,11 +1141,9 @@
     narrateCard(p, spoken, over, fin, 3000, cont);
   }
 
-  // Crowning the table, the same spirit as The Long Road: finishing first is
-  // only one way to be remembered. We hand out a champion for each kind of
-  // greatness, Speed (first to the handover), Legacy (the deepest legacy
-  // banked), and one for each UN 2.0 capability the player pushed furthest. A
-  // category with no clear leader is simply left uncrowned; positive ties share.
+  // Crowning the table, the same spirit as The Long Road: first to the centre is
+  // only one way to be remembered. Speed, Perseverance, and a champion for each
+  // UN 2.0 capability pushed furthest. Uncrowned if there is no clear leader.
   function computeChampions() {
     const champs = [];
     const top = (valueOf) => {
@@ -1147,10 +1153,10 @@
     };
 
     const speed = S.players.find((p) => p.rank === 1);
-    if (speed) champs.push({ icon: "🏃", title: "Speed", who: [speed], note: "first to the handover" });
+    if (speed) champs.push({ icon: "🏃", title: "Speed", who: [speed], note: "first to the centre" });
 
-    const leg = top((p) => legacy(p));
-    if (leg) champs.push({ icon: "🏛️", title: "Legacy", who: leg.who, note: `the deepest legacy, ${leg.best}` });
+    const pers = top((p) => p.points || 0);
+    if (pers) champs.push({ icon: "💪", title: "Perseverance", who: pers.who, note: `the most points banked, ${pers.best}` });
 
     CG.QUINTET.forEach((q) => {
       const lead = top((p) => (p.contrib && p.contrib[q.key]) || 0);
@@ -1172,58 +1178,48 @@
         `<span class="champ-note">${esc(c.note)}</span></span>` +
       `</div>`;
     }).join("");
-    return `<div class="champ-head">Champions of the Mandate</div><div class="champ-list">${rows}</div>`;
+    return `<div class="champ-head">Champions of the Maze</div><div class="champ-list">${rows}</div>`;
   }
 
   function championsLine(champs) {
     if (!champs.length) return "";
     const parts = champs.map((c) => `${c.who.map((p) => p.name).join(" and ")}, ${c.title} champion`);
-    return ` And the champions of the mandate: ${parts.join("; ")}.`;
+    return ` And the champions of the maze: ${parts.join("; ")}.`;
   }
 
   function endGame() {
     S.over = true; S.busy = false;
     setMoving(false);
     renderStandings(); renderTokens(); setTurnTag();
-    const order = S.players.slice().sort((a, b) => legacy(b) - legacy(a) || a.rank - b.rank);
+    const order = S.players.slice().sort((a, b) => a.rank - b.rank);
     const winner = order[0];
     const human = S.players.find((x) => !x.isAI);
     if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
-    if (human && winner === human) confetti();
+    if (human && human.rank === 1) confetti();
 
     let line;
-    if (human && winner === human) line = CG.MANDATE_STORY.winYou;
+    if (human && human.rank === 1) line = CG.MANDATE_STORY.winYou;
+    else if (human) line = `${winner.name} reaches the centre first; ${human.name === "You" ? "you finish" : human.name + " finishes"} ${ordinal(human.rank)}. Every team found the way in the end.`;
     else line = `${winner.name} ${CG.MANDATE_STORY.winOther}`;
     const built = CG.QUINTET.filter((q) => (S.quintet[q.key] || 0) > 0).map((q) => q.name);
     if (built.length) line += ` The table's strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
     const champs = computeChampions();
-    CG.Narrate.auto(line + championsLine(champs));
-
-    let rows = "";
-    order.forEach((p, i) => {
-      rows +=
-        `<div class="final-row">` +
-          `<span class="final-medal">${MEDALS[i] || "#" + (i + 1)}</span>` +
-          `<span class="final-name" style="color:${p.color}">${esc(p.name)}</span>` +
-          `<span class="final-role">💰${p.funding} 🤝${p.trust} 👥${p.capacity}${p.milestones ? " ⭐" + p.milestones : ""}</span>` +
-          `<span class="final-loot"><b>${legacy(p)}</b></span>` +
-        `</div>`;
-    });
+    const spoken = line + championsLine(champs);
+    CG.Narrate.auto(spoken);
 
     const over = el("div", "overlay-card show");
     const c = el("div", "event-card win");
     c.innerHTML =
-      `<div class="ec-band">FINAL LEGACY</div>` +
-      `<div class="ec-icon">🏛️</div>` +
-      `<div class="ec-title">${esc(winner.name)} leaves the deepest legacy</div>` +
-      `<div class="final-list">${rows}</div>` +
+      `<div class="ec-band">THE MAZE IS SOLVED</div>` +
+      `<div class="ec-icon">🏁</div>` +
+      `<div class="ec-title">The whole table reaches the centre</div>` +
       championsHtml(champs) +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
-    const again = el("button", "btn btn-primary", "Run it again ▸");
+    const again = el("button", "btn btn-primary", "Run a new maze ▸");
     again.onclick = () => { over.remove(); CG.Narrate.stop(); renderTitle(); };
     const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
-    speak.onclick = () => CG.Narrate.speak(line);
+    speak.onclick = () => CG.Narrate.speak(spoken);
     actions.appendChild(speak); actions.appendChild(again);
     c.appendChild(actions);
     over.appendChild(c);

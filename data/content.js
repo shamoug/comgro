@@ -1060,14 +1060,14 @@
   // NARRATOR LINES for The Mandate, in the same warm voice.
   CG.MANDATE_STORY = {
     opening:
-      "Your mandate begins. A coordinator's term is not a sprint to a finish line, it is a long road of choices. Every fork tests what you value: speed or trust, funding or independence, your own logo or the result. Build funding, build trust, build local capacity, and strengthen the UN 2.0 Quintet of Change as you travel. Remember, the richest legacy completes the mandate, not the fastest finish. Spin, and begin.",
+      "Your mandate begins, and it begins in a maze. A great green hedge maze, the kind that hides in the gardens of old castles, with the mission waiting at the fountain in the very centre. Each of you enters from a different gate. Roll the die, thread the corridors, and let the shortcuts and surprises carry you, but beware the traps that get you lost back among the hedges. The dice make you spend every step, so you will overshoot the turnings and wander, exactly as coordination really feels. Keep rolling until you find the path home. The mission is accomplished only when the last of you reaches the centre. Roll, and begin.",
     zones: [
-      "Arrival. Set the table, win the first yes, and learn whose phone you can call at midnight.",
-      "Pressure. The money is tight and the trade-offs are real. What you give up now, you cannot buy back later.",
-      "Convergence. The investments mature. The partners you backed early begin to carry the load themselves.",
-      "Legacy. The handover nears. The best mandate leaves a country that can carry on without you.",
+      "The outer hedges. Get your bearings, find the first turning, and learn how the maze likes to fool you.",
+      "Deeper in. The corridors double back and the dead ends multiply. Patience now, the centre is closer than it looks.",
+      "Near the heart. The shortcuts and traps come thick and fast. One good turn and you are almost home.",
+      "The final hedges. The fountain is in sight. Spend your steps well and thread the last corridor to the centre.",
     ],
-    winYou: "You leave the strongest legacy of all: funding that flexes, trust that lasts, and local hands that no longer need yours. Mandate complete.",
-    winOther: "leaves the strongest legacy this time. The road will still be here tomorrow. Run it again.",
+    winYou: "You reach the fountain at the heart of the maze first. You found the path the others are still searching for, and left the country a little stronger for it. Mission accomplished.",
+    winOther: "reaches the centre first this time. The hedges will grow a new maze tomorrow. Run it again.",
   };
 })();

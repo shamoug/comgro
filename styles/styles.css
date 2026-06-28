@@ -598,6 +598,65 @@ button { font-family: inherit; cursor: pointer; }
 .road-fill.alt { stroke: #cdd8ea; }
 .road-dash { stroke: #ffffff; stroke-dasharray: 10 14; opacity: .9; }
 
+/* =======================================================================
+ * THE MAZE,  a green castle-garden hedge maze. The board is held square so
+ * the hedges never distort; everything inside is drawn in a 0..100 viewBox.
+ * ===================================================================== */
+.maze-stage { align-items: center; justify-content: center; }
+.maze-box {
+  width: auto; height: auto;            /* sized to a square in JS */
+  background: #e7efce;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(40,80,40,.10) inset;
+}
+.maze-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+/* cell markers (gates, specials, the centre) sit above the hedges, below pawns */
+.cell-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.maze-cell {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  line-height: 1; text-align: center;
+}
+.maze-cell .mc-ic { filter: drop-shadow(0 1px 1px rgba(0,0,0,.28)); }
+.mc-sp .mc-ic { opacity: .96; }
+.mc-shortcut .mc-ic { filter: drop-shadow(0 0 4px rgba(124,200,120,.8)); }
+.mc-trap .mc-ic { filter: drop-shadow(0 0 4px rgba(40,60,30,.7)); }
+
+/* the centre: a glowing goal at the heart of the maze */
+.mc-goal { z-index: 5; }
+.mc-goal .mc-ic { animation: goalPulse 2.4s ease-in-out infinite; }
+.mc-goal .mc-label {
+  margin-top: 2px; font-family: "Space Grotesk", sans-serif; font-weight: 800;
+  font-size: clamp(7px, 1.2vw, 11px); letter-spacing: .04em; text-transform: uppercase;
+  color: #8a5a12; white-space: nowrap; text-shadow: 0 1px 0 rgba(255,255,255,.7);
+}
+@keyframes goalPulse { 50% { transform: scale(1.16); filter: drop-shadow(0 0 8px var(--gold)); } }
+
+/* the gates: a soft ring in the entering player's colour */
+.mc-gate { z-index: 3; }
+.mg-ring {
+  display: block; width: 64%; aspect-ratio: 1; max-width: 30px; border-radius: 50%;
+  border: 2px dashed var(--tok); background: color-mix(in srgb, var(--tok) 16%, transparent);
+  box-shadow: 0 0 10px -2px var(--tok);
+}
+
+/* the junction overlay: pick a passage */
+.maze-junction .ec-icon { animation: none; }
+.maze-dirs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.maze-dirs .maze-dir:only-child, .maze-dirs .maze-dir:nth-child(3):last-child { grid-column: 1 / -1; }
+.maze-dir {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 10px; font-weight: 800;
+}
+.md-arrow { font-size: 19px; line-height: 1; }
+.md-name { font-family: "Space Grotesk", sans-serif; letter-spacing: .02em; }
+
+/* entry line on the deal cards */
+.deal-entry {
+  margin-top: 8px; font-family: "Space Grotesk", sans-serif; font-weight: 700;
+  font-size: 12px; color: var(--muted); letter-spacing: .02em;
+}
+
 /* the squares (stations) along the road. Deliberately SQUARE tiles, flat to the
    road, so they never read as the round player pawns that sit on top of them. */
 .node-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
