@@ -83,15 +83,19 @@
     const ladders = {}, snakes = {};
     function placeVertical(isLadder, target) {
       let placed = 0, g = 0;
-      while (placed < target && g++ < 500) {
+      while (placed < target && g++ < 600) {
         const col = rnd(0, 9);
         const vTop = rnd(0, 6);          // smaller vrow = higher square
-        const vBot = vTop + rnd(2, 5);   // larger vrow = lower square
+        const vBot = vTop + rnd(2, 4);   // larger vrow = lower square
         if (vBot > 9) continue;
         const topSq = squareAt(col, vTop), botSq = squareAt(col, vBot);
         if (topSq === 100 || botSq === 1 || topSq === 1 || botSq === 100) continue;
-        if (used.has(topSq) || used.has(botSq)) continue;
-        used.add(topSq); used.add(botSq);
+        // reserve EVERY cell the chute passes through, so ladders and tunnels
+        // never share a box. A chute is clear only if all its cells are free.
+        const span = [];
+        for (let v = vTop; v <= vBot; v++) span.push(squareAt(col, v));
+        if (span.some((s) => used.has(s))) continue;
+        span.forEach((s) => used.add(s));
         if (isLadder) ladders[botSq] = topSq; else snakes[topSq] = botSq;
         placed++;
       }
@@ -427,107 +431,121 @@
     overlaySvg.innerHTML = "";
     overlaySvg.appendChild(buildDefs());
     Object.keys(B.ladders).forEach((foot) =>
-      drawLadder(centerPx(+foot, bw, bh), centerPx(B.ladders[foot], bw, bh), unit));
+      drawLadder(centerPx(+foot, bw, bh), centerPx(B.ladders[foot], bw, bh), unit, +foot));
     Object.keys(B.snakes).forEach((head) =>
-      drawSnake(centerPx(+head, bw, bh), centerPx(B.snakes[head], bw, bh), unit));
+      drawTunnel(centerPx(+head, bw, bh), centerPx(B.snakes[head], bw, bh), unit, +head));
   }
 
   function buildDefs() {
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML =
-      `<linearGradient id="snakeGrad" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="#6fb6ff"/><stop offset="0.5" stop-color="#3b86f0"/><stop offset="1" stop-color="#2461c8"/>` +
+      // ladder rail: solid 3D green, shaded across its width like a cylinder
+      `<linearGradient id="ladderRail" x1="0" y1="0" x2="1" y2="0">` +
+        `<stop offset="0" stop-color="#176233"/><stop offset="0.42" stop-color="#5fd083"/>` +
+        `<stop offset="0.58" stop-color="#54c679"/><stop offset="1" stop-color="#176233"/>` +
       `</linearGradient>` +
-      `<linearGradient id="woodGrad" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="#d79b56"/><stop offset="1" stop-color="#a9692f"/>` +
+      // ladder rung: rounded green bar
+      `<linearGradient id="ladderRung" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="#6ad592"/><stop offset="1" stop-color="#2f9e54"/>` +
       `</linearGradient>` +
+      // tunnel pipe: glossy teal-steel cylinder
+      `<linearGradient id="portalPipe" x1="0" y1="0" x2="1" y2="0">` +
+        `<stop offset="0" stop-color="#123846"/><stop offset="0.5" stop-color="#3f8aa6"/><stop offset="1" stop-color="#123846"/>` +
+      `</linearGradient>` +
+      // the dark mouth of the tunnel, deep in the middle, lit at the rim
+      `<radialGradient id="portalGrad" cx="0.5" cy="0.42" r="0.62">` +
+        `<stop offset="0" stop-color="#05080c"/><stop offset="0.5" stop-color="#0f2230"/>` +
+        `<stop offset="0.82" stop-color="#1f5066"/><stop offset="1" stop-color="#3f8aa6"/>` +
+      `</radialGradient>` +
+      // soft glow around the mouth
+      `<radialGradient id="portalGlow" cx="0.5" cy="0.5" r="0.5">` +
+        `<stop offset="0" stop-color="#86e6ff" stop-opacity="0.85"/><stop offset="1" stop-color="#86e6ff" stop-opacity="0"/>` +
+      `</radialGradient>` +
       `<filter id="soft" x="-40%" y="-40%" width="180%" height="180%">` +
         `<feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#10233f" flood-opacity="0.28"/>` +
       `</filter>`;
     return defs;
   }
 
-  function svgEl(name, attrs) {
+  // create an SVG element with attrs and append it to a parent (svg by default)
+  function mk(name, attrs, parent) {
     const e = document.createElementNS(NS, name);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
-    overlaySvg.appendChild(e);
+    (parent || overlaySvg).appendChild(e);
     return e;
   }
 
-  // A straight, uniform-width blue snake: a vertical bar of constant width with
-  // a sharp triangle head (two eyes, a forked Y tongue) and a rounded tail. No
-  // curves, no taper. One continuous shape. Drawn in pixel space, slim and 3D.
-  function drawSnake(head, tail, unit) {
+  // A TUNNEL that drops you back: a glossy vertical pipe from the lit mouth
+  // (head, the higher square) down to an exit (tail), with a beveled rim, a deep
+  // dark opening, a soft glow, and downward chevrons. Straight and vertical.
+  // The whole shape lives in a <g.tunnel> so it can be found and animated; the
+  // mouth sits in <g.tunnel-mouth> so it can swell when it swallows a player.
+  function drawTunnel(head, tail, unit, headSq) {
     const dx = tail.x - head.x, dy = tail.y - head.y;
     const len = Math.hypot(dx, dy) || 1;
-    const ux = dx / len, uy = dy / len;     // head -> tail
-    const px = -uy, py = ux;                  // perpendicular (across the body)
-    const fx = -ux, fy = -uy;                 // forward (the head looks outward)
-    const W = unit * 0.15;                     // uniform half-width
+    const ux = dx / len, uy = dy / len;     // head (top) -> tail (bottom)
+    const px = -uy, py = ux;                  // across the pipe
+    const W = unit * 0.15;                     // pipe half-width
+    const g = mk("g", { class: "tunnel", "data-head": headSq });
 
+    // pipe body, rounded at the exit
     const hL = { x: head.x + px * W, y: head.y + py * W };
     const hR = { x: head.x - px * W, y: head.y - py * W };
     const tL = { x: tail.x + px * W, y: tail.y + py * W };
     const tR = { x: tail.x - px * W, y: tail.y - py * W };
-    const snout = { x: head.x + fx * unit * 0.3, y: head.y + fy * unit * 0.3 };
-    const tailTip = { x: tail.x + ux * W * 1.15, y: tail.y + uy * W * 1.15 };
+    const tip = { x: tail.x + ux * W, y: tail.y + uy * W };
+    mk("path", {
+      d: `M ${hL.x} ${hL.y} L ${tL.x} ${tL.y} Q ${tip.x} ${tip.y} ${tR.x} ${tR.y} L ${hR.x} ${hR.y} Z`,
+      fill: "url(#portalPipe)", stroke: "#0e2d3c", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)",
+    }, g);
+    // glossy highlight running down one side of the pipe
+    mk("path", { d: `M ${head.x + px * W * 0.45} ${head.y + py * W * 0.45} L ${tail.x + px * W * 0.45} ${tail.y + py * W * 0.45}`, fill: "none", stroke: "#cdf2ff", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.35" }, g);
 
-    // one shape: triangle head (snout, hL, hR) + uniform body + rounded tail
-    const d = `M ${snout.x} ${snout.y} L ${hL.x} ${hL.y} L ${tL.x} ${tL.y} ` +
-              `Q ${tailTip.x} ${tailTip.y} ${tR.x} ${tR.y} L ${hR.x} ${hR.y} Z`;
-    svgEl("path", { d, fill: "url(#snakeGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.02), "stroke-linejoin": "round", filter: "url(#soft)" });
-
-    // belly highlight straight down the centre
-    svgEl("path", { d: `M ${head.x} ${head.y} L ${tail.x} ${tail.y}`, fill: "none", stroke: "#dcefff", "stroke-width": Math.max(0.3, unit * 0.03), "stroke-linecap": "round", opacity: "0.5" });
-
-    // a few scale bands across the body
-    const segs = Math.max(2, Math.round(len / (unit * 0.5)));
-    for (let i = 1; i < segs; i++) {
-      const t = i / segs, cx = head.x + dx * t, cy = head.y + dy * t;
-      svgEl("line", { x1: cx + px * W * 0.8, y1: cy + py * W * 0.8, x2: cx - px * W * 0.8, y2: cy - py * W * 0.8, stroke: "#2461c8", "stroke-width": Math.max(0.25, unit * 0.012), opacity: "0.4" });
+    // downward chevrons (it takes you back)
+    const arrows = Math.max(1, Math.round(len / (unit * 0.9)));
+    for (let i = 1; i <= arrows; i++) {
+      const t = i / (arrows + 1), cx = head.x + dx * t, cy = head.y + dy * t;
+      const aw = W * 0.5, ah = W * 0.42;
+      mk("path", {
+        d: `M ${cx + px * aw - ux * ah} ${cy + py * aw - uy * ah} L ${cx + ux * ah} ${cy + uy * ah} L ${cx - px * aw - ux * ah} ${cy - py * aw - uy * ah}`,
+        fill: "none", stroke: "#e3f7ff", "stroke-width": Math.max(0.3, unit * 0.022), "stroke-linecap": "round", "stroke-linejoin": "round", opacity: "0.7",
+      }, g);
     }
 
-    // two eyes on the head
-    [-1, 1].forEach((s) => {
-      const ex = head.x + fx * unit * 0.06 + px * W * 0.55 * s;
-      const ey = head.y + fy * unit * 0.06 + py * W * 0.55 * s;
-      svgEl("circle", { cx: ex, cy: ey, r: unit * 0.038, fill: "#ffffff", stroke: "#1747a8", "stroke-width": Math.max(0.2, unit * 0.009) });
-      svgEl("circle", { cx: ex + fx * unit * 0.012, cy: ey + fy * unit * 0.012, r: unit * 0.019, fill: "#0c1830" });
-    });
+    // exit opening at the bottom
+    mk("ellipse", { cx: tail.x, cy: tail.y, rx: W * 0.72, ry: W * 0.4, fill: "#06141d", opacity: "0.88" }, g);
 
-    // forked Y tongue from the snout
-    const mid = { x: snout.x + fx * unit * 0.12, y: snout.y + fy * unit * 0.12 };
-    const fork = unit * 0.06;
-    svgEl("path", {
-      d: `M ${snout.x} ${snout.y} L ${mid.x} ${mid.y} ` +
-         `M ${mid.x} ${mid.y} L ${mid.x + px * fork + fx * unit * 0.035} ${mid.y + py * fork + fy * unit * 0.035} ` +
-         `M ${mid.x} ${mid.y} L ${mid.x - px * fork + fx * unit * 0.035} ${mid.y - py * fork + fy * unit * 0.035}`,
-      stroke: "#e23b5a", "stroke-width": Math.max(0.4, unit * 0.022), fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round",
-    });
+    // the lit mouth at the top, in its own group so it can swell on a swallow
+    const m = mk("g", { class: "tunnel-mouth" }, g);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.85, ry: W * 1.12, fill: "url(#portalGlow)", opacity: "0.75" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.5, ry: W * 0.92, fill: "#d2ecf4", stroke: "#5f93a6", "stroke-width": Math.max(0.4, unit * 0.016), filter: "url(#soft)" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 1.18, ry: W * 0.7, fill: "#5b8497" }, m);
+    mk("ellipse", { cx: head.x, cy: head.y, rx: W * 0.95, ry: W * 0.56, fill: "url(#portalGrad)" }, m);
+    // a crescent glint on the rim
+    mk("path", { d: `M ${head.x - W * 0.72} ${head.y - W * 0.06} A ${W * 0.85} ${W * 0.48} 0 0 1 ${head.x + W * 0.45} ${head.y - W * 0.44}`, fill: "none", stroke: "#f0ffff", "stroke-width": Math.max(0.3, unit * 0.014), "stroke-linecap": "round", opacity: "0.6" }, m);
   }
 
-  function drawLadder(foot, top, unit) {
+  function drawLadder(foot, top, unit, footSq) {
     const dx = top.x - foot.x, dy = top.y - foot.y;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len;
-    const w = unit * 0.18;
-    const line = (x1, y1, x2, y2, cls, sw) => {
-      const p = document.createElementNS(NS, "line");
-      p.setAttribute("x1", x1); p.setAttribute("y1", y1); p.setAttribute("x2", x2); p.setAttribute("y2", y2);
-      p.setAttribute("class", cls); p.setAttribute("stroke-width", sw);
-      overlaySvg.appendChild(p);
-    };
-    const railW = Math.max(1.0, unit * 0.085), edgeW = railW * 1.8;
+    const w = unit * 0.17;
+    const g = mk("g", { class: "ladder", "data-foot": footSq });
+    const line = (x1, y1, x2, y2, cls, sw) =>
+      mk("line", { x1, y1, x2, y2, class: cls, "stroke-width": sw, "stroke-linecap": "round" }, g);
+    const railW = Math.max(1.0, unit * 0.08), edgeW = railW * 1.7;
+    // dark green underside, nudged down a touch for a 3D lift
     [-1, 1].forEach((s) => {
-      line(foot.x + nx * w * s, foot.y + ny * w * s, top.x + nx * w * s, top.y + ny * w * s, "ladder-edge", edgeW);
+      line(foot.x + nx * w * s, foot.y + ny * w * s + unit * 0.022, top.x + nx * w * s, top.y + ny * w * s + unit * 0.022, "ladder-edge", edgeW);
     });
+    // solid 3D green rails
     [-1, 1].forEach((s) => {
       line(foot.x + nx * w * s, foot.y + ny * w * s, top.x + nx * w * s, top.y + ny * w * s, "ladder-rail", railW);
     });
-    const rungs = Math.max(3, Math.round(len / (unit * 0.62)));
+    const rungs = Math.max(3, Math.round(len / (unit * 0.6)));
     for (let i = 1; i < rungs; i++) {
       const t = i / rungs, cx = foot.x + dx * t, cy = foot.y + dy * t;
-      line(cx + nx * w, cy + ny * w, cx - nx * w, cy - ny * w, "ladder-rung", railW * 0.85);
+      line(cx + nx * w, cy + ny * w, cx - nx * w, cy - ny * w, "ladder-rung", railW * 0.82);
     }
   }
 
@@ -789,16 +807,16 @@
       if (S.settings.music) CG.Audio.sfx.ladder();
       toast(`${p.name} climbs to ${B.ladders[n]}`, "good");
       if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
-      await slide(p, B.ladders[n], "up");
+      await slide(p, B.ladders[n], "up", n);
     } else if (B.snakes[n]) {
       const card = weightedDraw(CG.SNAKE_CARDS, tags);
       const q = applyQuintet(p, card.tag, -1);
       await showCard(p, card, "snake", B.snakes[n], q);
       if (S.settings.music) CG.Audio.sfx.snake();
-      toast(`${p.name} slides to ${B.snakes[n]}`, "bad");
+      toast(`${p.name} drops down to ${B.snakes[n]}`, "bad");
       if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
-      await slide(p, B.snakes[n], "down");
+      await slide(p, B.snakes[n], "down", n);
     } else if (B.trophies.includes(n)) {
       const card = fillCard(S.decks.trophy(), p);
       p.trophies++;
@@ -846,10 +864,13 @@
     if (depth < 2) await resolveLanding(p, depth + 1);
   }
 
-  async function slide(p, to, kind) {
+  async function slide(p, to, kind, fromSq) {
     const i = S.players.indexOf(p);
     const t = $("#tok" + i);
     if (t) t.classList.add("sliding");
+    // give the chute some life as it is used
+    if (kind === "up") animateLadder(fromSq);
+    else animateTunnel(fromSq);
     p.pos = to;
     moveTokenTo(i, to);
     burst(to, kind, kind === "up" ? 18 : 14);
@@ -859,11 +880,51 @@
     renderTokens();
   }
 
+  // shake the ladder being climbed
+  function animateLadder(footSq) {
+    if (!overlaySvg || footSq == null) return;
+    const g = overlaySvg.querySelector(`.ladder[data-foot="${footSq}"]`);
+    if (!g) return;
+    g.classList.remove("shake");
+    void g.getBBox();           // force a reflow so the animation can replay
+    g.classList.add("shake");
+    setTimeout(() => g.classList.remove("shake"), 700);
+  }
+
+  // swell the tunnel mouth as it swallows a player
+  function animateTunnel(headSq) {
+    if (!overlaySvg || headSq == null) return;
+    const m = overlaySvg.querySelector(`.tunnel[data-head="${headSq}"] .tunnel-mouth`);
+    if (!m) return;
+    m.classList.remove("swallow");
+    void m.getBBox();
+    m.classList.add("swallow");
+    setTimeout(() => m.classList.remove("swallow"), 760);
+  }
+
   // =======================================================================
   // CARD OVERLAYS
   // =======================================================================
-  const CONT = { ladder: "Climb ▸", snake: "Slide ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
-  const BAND = { ladder: "A LADDER", snake: "A SNAKE", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
+  const CONT = { ladder: "Climb ▸", snake: "Down you go ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
+  const BAND = { ladder: "A LADDER", snake: "A TUNNEL", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
+
+  // Read a card aloud and, for an AI player, dismiss it only once the voice has
+  // finished, so we never advance to the next card or player mid-sentence. With
+  // narration off (or unsupported) we fall back to a fixed reading pause. A
+  // safety cap guards against a voice that never reports it ended.
+  function narrateCard(p, spoken, over, done, fallbackMs) {
+    const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
+    if (!p.isAI) { CG.Narrate.auto(spoken); return; } // human paces with the button
+    let advanced = false;
+    const advance = () => { if (!advanced) { advanced = true; if (over.parentNode) done(); } };
+    if (voiced) {
+      CG.Narrate.auto(spoken, { onend: () => setTimeout(advance, 650) });
+      setTimeout(advance, 16000); // safety: never freeze on a stuck voice
+    } else {
+      CG.Narrate.auto(spoken);
+      setTimeout(advance, fallbackMs);
+    }
+  }
 
   function showCard(p, card, kind, dest, q) {
     return new Promise((resolve) => {
@@ -871,7 +932,7 @@
         ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.`
         : "";
       const text = `${card.why} ${card.fact}`;
-      CG.Narrate.auto(`${card.title}. ${text}${quintSpoken}`);
+      const spoken = `${card.title}. ${text}${quintSpoken}`;
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${kind}`);
       const moveHtml = dest != null
@@ -903,13 +964,13 @@
       over.appendChild(c);
       app().appendChild(over);
       requestAnimationFrame(() => over.classList.add("show"));
-      if (p.isAI) setTimeout(() => { if (over.parentNode) done(); }, 3300);
+      narrateCard(p, spoken, over, done, 3300);
     });
   }
 
   function showNote(p, note) {
     return new Promise((resolve) => {
-      CG.Narrate.auto(`Field note. ${note}`);
+      const spoken = `Field note. ${note}`;
       const over = el("div", "overlay-card");
       const c = el("div", "event-card note");
       c.innerHTML =

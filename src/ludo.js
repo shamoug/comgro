@@ -87,7 +87,7 @@
   }
 
   // ---- state -------------------------------------------------------------
-  const S = { players: [], current: 0, busy: false, over: false, pending: null, specials: {}, settings: { music: true, voice: true } };
+  const S = { players: [], current: 0, busy: false, over: false, pending: null, specials: {}, settings: { music: true, voice: true, diceCount: 1 } };
   let boardBox = null, resizeObs = null;
 
   // =======================================================================
@@ -110,6 +110,20 @@
     wrap.appendChild(el("p", "subtitle", "Four teams, one race"));
     wrap.appendChild(el("p", "tagline",
       "Roll a six to deploy a team from base. Race all four teams around the board and home to the centre, and bump rivals back to base along the way. First to bring everyone home wins."));
+
+    wrap.appendChild(el("p", "pick-label", "Dice"));
+    const diceRow = el("div", "seg-row");
+    [{ n: 1, label: "🎲 One die" }, { n: 2, label: "🎲🎲 Two dice" }].forEach((opt) => {
+      const b = el("button", "seg" + (S.settings.diceCount === opt.n ? " on" : ""), opt.label);
+      b.onclick = () => {
+        S.settings.diceCount = opt.n;
+        diceRow.querySelectorAll(".seg").forEach((x) => x.classList.remove("on"));
+        b.classList.add("on");
+        if (CG.Audio) CG.Audio.sfx.click();
+      };
+      diceRow.appendChild(b);
+    });
+    wrap.appendChild(diceRow);
 
     const toggles = el("div", "toggle-row");
     toggles.appendChild(toggle("🎵 Music", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
@@ -231,7 +245,9 @@
     wrap.appendChild(stage);
 
     const dock = el("div", "dice-dock"); dock.id = "ldock";
-    dock.innerHTML = `<div class="turn-tag" id="lturn">Your move</div><div class="dice"><div class="die" id="ldie">${pips(1)}</div></div>`;
+    let diceHtml = "";
+    for (let i = 0; i < S.settings.diceCount; i++) diceHtml += `<div class="die" id="ldie${i}">${pips(1)}</div>`;
+    dock.innerHTML = `<div class="turn-tag" id="lturn">Your move</div><div class="dice">${diceHtml}</div>`;
     const btn = el("button", "btn btn-roll", "🎲 Roll"); btn.id = "lroll"; btn.onclick = onRoll;
     dock.appendChild(btn);
     wrap.appendChild(dock);
@@ -370,11 +386,13 @@
 
   function scheduleAI() { if (S.over) return; setTurn(); setTimeout(() => { if (!S.over && S.players[S.current].isAI && !S.busy) onRoll(); }, 800); }
 
-  function legalMoves(p, die) {
+  // With one die, a 6 deploys from base; with two, a 6 on either die deploys and
+  // tokens advance by the sum. `step` is how far a board token moves.
+  function legalMoves(p, step, canDeploy) {
     const out = [];
     p.tokens.forEach((t, i) => {
-      if (t.p < 0) { if (die === 6) out.push(i); }
-      else if (t.p < 61 && t.p + die <= 61) out.push(i);
+      if (t.p < 0) { if (canDeploy) out.push(i); }
+      else if (t.p < 61 && t.p + step <= 61) out.push(i);
     });
     return out;
   }
@@ -383,11 +401,18 @@
     if (S.busy || S.over || S.pending) return;
     S.busy = true; const btn = $("#lroll"); if (btn) btn.disabled = true;
     const p = S.players[S.current];
-    const die = 1 + rnd(6);
+    const rolls = [];
+    for (let i = 0; i < S.settings.diceCount; i++) rolls.push(1 + rnd(6));
     if (S.settings.music) CG.Audio.sfx.dice();
-    await animateDie(die);
-    toast(`${p.name} rolls ${die}`, "roll");
-    const moves = legalMoves(p, die);
+    await animateDice(rolls);
+    const step = rolls.reduce((a, b) => a + b, 0);
+    const two = rolls.length === 2;
+    const canDeploy = two ? rolls.indexOf(6) >= 0 : rolls[0] === 6;
+    const doubles = two && rolls[0] === rolls[1];
+    const again = two ? doubles : rolls[0] === 6;   // who gets another roll
+    const rollText = two ? `${rolls.join(" + ")} = ${step}` : String(step);
+    toast(`${p.name} rolls ${rollText}${doubles ? " · doubles" : ""}`, "roll");
+    const moves = legalMoves(p, step, canDeploy);
     if (moves.length === 0) {
       await sleep(450);
       S.busy = false;
@@ -395,13 +420,13 @@
       return;
     }
     if (p.isAI) {
-      const ti = aiPick(p, die, moves);
-      await resolveMove(p, ti, die);
+      const ti = aiPick(p, step, canDeploy, moves);
+      await resolveMove(p, ti, step, again);
     } else if (moves.length === 1) {
-      await resolveMove(p, moves[0], die);
+      await resolveMove(p, moves[0], step, again);
     } else {
       // let the human choose which team to move
-      S.pending = { die, moves };
+      S.pending = { step, again, moves };
       setTurn("Tap a team to move");
       renderTokens();
     }
@@ -409,19 +434,19 @@
 
   async function playMove(ti) {
     if (!S.pending) return;
-    const die = S.pending.die; const p = S.players[S.current];
+    const { step, again } = S.pending; const p = S.players[S.current];
     if (S.pending.moves.indexOf(ti) < 0) return;
     S.pending = null;
-    await resolveMove(p, ti, die);
+    await resolveMove(p, ti, step, again);
   }
 
-  async function resolveMove(p, ti, die) {
-    const captured = await doMove(p, ti, die);
+  async function resolveMove(p, ti, step, again) {
+    const captured = await doMove(p, ti, step);
     const special = await resolveSpecial(p, ti, 0);
     renderStandings();
     if (allHome(p)) return finish(p);
     S.busy = false;
-    endTurn(die === 6 || captured || special.extra);
+    endTurn(again || captured || special.extra);
   }
 
   // a token that ENDS its move on a hazard or bonus cell triggers it. Setbacks
