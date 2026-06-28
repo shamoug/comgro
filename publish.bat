@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  The Mandate, three refinements. (1) Setbacks can now send a
+REM              player back more than one square: the worst crises step back 2
+REM              or 3 (Convoy Attacked -3, Visas Denied / Storm / Port -2). (2)
+REM              The UN 2.0 Quintet of Change is now visible when a movement
+REM              touches it: event and resource cards show a "strengthened / set
+REM              back" block, decision options show a capability chip, a toast
+REM              names it, and its chip in the standings panel pulses. Bad events
+REM              now set a capability back instead of building it. (3) Identity
+REM              banner on every card in BOTH games now shows the affiliation as
+REM              a clean org/agency badge (short name, e.g. UN RCO) beside the
+REM              player name and title. content.js v12 (CG.affShort + bigger
+REM              setbacks), mandate.js v6, game.js v16, styles.css v16.
 REM  2026-06-28  Every in-play card in BOTH games now carries an identity
 REM              banner at the top, showing whose turn it is: the player's
 REM              name, job title and affiliation, tinted in their token colour.

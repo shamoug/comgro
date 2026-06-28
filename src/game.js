@@ -178,8 +178,9 @@
         `<span class="ec-who-ic">${p.role.icon}</span>` +
         `<span class="ec-who-id">` +
           `<b>${esc(p.name)}</b>` +
-          `<small>${esc(p.role.name)} · ${esc(p.role.aff)}</small>` +
+          `<small>${esc(p.role.name)}</small>` +
         `</span>` +
+        `<span class="ec-who-aff" title="${esc(p.role.aff)}">${esc(CG.affShort(p.role.aff))}</span>` +
       `</div>`;
   }
 
