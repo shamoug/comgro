@@ -27,6 +27,11 @@
     if (html != null) e.innerHTML = html;
     return e;
   }
+  // Player names are typed by humans now, so escape them before innerHTML.
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
   function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -62,24 +67,37 @@
     return { x: (c.col + 0.5) * (bw / 10), y: (c.vrow + 0.5) * (bh / 10) };
   }
 
+  // square number at a visual (col, vrow); inverse of cell()
+  function squareAt(col, vrow) {
+    const row = 9 - vrow;
+    const idx = row % 2 === 0 ? col : 9 - col;
+    return row * 10 + idx + 1;
+  }
+
   // ---- dynamic board: a fresh, valid layout every game ------------------
+  // Ladders and snakes run STRAIGHT UP A COLUMN (no diagonals). A vertical line
+  // in a column always connects a lower square (more vrow) to a higher one.
   function generateBoard() {
     const used = new Set([1, 100]);
     const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
     const ladders = {}, snakes = {};
-    let g;
-    g = 0;
-    while (Object.keys(ladders).length < 6 && g++ < 900) {
-      const foot = rnd(2, 90), top = foot + rnd(8, 45);
-      if (top > 99 || used.has(foot) || used.has(top)) continue;
-      used.add(foot); used.add(top); ladders[foot] = top;
+    function placeVertical(isLadder, target) {
+      let placed = 0, g = 0;
+      while (placed < target && g++ < 500) {
+        const col = rnd(0, 9);
+        const vTop = rnd(0, 6);          // smaller vrow = higher square
+        const vBot = vTop + rnd(2, 5);   // larger vrow = lower square
+        if (vBot > 9) continue;
+        const topSq = squareAt(col, vTop), botSq = squareAt(col, vBot);
+        if (topSq === 100 || botSq === 1 || topSq === 1 || botSq === 100) continue;
+        if (used.has(topSq) || used.has(botSq)) continue;
+        used.add(topSq); used.add(botSq);
+        if (isLadder) ladders[botSq] = topSq; else snakes[topSq] = botSq;
+        placed++;
+      }
     }
-    g = 0;
-    while (Object.keys(snakes).length < 6 && g++ < 900) {
-      const head = rnd(14, 99), tail = head - rnd(8, 45);
-      if (tail < 2 || used.has(head) || used.has(tail)) continue;
-      used.add(head); used.add(tail); snakes[head] = tail;
-    }
+    placeVertical(true, 6);
+    placeVertical(false, 6);
     const take = (n) => {
       const out = []; let gg = 0;
       while (out.length < n && gg++ < 700) {
@@ -107,6 +125,23 @@
     while (pick === lastDrawn.get(cards) && tries++ < 5) pick = pool[Math.floor(Math.random() * pool.length)];
     lastDrawn.set(cards, pick);
     return pick;
+  }
+
+  // ---- the UN 2.0 Quintet of Change -------------------------------------
+  // Every player carries the five capabilities. Ladders strengthen one, snakes
+  // set one back (never below zero). The capability touched is inferred from
+  // the card's tag, so the nudge fits the event.
+  function newQuintet() {
+    const q = {};
+    CG.QUINTET.forEach((c) => (q[c.key] = 0));
+    return q;
+  }
+  function applyQuintet(p, tag, dir) {
+    const key = CG.quintetForTag(tag);
+    const meta = CG.quintetMeta(key);
+    const level = Math.max(0, (p.quintet[key] || 0) + dir);
+    p.quintet[key] = level;
+    return { key, meta, dir, level };
   }
 
   // Fill {role} / {theatre} placeholders for the player who landed here.
@@ -163,16 +198,6 @@
     wrap.appendChild(el("p", "tagline",
       "A field-coordination Snakes &amp; Ladders for a UN Country Team. Roll the dice, ride the lucky breaks, survive the crises, collect trophies and diamonds, and race a hundred squares to a finished mandate."));
 
-    wrap.appendChild(el("p", "pick-label", "Choose your table"));
-    const modes = el("div", "mode-row");
-    [1, 2, 3].forEach((n) => {
-      const b = el("button", "btn btn-primary",
-        `<span class="mode-n">You + ${n}</span><span class="mode-sub">${n === 1 ? "rival" : "rivals"}</span>`);
-      b.onclick = () => beginDeal(n + 1);
-      modes.appendChild(b);
-    });
-    wrap.appendChild(modes);
-
     wrap.appendChild(el("p", "pick-label", "Dice"));
     const diceRow = el("div", "seg-row");
     [{ n: 1, label: "🎲 One die" }, { n: 2, label: "🎲🎲 Two dice" }].forEach((opt) => {
@@ -192,6 +217,11 @@
     toggles.appendChild(toggle("🗣️ Narration", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); }));
     wrap.appendChild(toggles);
 
+    const go = el("button", "btn btn-primary big", "Build your table ▸");
+    go.style.marginTop = "22px";
+    go.onclick = () => { CG.Audio.sfx.click(); openSetup(); };
+    wrap.appendChild(go);
+
     wrap.appendChild(el("p", "credit",
       "Music and narration are generated live in your browser. No downloads, no accounts. Headphones recommended."));
     wrap.appendChild(el("p", "byline", "Designed by <b>Digital Solutions Lab</b>"));
@@ -209,30 +239,42 @@
     return b;
   }
 
+  // ---- the table: choose Human or AI for every seat ---------------------
+  function openSetup() {
+    CG.Setup.open({
+      icon: "◆",
+      title: "The Long Road",
+      subtitle: "Set the table",
+      intro: "Choose who takes each seat. Pick Human and name yourself; pick AI and a rival coordinator joins the field. Two to four play.",
+      seatColors: COLORS,
+      minSeats: 2, maxSeats: 4, defaultSeats: 2,
+      startLabel: "Deal the postings ▸",
+      onBack: () => renderTitle(),
+      onStart: (roster) => beginDeal(roster),
+    });
+  }
+
   // ---- the deal ----------------------------------------------------------
-  function beginDeal(numPlayers) {
+  function beginDeal(roster) {
     if (S.settings.music) CG.Audio.start();
     CG.Narrate.setEnabled(S.settings.voice);
 
-    // fresh, surprising every game: random theatre, board layout, names, roles
+    // fresh, surprising every game: random theatre, board layout, roles
     S.theatre = CG.THEATRES[Math.floor(Math.random() * CG.THEATRES.length)];
     S.board = generateBoard();
     const roles = shuffle(CG.ROLES);
-    const names = shuffle(CG.AGENT_NAMES);
-    S.players = [];
-    for (let i = 0; i < numPlayers; i++) {
-      S.players.push({
-        name: i === 0 ? "You" : names[i - 1] + " Mission",
-        isAI: i !== 0,
-        role: roles[i],
-        pos: 1,
-        color: COLORS[i % COLORS.length],
-        trophies: 0,
-        diamonds: 0,
-        bonusRoll: false,
-        skipNext: false,
-      });
-    }
+    S.players = roster.map((seat, i) => ({
+      name: seat.name,
+      isAI: seat.isAI,
+      role: roles[i % roles.length],
+      pos: 1,
+      color: COLORS[i % COLORS.length],
+      trophies: 0,
+      diamonds: 0,
+      quintet: newQuintet(),
+      bonusRoll: false,
+      skipNext: false,
+    }));
     S.current = 0; S.over = false; S.zoneSpoken = -1;
     renderDeal();
   }
@@ -405,10 +447,6 @@
     return defs;
   }
 
-  function bez(p0, p1, p2, p3, t) {
-    const m = 1 - t, a = m * m * m, b = 3 * m * m * t, c = 3 * m * t * t, d = t * t * t;
-    return { x: a * p0.x + b * p1.x + c * p2.x + d * p3.x, y: a * p0.y + b * p1.y + c * p2.y + d * p3.y };
-  }
   function svgEl(name, attrs) {
     const e = document.createElementNS(NS, name);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -416,81 +454,56 @@
     return e;
   }
 
-  // An abstract blue snake: ONE continuous shape. The head is a sharp triangle
-  // that flows straight out of the body, no separate oval and no seam, with two
-  // eyes and a forked Y tongue. Drawn in pixel space, slim and 3D.
+  // A straight, uniform-width blue snake: a vertical bar of constant width with
+  // a sharp triangle head (two eyes, a forked Y tongue) and a rounded tail. No
+  // curves, no taper. One continuous shape. Drawn in pixel space, slim and 3D.
   function drawSnake(head, tail, unit) {
     const dx = tail.x - head.x, dy = tail.y - head.y;
     const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len, ny = dx / len;
-    const bow = Math.min(unit * 1.5, len * 0.26);
-    const c1 = { x: head.x + dx * 0.32 + nx * bow, y: head.y + dy * 0.32 + ny * bow };
-    const c2 = { x: head.x + dx * 0.70 - nx * bow, y: head.y + dy * 0.70 - ny * bow };
+    const ux = dx / len, uy = dy / len;     // head -> tail
+    const px = -uy, py = ux;                  // perpendicular (across the body)
+    const fx = -ux, fy = -uy;                 // forward (the head looks outward)
+    const W = unit * 0.15;                     // uniform half-width
 
-    // body edges, sampled from the head centre to the tail
-    const N = 36, left = [], right = [], mids = [];
-    const wHead = unit * 0.13, wTail = unit * 0.028;   // half-widths
-    for (let i = 0; i <= N; i++) {
-      const t = i / N;
-      const p = bez(head, c1, c2, tail, t);
-      const pn = bez(head, c1, c2, tail, Math.min(1, t + 0.01));
-      const tx = pn.x - p.x, ty = pn.y - p.y, tl = Math.hypot(tx, ty) || 1;
-      const ox = -ty / tl, oy = tx / tl;
-      const w = wHead + (wTail - wHead) * Math.pow(t, 0.8);
-      left.push({ x: p.x + ox * w, y: p.y + oy * w });
-      right.push({ x: p.x - ox * w, y: p.y - oy * w });
-      mids.push({ p, ox, oy, w });
+    const hL = { x: head.x + px * W, y: head.y + py * W };
+    const hR = { x: head.x - px * W, y: head.y - py * W };
+    const tL = { x: tail.x + px * W, y: tail.y + py * W };
+    const tR = { x: tail.x - px * W, y: tail.y - py * W };
+    const snout = { x: head.x + fx * unit * 0.3, y: head.y + fy * unit * 0.3 };
+    const tailTip = { x: tail.x + ux * W * 1.15, y: tail.y + uy * W * 1.15 };
+
+    // one shape: triangle head (snout, hL, hR) + uniform body + rounded tail
+    const d = `M ${snout.x} ${snout.y} L ${hL.x} ${hL.y} L ${tL.x} ${tL.y} ` +
+              `Q ${tailTip.x} ${tailTip.y} ${tR.x} ${tR.y} L ${hR.x} ${hR.y} Z`;
+    svgEl("path", { d, fill: "url(#snakeGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.02), "stroke-linejoin": "round", filter: "url(#soft)" });
+
+    // belly highlight straight down the centre
+    svgEl("path", { d: `M ${head.x} ${head.y} L ${tail.x} ${tail.y}`, fill: "none", stroke: "#dcefff", "stroke-width": Math.max(0.3, unit * 0.03), "stroke-linecap": "round", opacity: "0.5" });
+
+    // a few scale bands across the body
+    const segs = Math.max(2, Math.round(len / (unit * 0.5)));
+    for (let i = 1; i < segs; i++) {
+      const t = i / segs, cx = head.x + dx * t, cy = head.y + dy * t;
+      svgEl("line", { x1: cx + px * W * 0.8, y1: cy + py * W * 0.8, x2: cx - px * W * 0.8, y2: cy - py * W * 0.8, stroke: "#2461c8", "stroke-width": Math.max(0.25, unit * 0.012), opacity: "0.4" });
     }
 
-    // forward direction the head points (opposite the body's start tangent)
-    const tgx = c1.x - head.x, tgy = c1.y - head.y, tgl = Math.hypot(tgx, tgy) || 1;
-    const fx = -tgx / tgl, fy = -tgy / tgl;            // forward (face)
-    const sxn = -fy, syn = fx;                          // side (perp to forward)
-    const snout = { x: head.x + fx * unit * 0.34, y: head.y + fy * unit * 0.34 };
-    const tcl = Math.hypot(tail.x - c2.x, tail.y - c2.y) || 1;
-    const tailTip = { x: tail.x + (tail.x - c2.x) / tcl * unit * 0.05, y: tail.y + (tail.y - c2.y) / tcl * unit * 0.05 };
-
-    // one continuous outline: sharp snout, down the left edge, around the tail
-    // tip, back up the right edge to the snout. The triangle head IS the body.
-    let d = `M ${snout.x} ${snout.y}`;
-    for (let i = 0; i <= N; i++) d += ` L ${left[i].x} ${left[i].y}`;
-    d += ` L ${tailTip.x} ${tailTip.y}`;
-    for (let i = N; i >= 0; i--) d += ` L ${right[i].x} ${right[i].y}`;
-    d += ` L ${snout.x} ${snout.y} Z`;
-    svgEl("path", { d, fill: "url(#snakeGrad)", stroke: "#1747a8", "stroke-width": Math.max(0.4, unit * 0.018), "stroke-linejoin": "round", filter: "url(#soft)" });
-
-    // thin belly highlight down the spine
-    const bd = `M ${head.x} ${head.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${tail.x} ${tail.y}`;
-    svgEl("path", { d: bd, fill: "none", stroke: "#dcefff", "stroke-width": Math.max(0.3, unit * 0.02), "stroke-linecap": "round", opacity: "0.45" });
-
-    // faint scale bands
-    for (let i = 5; i < N - 3; i += 4) {
-      const m = mids[i];
-      svgEl("line", {
-        x1: m.p.x + m.ox * m.w * 0.85, y1: m.p.y + m.oy * m.w * 0.85,
-        x2: m.p.x - m.ox * m.w * 0.85, y2: m.p.y - m.oy * m.w * 0.85,
-        stroke: "#2461c8", "stroke-width": Math.max(0.25, unit * 0.012), opacity: "0.4",
-      });
-    }
-
-    // two eyes on the triangular head
+    // two eyes on the head
     [-1, 1].forEach((s) => {
-      const ex = head.x + fx * unit * 0.07 + sxn * unit * 0.06 * s;
-      const ey = head.y + fy * unit * 0.07 + syn * unit * 0.06 * s;
-      svgEl("circle", { cx: ex, cy: ey, r: unit * 0.04, fill: "#ffffff", stroke: "#1747a8", "stroke-width": Math.max(0.2, unit * 0.009) });
-      svgEl("circle", { cx: ex + fx * unit * 0.012, cy: ey + fy * unit * 0.012, r: unit * 0.02, fill: "#0c1830" });
+      const ex = head.x + fx * unit * 0.06 + px * W * 0.55 * s;
+      const ey = head.y + fy * unit * 0.06 + py * W * 0.55 * s;
+      svgEl("circle", { cx: ex, cy: ey, r: unit * 0.038, fill: "#ffffff", stroke: "#1747a8", "stroke-width": Math.max(0.2, unit * 0.009) });
+      svgEl("circle", { cx: ex + fx * unit * 0.012, cy: ey + fy * unit * 0.012, r: unit * 0.019, fill: "#0c1830" });
     });
 
-    // forked Y tongue from the snout tip
-    const mid = { x: snout.x + fx * unit * 0.13, y: snout.y + fy * unit * 0.13 };
-    const fork = unit * 0.07;
+    // forked Y tongue from the snout
+    const mid = { x: snout.x + fx * unit * 0.12, y: snout.y + fy * unit * 0.12 };
+    const fork = unit * 0.06;
     svgEl("path", {
       d: `M ${snout.x} ${snout.y} L ${mid.x} ${mid.y} ` +
-         `M ${mid.x} ${mid.y} L ${mid.x + sxn * fork + fx * unit * 0.04} ${mid.y + syn * fork + fy * unit * 0.04} ` +
-         `M ${mid.x} ${mid.y} L ${mid.x - sxn * fork + fx * unit * 0.04} ${mid.y - syn * fork + fy * unit * 0.04}`,
+         `M ${mid.x} ${mid.y} L ${mid.x + px * fork + fx * unit * 0.035} ${mid.y + py * fork + fy * unit * 0.035} ` +
+         `M ${mid.x} ${mid.y} L ${mid.x - px * fork + fx * unit * 0.035} ${mid.y - py * fork + fy * unit * 0.035}`,
       stroke: "#e23b5a", "stroke-width": Math.max(0.4, unit * 0.022), fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round",
     });
-    void nx; void ny;
   }
 
   function drawLadder(foot, top, unit) {
@@ -536,6 +549,35 @@
         `<span class="spos">${p.pos}</span>`;
       box.appendChild(card);
     });
+    // Show the Quintet meter for the player in focus: the one whose turn it is
+    // (so it follows hotseat humans), or the first human otherwise.
+    const focus = quintetFocus();
+    if (focus && focus.quintet) box.appendChild(quintPanel(focus));
+  }
+
+  function quintetFocus() {
+    const cur = S.players[S.current];
+    if (cur && !cur.isAI) return cur;
+    return S.players.find((p) => !p.isAI) || S.players[0];
+  }
+
+  // A player's UN 2.0 Quintet of Change, shown casually as a meter.
+  function quintPanel(p) {
+    const panel = el("div", "quint-panel");
+    let chips = "";
+    CG.QUINTET.forEach((q) => {
+      const lvl = p.quintet[q.key] || 0;
+      chips +=
+        `<span class="qchip${lvl > 0 ? " on" : ""}" title="${q.name}: ${q.blurb}">` +
+          `<span class="q-ic">${q.icon}</span><span class="q-lv">${lvl}</span>` +
+        `</span>`;
+    });
+    const multipleHumans = S.players.filter((x) => !x.isAI).length > 1;
+    const label = multipleHumans ? `${esc(p.name)} · Quintet of Change` : "UN 2.0 Quintet of Change";
+    panel.innerHTML =
+      `<div class="quint-label">${label}</div>` +
+      `<div class="quint-row">${chips}</div>`;
+    return panel;
   }
 
   function pips(v) {
@@ -742,15 +784,19 @@
     const n = p.pos;
     if (B.ladders[n]) {
       const card = weightedDraw(CG.LADDER_CARDS, tags);
-      await showCard(p, card, "ladder", B.ladders[n]);
+      const q = applyQuintet(p, card.tag, +1);
+      await showCard(p, card, "ladder", B.ladders[n], q);
       if (S.settings.music) CG.Audio.sfx.ladder();
       toast(`${p.name} climbs to ${B.ladders[n]}`, "good");
+      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await slide(p, B.ladders[n], "up");
     } else if (B.snakes[n]) {
       const card = weightedDraw(CG.SNAKE_CARDS, tags);
-      await showCard(p, card, "snake", B.snakes[n]);
+      const q = applyQuintet(p, card.tag, -1);
+      await showCard(p, card, "snake", B.snakes[n], q);
       if (S.settings.music) CG.Audio.sfx.snake();
       toast(`${p.name} slides to ${B.snakes[n]}`, "bad");
+      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
       await slide(p, B.snakes[n], "down");
     } else if (B.trophies.includes(n)) {
@@ -819,21 +865,33 @@
   const CONT = { ladder: "Climb ▸", snake: "Slide ▾", trophy: "Collect ▸", diamond: "Grab it ▸", surprise: "Open it ▸" };
   const BAND = { ladder: "A LADDER", snake: "A SNAKE", trophy: "A TROPHY", diamond: "A DIAMOND", surprise: "A SURPRISE" };
 
-  function showCard(p, card, kind, dest) {
+  function showCard(p, card, kind, dest, q) {
     return new Promise((resolve) => {
+      const quintSpoken = q
+        ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.`
+        : "";
       const text = `${card.why} ${card.fact}`;
-      CG.Narrate.auto(`${card.title}. ${text}`);
+      CG.Narrate.auto(`${card.title}. ${text}${quintSpoken}`);
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${kind}`);
       const moveHtml = dest != null
         ? `<div class="ec-move">${p.pos} ${kind === "ladder" ? "▲" : "▼"} ${dest}</div>` : "";
+      const quintHtml = q
+        ? `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}">` +
+            `<span class="eq-ic">${q.meta.icon}</span>` +
+            `<span class="eq-txt"><b>${q.meta.name}</b> ${q.dir > 0 ? "strengthened" : "set back"}` +
+            `<small>UN 2.0 Quintet of Change</small></span>` +
+            `<span class="eq-delta">${q.dir > 0 ? "+1" : "−1"}</span>` +
+          `</div>`
+        : "";
       c.innerHTML =
         `<div class="ec-band">${BAND[kind] || ""}</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${card.title}</div>` +
         moveHtml +
         `<div class="ec-why">${card.why}</div>` +
-        `<div class="ec-fact"><span>Fun fact</span>${card.fact}</div>`;
+        `<div class="ec-fact"><span>Fun fact</span>${card.fact}</div>` +
+        quintHtml;
       const actions = el("div", "ec-actions");
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
       speak.onclick = () => CG.Narrate.speak(`${card.title}. ${text}`);
@@ -884,21 +942,26 @@
     if (!winner.isAI) confetti();
 
     const youWon = !winner.isAI;
-    let line = youWon ? CG.STORY.winVsAI : CG.STORY.loseVsAI;
-    const you = S.players[0];
+    // Recap the winner's run, whoever they are (works for hotseat humans too).
+    let line = youWon
+      ? (winner.name === "You" ? CG.STORY.winVsAI
+          : `${winner.name} reaches the end of the road first, leaving the country a little stronger, a little fairer, and quite able to do without them. Mandate complete.`)
+      : CG.STORY.loseVsAI;
     const loot = [];
-    if (you.trophies) loot.push(`${you.trophies} ${you.trophies > 1 ? "trophies" : "trophy"}`);
-    if (you.diamonds) loot.push(`${you.diamonds} ${you.diamonds > 1 ? "diamonds" : "diamond"}`);
-    if (loot.length) line += ` Along the way you gathered ${loot.join(" and ")}.`;
+    if (winner.trophies) loot.push(`${winner.trophies} ${winner.trophies > 1 ? "trophies" : "trophy"}`);
+    if (winner.diamonds) loot.push(`${winner.diamonds} ${winner.diamonds > 1 ? "diamonds" : "diamond"}`);
+    if (loot.length) line += ` Along the way ${youWon && winner.name === "You" ? "you" : winner.name} gathered ${loot.join(" and ")}.`;
+    const built = CG.QUINTET.filter((q) => (winner.quintet[q.key] || 0) > 0).map((q) => q.name);
+    if (built.length) line += ` Strongest capabilities of the UN 2.0 Quintet: ${built.join(", ")}.`;
     CG.Narrate.auto(line);
 
     const over = el("div", "overlay-card show");
     const c = el("div", "event-card win");
     c.innerHTML =
-      `<div class="ec-band">${youWon ? "VICTORY" : "THE RIVAL FINISHES FIRST"}</div>` +
+      `<div class="ec-band">${youWon ? "MANDATE COMPLETE" : "THE RIVAL FINISHES FIRST"}</div>` +
       `<div class="ec-icon">${youWon ? "🏆" : "🏳️"}</div>` +
-      `<div class="ec-title">${youWon ? "Mandate Complete" : winner.name + " gets there first"}</div>` +
-      `<div class="ec-why">${line}</div>`;
+      `<div class="ec-title">${youWon ? esc(winner.name) + " completes the mandate" : esc(winner.name) + " gets there first"}</div>` +
+      `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
     const again = el("button", "btn btn-primary", "Run the road again ▸");
     again.onclick = () => { over.remove(); CG.Narrate.stop(); renderTitle(); };

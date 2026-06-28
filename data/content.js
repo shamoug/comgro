@@ -30,6 +30,38 @@
   ];
 
   /* ----------------------------------------------------------------------
+   * THE UN 2.0 QUINTET OF CHANGE,  five capabilities every team carries.
+   * They travel with you all game: ladders (momentum) strengthen one, snakes
+   * (setbacks) set one back. Shown casually as you go, in both games.
+   * -------------------------------------------------------------------- */
+  CG.QUINTET = [
+    { key: "data",       icon: "📊", name: "Data",                blurb: "Decisions grounded in evidence." },
+    { key: "innovation", icon: "💡", name: "Innovation",          blurb: "Bold ideas, tested then scaled." },
+    { key: "digital",    icon: "📲", name: "Digital",             blurb: "Services that reach everyone, everywhere." },
+    { key: "foresight",  icon: "🔭", name: "Strategic Foresight", blurb: "Reading the next shock before it lands." },
+    { key: "behaviour",  icon: "🧠", name: "Behavioural Science", blurb: "Designing for how people really decide." },
+  ];
+
+  // Which capability a card touches, inferred from its tag. Anything unmapped
+  // (or tagged "any") picks a capability at random, so every event nudges one.
+  CG.QUINTET_BY_TAG = {
+    data: "data", governance: "data", displacement: "data",
+    digital: "digital", supply: "digital",
+    health: "innovation", funding: "innovation", access: "innovation",
+    climate: "foresight", storm: "foresight", flood: "foresight", drought: "foresight",
+    info: "behaviour", community: "behaviour", youth: "behaviour",
+  };
+
+  CG.quintetForTag = function (tag) {
+    if (tag && CG.QUINTET_BY_TAG[tag]) return CG.QUINTET_BY_TAG[tag];
+    return CG.QUINTET[Math.floor(Math.random() * CG.QUINTET.length)].key;
+  };
+  CG.quintetMeta = function (key) {
+    for (let i = 0; i < CG.QUINTET.length; i++) if (CG.QUINTET[i].key === key) return CG.QUINTET[i];
+    return CG.QUINTET[0];
+  };
+
+  /* ----------------------------------------------------------------------
    * JOB TITLES,  drawn once per player at setup (your avatar this game).
    * -------------------------------------------------------------------- */
   CG.ROLES = [
@@ -165,7 +197,7 @@
   CG.TROPHY_CARDS = [
     { icon: "🏆", title: "{role} of the Year", why: "Your work as {role} in {theatre} is held up across the system as how it should be done.", fact: "Recognition is fuel. Shared credit is what makes a team want to do it all again." },
     { icon: "🏅", title: "A Standing Ovation", why: "At the General Assembly, the progress in {theatre} earns the team a rare round of applause.", fact: "The best legacy carries no single logo, only a result everyone helped build." },
-    { icon: "🎖️", title: "Shortlisted for a UN 2.0 Award", why: "Your initiative as {role} is up for an award, and morale across the team soars.", fact: "Innovation that scales beats innovation that dazzles. Evidence wins the prize." },
+    { icon: "🎖️", title: "Featured on the National Front Page", why: "Your initiative as {role} leads the morning news, and morale across the team soars.", fact: "Innovation that scales beats innovation that dazzles. Evidence earns the spotlight." },
     { icon: "⭐", title: "A Model for the Region", why: "Neighbouring teams ask to copy how {theatre} was handled, the sincerest compliment.", fact: "When others borrow your approach, the idea has outgrown you. That is the goal." },
     { icon: "🌟", title: "Praised by the Community", why: "The people you serve in {theatre} single out your team's work, the recognition that matters most.", fact: "The verdict that counts is not in a report. It is on the doorstep." },
   ];
@@ -201,7 +233,7 @@
    * -------------------------------------------------------------------- */
   CG.STORY = {
     opening:
-      "You step off the plane into the heat. The framework is signed, the team is half-formed, and a hundred partners are watching to see who you are. The road to a finished mandate runs a hundred squares long, past every setback and every open door. Roll, and begin.",
+      "You step off the plane into the heat. The framework is signed, the team is half-formed, and a hundred partners are watching to see who you are. Five capabilities travel with you, the UN 2.0 Quintet of Change: Data, Innovation, Digital, Strategic Foresight, and Behavioural Science. Ladders strengthen them, snakes set them back. The road to a finished mandate runs a hundred squares long. Roll, and begin.",
     // Spoken when a player crosses into a new zone of the board (every 25).
     zones: [
       "Arrival. Map the needs, and earn the first yes.",
