@@ -133,6 +133,39 @@
   CG.affShort = function (aff) { return CG.AFF_SHORT[aff] || aff; };
 
   /* ----------------------------------------------------------------------
+   * ROLE DOMAIN TAGS,  inferred from a job title and its affiliation so every
+   * player's journey is biased toward the cards that fit their real work. The
+   * vocabulary is the same one the decks and the theatres use. Future roles
+   * need no edit here: the keywords below cover the field, and anything that
+   * matches nothing simply draws across the whole deck. A role customised
+   * journey is the rule for every game, now and in future.
+   * -------------------------------------------------------------------- */
+  CG.ROLE_TAG_RULES = [
+    { re: /wash|water|cholera|sanitation/,                                          tags: ["health", "supply"] },
+    { re: /health|epidemi|nutrition|medical|clinic|disease|mhpss|psychosocial/,     tags: ["health"] },
+    { re: /cash|market|fund|donor|pooled|financ|grant|budget/,                      tags: ["funding"] },
+    { re: /logistic|telecom|supply|warehouse|fleet|pipeline/,                       tags: ["supply"] },
+    { re: /protection|gbv|child|psea|human right|case ?work|registration|gender/,   tags: ["governance", "community"] },
+    { re: /data|information manage|\bgis\b|monitor|evaluation|report|assessment|needs|scientist|statist/, tags: ["data"] },
+    { re: /displace|camp|shelter|refugee|durable|return|migration|nfi|\biom\b/,     tags: ["displacement"] },
+    { re: /access|negotiat|civil-military|cmcoord|security|undss|liaison|mine|unmas/, tags: ["access"] },
+    { re: /communit|\bngo\b|youth|\baap\b|localiz|mobilis|mobiliz|civil society|volunteer|education|school|learning|disabilit|inclusion/, tags: ["community", "youth"] },
+    { re: /climate|disaster risk|anticipatory|resilience|early recovery|\bdrr\b|undrr/, tags: ["climate", "foresight"] },
+    { re: /communicat|media|spokes|rumour/,                                         tags: ["info", "behaviour"] },
+    { re: /digital|connectivity|innovation|behaviour|foresight/,                    tags: ["digital", "foresight", "behaviour"] },
+    { re: /coordinat|resident|humanitarian|cluster|ocha|government|ndma|partnership/, tags: ["governance"] },
+  ];
+  CG.roleTags = function (role) {
+    if (!role) return [];
+    const hay = ((role.name || "") + " " + (role.aff || "")).toLowerCase();
+    const out = [];
+    CG.ROLE_TAG_RULES.forEach(function (r) {
+      if (r.re.test(hay)) r.tags.forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); });
+    });
+    return out;
+  };
+
+  /* ----------------------------------------------------------------------
    * JOB TITLES,  drawn once per player at setup (your avatar this game).
    * The real roles around a country team: UN, NGO, government, donor, community.
    * -------------------------------------------------------------------- */

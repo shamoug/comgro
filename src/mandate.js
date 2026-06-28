@@ -54,13 +54,20 @@
   }
   const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
-  // weighted, theatre-aware draw that avoids repeating the last card
+  // Draw a card customised to the player: weight it up if its tag matches the
+  // player's job title and affiliation (role tags) or the scenario they were
+  // posted to (theatre tags). So every card a player draws relates to them.
   const lastDrawn = new WeakMap();
-  function weightedDraw(cards, tags) {
+  function weightedDraw(cards, p) {
+    const roleTags = (p && p.tags) || [];
+    const theatreTags = (S.theatre && S.theatre.tags) || [];
     const pool = [];
     cards.forEach((c) => {
-      const match = c.tag && c.tag !== "any" && tags && tags.indexOf(c.tag) >= 0;
-      const w = match ? 3 : 1;
+      let w = 1;
+      if (c.tag && c.tag !== "any") {
+        if (roleTags.indexOf(c.tag) >= 0) w += 3;       // job title / affiliation
+        if (theatreTags.indexOf(c.tag) >= 0) w += 1;    // scenario
+      }
       for (let i = 0; i < w; i++) pool.push(c);
     });
     let pick = pool[Math.floor(Math.random() * pool.length)], tries = 0;
@@ -116,8 +123,9 @@
   }
 
   function fillCard(card, p) {
-    const role = p.role.name, theatre = (S.theatre && S.theatre.name) || "";
-    const sub = (s) => String(s).replace(/\{role\}/g, role).replace(/\{theatre\}/g, theatre);
+    const role = p.role.name, aff = CG.affShort(p.role.aff), theatre = (S.theatre && S.theatre.name) || "";
+    const sub = (s) => String(s == null ? "" : s)
+      .replace(/\{role\}/g, role).replace(/\{aff\}/g, aff).replace(/\{theatre\}/g, theatre);
     return Object.assign({}, card, { title: sub(card.title), why: sub(card.why), fact: sub(card.fact) });
   }
 
@@ -173,10 +181,9 @@
 
   function ensureDecks() {
     if (decksReady) return;
-    S.decks.shortcut = null;  // shortcuts/traps use weightedDraw on the live decks
-    S.decks.trophy = makeDeck(CG.TROPHY_CARDS);
-    S.decks.diamond = makeDeck(CG.DIAMOND_CARDS);
-    S.decks.surprise = makeDeck(CG.SURPRISE_CARDS);
+    // Field notes are plain wisdom strings (no tag), so they cycle as a deck.
+    // Every other deck is drawn per player via weightedDraw, customised to
+    // their job title, affiliation and scenario.
     S.decks.note = makeDeck(CG.FIELD_NOTES);
     decksReady = true;
   }
@@ -419,6 +426,7 @@
         name: seat.name,
         isAI: seat.isAI,
         role: roles[i % roles.length],
+        tags: CG.roleTags(roles[i % roles.length]),  // job-title/affiliation domains, to customise this player's cards
         entry: side,
         cell: { r: side.cell.r, c: side.cell.c },
         prev: null,
@@ -964,9 +972,8 @@
   async function resolveLanding(p) {
     const sp = specialAt(p.cell);
     if (!sp) return;
-    const tags = (S.theatre && S.theatre.tags) || [];
     if (sp.kind === "shortcut") {
-      const card = weightedDraw(CG.LADDER_CARDS, tags);
+      const card = fillCard(weightedDraw(CG.LADDER_CARDS, p), p);
       const q = applyQuintet(p, card.tag, +1);
       await showCard(p, card, "shortcut", q);
       if (S.settings.music) CG.Audio.sfx.ladder();
@@ -974,7 +981,7 @@
       if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await warpTo(p, sp.to, "up");
     } else if (sp.kind === "trap") {
-      const card = weightedDraw(CG.SNAKE_CARDS, tags);
+      const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
       const q = applyQuintet(p, card.tag, -1);
       await showCard(p, card, "trap", q);
       if (S.settings.music) CG.Audio.sfx.snake();
@@ -983,14 +990,14 @@
       shake();
       await warpTo(p, sp.to, "down");
     } else if (sp.kind === "trophy") {
-      const card = fillCard(S.decks.trophy(), p);
+      const card = fillCard(weightedDraw(CG.TROPHY_CARDS, p), p);
       p.trophies++; award(p, 5); p.bonusRoll = true;
       await showCard(p, card, "trophy", null);
       if (S.settings.music) CG.Audio.sfx.note();
       burst(p.cell, "up", 18);
       toast(`${p.name} collects a trophy 🏆`, "good");
     } else if (sp.kind === "diamond") {
-      const card = S.decks.diamond();
+      const card = fillCard(weightedDraw(CG.DIAMOND_CARDS, p), p);
       p.diamonds++; award(p, 4);
       await showCard(p, card, "diamond", null);
       if (S.settings.music) CG.Audio.sfx.note();
@@ -998,7 +1005,7 @@
       toast(`${p.name} finds a diamond 💎`, "good");
       await hopToward(p, 3);
     } else if (sp.kind === "surprise") {
-      const card = S.decks.surprise();
+      const card = fillCard(weightedDraw(CG.SURPRISE_CARDS, p), p);
       await showCard(p, card, "surprise", null);
       await applySurprise(p, card);
     } else if (sp.kind === "note") {
