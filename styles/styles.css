@@ -1,7 +1,7 @@
 /* =========================================================================
  * COMMON GROUND, THE LONG ROAD,  styles.css
  * One self-contained stylesheet. Light, bright, professional board-game feel.
- * The board fills the screen (rectangular cells). Board, dice, snakes, ladders
+ * The board fills the screen (rectangular cells). Board, dice, holes, ladders
  * and particles are all CSS/SVG, no external images. Floating overlays sit on
  * top of the board so it can use the whole viewport.
  * ========================================================================= */
@@ -241,6 +241,9 @@ button { font-family: inherit; cursor: pointer; }
 .qchip.on { background: rgba(47,158,84,.14); border-color: rgba(47,158,84,.4); }
 .qchip.on .q-ic { filter: none; opacity: 1; }
 .qchip.on .q-lv { color: #1e6e3a; }
+.qchip.neg { background: rgba(229,86,75,.14); border-color: rgba(229,86,75,.4); }
+.qchip.neg .q-ic { filter: none; opacity: 1; }
+.qchip.neg .q-lv { color: #c0392b; }
 
 /* board fills the screen */
 .board-stage { position: absolute; inset: 0; padding: 56px 16px calc(116px + env(safe-area-inset-bottom)); display: flex; }
@@ -272,9 +275,11 @@ button { font-family: inherit; cursor: pointer; }
 
 /* tunnels & ladders (most styling is inline px; classes carry colours) */
 .overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.ladder-edge { stroke: #123a6b; stroke-linecap: round; }
-.ladder-rail { stroke: url(#ladderRail); stroke-linecap: round; }
-.ladder-rung { stroke: url(#ladderRung); stroke-linecap: round; }
+/* light-blue ladders: solid strokes (gradients degenerate on the horizontal
+ * rungs, whose bounding box has zero height, so they would not paint) */
+.ladder-edge { stroke: #5b97dd; stroke-linecap: round; }
+.ladder-rail { stroke: #8fc0f5; stroke-linecap: round; }
+.ladder-rung { stroke: #4f93e6; stroke-linecap: round; }
 
 /* a ladder wobbles as it is climbed */
 .ladder.shake { animation: ladderWobble .6s ease; transform-box: fill-box; transform-origin: center bottom; }
@@ -416,6 +421,17 @@ button { font-family: inherit; cursor: pointer; }
 .ec-quint .eq-delta { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 18px; }
 .ec-quint.up .eq-delta { color: #1e6e3a; }
 .ec-quint.down .eq-delta { color: #b73a30; }
+/* final standings: the finishing order, shown when the LAST player is home */
+.final-list { display: flex; flex-direction: column; gap: 7px; margin: 4px 0 16px; text-align: left; }
+.final-row { display: flex; align-items: center; gap: 10px; padding: 9px 13px; border-radius: 12px; background: #f4f8ff; border: 1px solid var(--line); }
+.final-row:first-child { background: rgba(240,180,41,.14); border-color: rgba(240,180,41,.4); }
+.final-medal { font-size: 20px; width: 26px; text-align: center; flex: none; font-family: "Space Grotesk", sans-serif; font-weight: 800; }
+.final-name { font-weight: 800; font-size: 15px; }
+.final-role { font-size: 12.5px; color: var(--muted); }
+.final-loot { margin-left: auto; font-size: 13px; white-space: nowrap; }
+/* a player who has already reached the end sits dimmed in the standings */
+.scard.done { opacity: .72; }
+.scard.done .spos { font-size: 17px; }
 .ec-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
 
 /* ---- responsive ------------------------------------------------------- */
@@ -542,6 +558,7 @@ button { font-family: inherit; cursor: pointer; }
   border: 2px solid #fff; box-shadow: 0 3px 8px rgba(20,40,70,.45), 0 0 0 1.5px var(--tok);
   transition: left .16s linear, top .16s linear; z-index: 9;
 }
+.ltoken .ltok-face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); pointer-events: none; }
 .ltoken.done { opacity: .8; }
 .ltoken.movable { cursor: pointer; animation: bob 1s ease-in-out infinite; box-shadow: 0 0 0 3px rgba(255,255,255,.7), 0 0 14px -1px currentColor, 0 3px 8px rgba(20,40,70,.5); z-index: 11; }
 .ludo-screen .board-stage { display: flex; align-items: center; justify-content: center; }

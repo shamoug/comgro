@@ -1,11 +1,11 @@
 /* =========================================================================
  * COMMON GROUND, THE LONG ROAD,  content.js
  * All game content in one place: the shuffleable decks (job titles, crisis
- * theatres, snake cards, ladder cards), the field-note fun facts, and the
+ * theatres, hole cards, ladder cards), the field-note fun facts, and the
  * trophy / diamond / surprise decks. Designers edit ONLY this file to change
  * the story; the engine (game.js / ludo.js) never hard-codes any flavour text.
  *
- * A "snake" is a setback (a crisis): you slide DOWN, and the card tells you
+ * A "hole" is a setback (a crisis): you drop DOWN, and the card tells you
  * why, with a real coordination fact. A "ladder" is momentum (funding, an
  * agreement, an opening): you climb UP, and the card tells you why.
  *
@@ -21,7 +21,7 @@
 
   /* ----------------------------------------------------------------------
    * THE BOARD is generated FRESH every game (see generateBoard in game.js), so
-   * the ladders, snakes, trophies, diamonds and surprises move every time you
+   * the ladders, holes, trophies, diamonds and surprises move every time you
    * play. Nothing about the layout is hard-coded here.
    * ----------------------------------------------------------------------
    * AGENT NAMES,  a diverse international pool for the AI rivals (and offered
@@ -39,7 +39,7 @@
 
   /* ----------------------------------------------------------------------
    * THE UN 2.0 QUINTET OF CHANGE,  five capabilities every team carries.
-   * They travel with you all game: ladders (momentum) strengthen one, snakes
+   * They travel with you all game: ladders (momentum) strengthen one, holes
    * (setbacks) set one back. Shown casually as you go, in both games.
    * -------------------------------------------------------------------- */
   CG.QUINTET = [
@@ -123,7 +123,7 @@
   ];
 
   /* ----------------------------------------------------------------------
-   * SNAKE CARDS,  a shuffled deck. Drawn when you land on a snake head.
+   * HOLE CARDS,  a shuffled deck (CG.SNAKE_CARDS). Drawn when you land on a hole.
    * Real setbacks a UN Country Team and its partners run into in the field.
    * why: spoken reason you slide back.   fact: a real coordination truth.
    * -------------------------------------------------------------------- */
@@ -342,7 +342,7 @@
    * -------------------------------------------------------------------- */
   CG.STORY = {
     opening:
-      "You step off the plane into the heat. The Cooperation Framework is signed, the team is half-formed, and a hundred partners are watching to see who you are. Five capabilities travel with you, the UN 2.0 Quintet of Change: Data, Innovation, Digital, Strategic Foresight, and Behavioural Science. Ladders strengthen them, snakes set them back. The road to a finished mandate runs a hundred squares long. Roll, and begin.",
+      "You step off the plane into the heat. The Cooperation Framework is signed, the team is half-formed, and a hundred partners are watching to see who you are. Five capabilities travel with you, the UN 2.0 Quintet of Change: Data, Innovation, Digital, Strategic Foresight, and Behavioural Science. Ladders strengthen them, holes set them back. The road to a finished mandate runs a hundred squares long. Roll, and begin.",
     // Spoken when a player crosses into a new zone of the board (every 25).
     zones: [
       "Arrival. Map the needs, stand up the coordination, and earn the first yes.",

@@ -9,13 +9,13 @@ and an original cinematic score generated live.
 
 Roll one or two dice, race a hundred squares to a finished mandate, and learn a
 little about how real crisis response works along the way. **The board is
-generated fresh every game**, so the ladders, snakes, trophies and diamonds move
+generated fresh every game**, so the ladders, holes, trophies and diamonds move
 each time, and the **job titles, rival names and crisis theatre are different
 every run**. The challenges and openings you draw are weighted to fit the theatre
 you are posted to.
 
 - **Ladders** are the lucky breaks: agreements, partnerships, community trust.
-- **Snakes** are crises a Country Team really meets: floods, outbreaks, a closed
+- **Holes** are crises a Country Team really meets: floods, outbreaks, a closed
   border, misinformation. A card explains every climb and slide, with a fun fact.
 - **Trophies 🏆** are recognition (tailored to your job title): collect and roll again.
 - **Diamonds 💎** are a lucky find: collect one and hop forward.
@@ -46,7 +46,7 @@ external media. Drop it on GitHub Pages and it just runs.
 3. Press **Roll**. You move the sum of your dice.
    - With two dice, **doubles** earn you another roll.
    - Overshoot square 100 and you **bounce back**, exact landing wins.
-4. Land on a ladder foot to climb, a snake head to slide, or a star to read a
+4. Land on a ladder foot to climb, a hole to drop, or a star to read a
    field note. The narrator reads each card aloud in a warm voice.
 5. First to **square 100** completes the mandate.
 
@@ -98,7 +98,7 @@ src/platform.js     The launcher that lets you choose a game.
 styles/styles.css   One self-contained stylesheet (boards, dice, cards are CSS/SVG).
 ```
 
-**To change the story, edit only `data/content.js`.** Add or rewrite snake cards,
+**To change the story, edit only `data/content.js`.** Add or rewrite hole cards,
 ladder cards, job titles, theatres, and field notes; move the ladders and holes
 on the board; adjust the spoken story beats. The engine never hard-codes flavour
 text.
