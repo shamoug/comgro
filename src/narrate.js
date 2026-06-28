@@ -59,10 +59,15 @@
   }
 
   // Speak now, regardless of toggle (used by explicit "read aloud" buttons).
+  // opts.onend fires once when the voice finishes (or errors / can't speak),
+  // so callers can wait for the line to finish before moving on.
   N.speak = function (text, opts) {
-    if (!supported) return;
+    const onend = opts && opts.onend;
+    let fired = false;
+    const fire = () => { if (!fired) { fired = true; if (onend) onend(); } };
+    if (!supported) { fire(); return; }
     const t = clean(text);
-    if (!t) return;
+    if (!t) { fire(); return; }
     try {
       window.speechSynthesis.cancel();
       if (!chosen) loadVoices();
@@ -72,10 +77,17 @@
       u.rate = (opts && opts.rate) || 0.96; // a touch slower, warmer
       u.pitch = (opts && opts.pitch) || 1.0;
       u.volume = 1.0;
+      u.onend = fire;
+      u.onerror = fire;
       window.speechSynthesis.speak(u);
-    } catch (e) { /* ignore */ }
+    } catch (e) { fire(); }
   };
 
   // Speak only when narration is enabled (story beats, card reveals).
-  N.auto = function (text, opts) { if (enabled) N.speak(text, opts); };
+  // When narration is off, the line is silent but onend still fires so any
+  // waiting caller proceeds immediately.
+  N.auto = function (text, opts) {
+    if (enabled) N.speak(text, opts);
+    else if (opts && opts.onend) opts.onend();
+  };
 })();

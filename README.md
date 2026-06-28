@@ -1,8 +1,9 @@
 # Common Ground: The Game Room
 
-A small game platform for a UN Country Team, with two games and AI rivals. Open
-it and pick how you want to play. Everything runs in the browser, with spoken
-narration and an original cinematic score generated live.
+A small game platform for a UN Country Team, with two games. Each seat at the
+table can be a human (you name them) or an AI rival (named for you). Open it and
+pick how you want to play. Everything runs in the browser, with spoken narration
+and an original cinematic score generated live.
 
 ## The Long Road, Snakes &amp; Ladders
 
@@ -36,8 +37,10 @@ external media. Drop it on GitHub Pages and it just runs.
 
 ## How to play
 
-1. Pick your table: **You + 1, 2, or 3 rivals**. Every rival is AI, so you always
-   have company on the board. Choose **one die or two dice** for the pace you want.
+1. Build your table: choose **2 to 4 players**, and for each seat pick **Human or
+   AI**. Human seats type a name; AI seats are given a random one (with a die to
+   reroll). Mix freely: solo against AI, hotseat with friends, or all AI. For the
+   Long Road, also choose **one die or two dice** for the pace you want.
 2. The deal hands you a **Job Title** (your avatar this game) and posts you to a
    **Crisis Theatre** (the country).
 3. Press **Roll**. You move the sum of your dice.

@@ -270,11 +270,29 @@ button { font-family: inherit; cursor: pointer; }
 .sq-n { position: absolute; top: 3px; left: 5px; color: rgba(50,80,120,.42); font-weight: 700; font-size: clamp(8px, 1.4vw, 12px); }
 .sq-ic { position: absolute; bottom: 3px; right: 4px; font-size: clamp(11px, 2.2vw, 20px); filter: drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
 
-/* snakes & ladders (most styling is inline px; classes carry colours) */
+/* tunnels & ladders (most styling is inline px; classes carry colours) */
 .overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.ladder-edge { stroke: #6e431d; stroke-linecap: round; }
-.ladder-rail { stroke: url(#woodGrad); stroke-linecap: round; }
-.ladder-rung { stroke: #c98a4a; stroke-linecap: round; }
+.ladder-edge { stroke: #11532b; stroke-linecap: round; }
+.ladder-rail { stroke: url(#ladderRail); stroke-linecap: round; }
+.ladder-rung { stroke: url(#ladderRung); stroke-linecap: round; }
+
+/* a ladder wobbles as it is climbed */
+.ladder.shake { animation: ladderWobble .6s ease; transform-box: fill-box; transform-origin: center bottom; }
+@keyframes ladderWobble {
+  0%, 100% { transform: rotate(0deg); }
+  18% { transform: rotate(-2.6deg); }
+  38% { transform: rotate(2deg); }
+  58% { transform: rotate(-1.2deg); }
+  80% { transform: rotate(.6deg); }
+}
+/* a tunnel mouth swells as it swallows a player */
+.tunnel-mouth.swallow { animation: tunnelGulp .72s cubic-bezier(.3,.8,.3,1); transform-box: fill-box; transform-origin: center; }
+@keyframes tunnelGulp {
+  0% { transform: scale(1); }
+  32% { transform: scale(1.55); }
+  56% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
 
 /* particles */
 .fx { position: absolute; inset: 0; pointer-events: none; z-index: 8; overflow: hidden; }
