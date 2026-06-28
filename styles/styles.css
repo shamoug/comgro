@@ -126,17 +126,6 @@ button { font-family: inherit; cursor: pointer; }
 .byline { color: var(--muted); font-size: 13px; margin: 6px 0 0; letter-spacing: .04em; }
 .byline b { color: var(--blue); font-weight: 700; }
 
-/* The main Play button sits at the bottom of BOTH game title screens, at the
-   same vertical location, regardless of how much copy sits above it. It is
-   pinned to the viewport as a fixed footer button; the copy above scrolls. The
-   page reserves bottom space so the credit and byline clear the button.
-   Excludes the setup screen (which has its own flow). */
-.title-screen:not(.setup-screen) { padding-bottom: 92px; }
-.title-screen:not(.setup-screen) > .btn.big {
-  position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px;
-  z-index: 6; box-shadow: 0 10px 30px rgba(47,107,255,.35);
-}
-
 /* ---- setup screen: build your table (Human / AI per seat) ------------- */
 .setup-screen { justify-content: flex-start; padding-top: 6vh; }
 .seat-list { display: flex; flex-direction: column; gap: 10px; width: min(480px, 92vw); margin: 14px 0 4px; }
@@ -569,8 +558,11 @@ button { font-family: inherit; cursor: pointer; }
 .gc-icon { font-size: 38px; }
 .gc-title { font-family: "Fraunces", serif; font-size: 24px; font-weight: 700; }
 .gc-sub { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-.gc-desc { color: var(--muted); font-size: 14px; line-height: 1.55; margin-top: 8px; }
-.gc-play { margin-top: 14px; align-self: flex-start; background: linear-gradient(135deg, var(--blue), #1f56d6); color: #fff; padding: 9px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+.gc-desc { color: var(--muted); font-size: 14px; line-height: 1.55; margin-top: 8px; margin-bottom: 14px; }
+/* The cards stretch to equal height in the grid, so margin-top:auto pins the
+   Play button to the bottom of each card: both Play buttons land at the same
+   vertical location regardless of how long each description runs. */
+.gc-play { margin-top: auto; align-self: flex-start; background: linear-gradient(135deg, var(--blue), #1f56d6); color: #fff; padding: 9px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; }
 
 @media (max-width: 760px) {
   .game-card { width: 100%; max-width: 360px; }
