@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-28  Every in-play card in BOTH games now carries an identity
+REM              banner at the top, showing whose turn it is: the player's
+REM              name, job title and affiliation, tinted in their token colour.
+REM              Covers event, ladder/snake, resource, milestone, crossroads,
+REM              fork and field-note cards. game.js v15, mandate.js v5,
+REM              styles.css v15 (new .ec-who styles).
 REM  2026-06-28  The Mandate: livelier, longer road. Five rows / 35 stations
 REM              (was four / 28), TWO real forks instead of one, and a mix that
 REM              leans on crossroads, events and milestones so the journey stays
