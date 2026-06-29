@@ -8,6 +8,22 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  MULTIPLAYER ACROSS BROWSERS (Crisis Theatres lobby). The game now
+REM              opens on a login screen: name yourself, then see the live list of
+REM              Crisis Theatres other players have open on other browsers. Open
+REM              your own theatre (you take seat one, the rest start as AI), or
+REM              join one and take over an AI seat, forcing your own name onto it.
+REM              Several humans play the one board together: only the player whose
+REM              turn it is rolls, the host drives the AI seats, and everyone sees
+REM              each move in real time. A "Solo vs AI" path is kept. Games left
+REM              idle for over ten minutes are pruned from the lobby on login, and
+REM              a dropped player's seat is handed back to the AI so the road never
+REM              stalls. Shared state travels over a free, no-account public MQTT
+REM              broker (EMQX) using retained messages, loaded via mqtt.js; the
+REM              lobby/game data is public and best-effort (the no-account
+REM              tradeoff). NEW src/net.js, src/lobby.js; game.js v42 (online turn
+REM              engine), platform.js v12 (boots into the lobby), styles.css v27
+REM              (lobby + join styles), index.html adds mqtt.js + the new scripts.
 REM  2026-06-29  SURPRISE NEWS NOW MATCHES ITS MOOD. Fixed the surprise-card logic
 REM              so good news only ever helps and bad news only ever hurts. Good
 REM              news now sends you forward, up to the next ladder, or (rarely) to

@@ -31,13 +31,17 @@
   <!-- DATA: all flavour text, board layout, and decks -->
   <script src="data/content.js?v=20"></script>
 
+  <!-- Multiplayer transport: mqtt.js over secure WebSockets to a public broker.
+       Loads online; if it is unavailable, the lobby falls back to solo play. -->
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+
   <!-- LOGIC + RENDER: audio, narration, networking, the game, the lobby,
        then the launcher. net.js loads before the game and lobby that use it. -->
   <script src="src/audio.js?v=7"></script>
   <script src="src/narrate.js?v=4"></script>
   <script src="src/setup.js?v=6"></script>
-  <script src="src/net.js?v=1"></script>
-  <script src="src/game.js?v=41"></script>
+  <script src="src/net.js?v=5"></script>
+  <script src="src/game.js?v=42"></script>
   <script src="src/lobby.js?v=1"></script>
   <script src="src/platform.js?v=12"></script>
 </body>

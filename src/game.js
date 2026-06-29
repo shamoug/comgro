@@ -846,13 +846,11 @@
     const btn = $("#rollBtn"); if (btn) btn.disabled = true;
 
     const p = S.players[S.current];
-    // Online: announce the move at once so the table sees who is acting and the
-    // host failover does not mistake a long turn for a dropped player.
-    if (S.net.online) {
-      S.net.acting = true;
-      lastProgressAt = CG.Net.now();
-      pushState(`${p.name} is on the move…`);
-    }
+    // Online: mark that we are mid-turn so an incoming snapshot does not
+    // interrupt the animation. We deliberately do NOT write here: the free store
+    // throttles writes, so we keep to one write per turn (the hand-off in
+    // endTurn). Tokens still snap on the observers' side when that lands.
+    if (S.net.online) { S.net.acting = true; lastProgressAt = CG.Net.now(); }
 
     // Exact-landing keeps its teeth: you finish ON square 100, never past it.
     // But no one rolls forever. Once a player has reached square 90, we count a
@@ -917,7 +915,7 @@
       if (S.settings.music) CG.Audio.sfx.doubles();
       toast(`${p.name} earns another roll`, "good");
       S.busy = false;
-      if (S.net.online) { lastProgressAt = CG.Net.now(); pushState(`${p.name} earns another roll (square ${p.pos})`); }
+      if (S.net.online) lastProgressAt = CG.Net.now();  // stay acting; no extra write
       setTurnTag();
       if (p.isAI) scheduleAI();
       return;
@@ -1566,7 +1564,7 @@
     if (!cur || cur.isAI) { lastProgressAt = CG.Net.now(); return; }
     if ((game.seq || 0) !== (S.net.seq || 0)) { lastProgressAt = CG.Net.now(); return; }
     if (!lastProgressAt) lastProgressAt = CG.Net.now();
-    if (CG.Net.now() - lastProgressAt > 45000) {
+    if (CG.Net.now() - lastProgressAt > 60000) {
       lastProgressAt = CG.Net.now();
       S.players[game.current].isAI = true;
       S.players[game.current].ownerId = null;

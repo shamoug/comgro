@@ -15,9 +15,13 @@
     return e;
   }
 
+  // Boot into the multiplayer lobby (name yourself, see the open Crisis
+  // Theatres, join one). The lobby offers a "Solo vs AI" path into the classic
+  // single-browser game. If the lobby module is missing, fall back to solo.
   function show() {
     if (CG.Narrate) CG.Narrate.stop();
-    if (CG.SnakesGame) CG.SnakesGame.show();
+    if (CG.Lobby) CG.Lobby.show();
+    else if (CG.SnakesGame) CG.SnakesGame.show();
   }
 
   // Tap outside a floating card to dismiss it. Clicking the dim backdrop runs
