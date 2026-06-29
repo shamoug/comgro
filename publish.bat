@@ -8,6 +8,10 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  TOGGLE ON-STATE IS LIGHT BLUE, NOT DARK. An active toggle now
+REM              fills with a soft light-blue (#dce8ff) and dark-blue text/border
+REM              instead of solid dark blue, while still reading clearly as on.
+REM              styles.css v26.
 REM  2026-06-29  IN-GAME TOGGLES ARE ICON-ONLY AND ALWAYS VISIBLE. The top-bar
 REM              controls (music, narration, auto cards, quit) are now clean round
 REM              icon buttons with no text label; "Auto cards" text is dropped, a
