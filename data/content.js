@@ -537,6 +537,66 @@
   ];
 
   /* ----------------------------------------------------------------------
+   * THEATRE KIND + BACKGROUND STORY. Every Crisis Theatre is one of three kinds,
+   * humanitarian, development, or peacekeeping, which sets how the Country Team's
+   * mandate reads. Most postings are humanitarian (the natural-hazard and
+   * outbreak settings), so that is the default; the development and peacekeeping
+   * theatres are named explicitly below, easy to move between buckets. A theatre
+   * can also override with its own `type`. CG.theatreStory() builds the one
+   * paragraph of background shown when you join a theatre or start a solo game.
+   * -------------------------------------------------------------------- */
+  CG.THEATRE_KINDS = {
+    humanitarian: { key: "humanitarian", label: "Humanitarian theatre", icon: "🆘",
+      frame: "This is a humanitarian crisis, and the Country Team is here to save lives and protect people through the next shock: coordinating relief, keeping aid moving to those cut off, and holding to humanitarian principles while everything is urgent at once." },
+    development: { key: "development", label: "Development theatre", icon: "📈",
+      frame: "This is a development setting, and the Country Team is here to build rather than only relieve: strengthening national institutions, livelihoods, services and data systems so the country grows steadier and the crises grow rarer." },
+    peacekeeping: { key: "peacekeeping", label: "Peacekeeping theatre", icon: "🕊️",
+      frame: "This is a peace operation, and the Country Team is here to protect civilians and consolidate a fragile calm: supporting the ceasefire, helping returnees home across mined ground, and rebuilding the trust and institutions that conflict hollowed out." },
+  };
+
+  // Theatres whose headline is economy, governance, resources or systems.
+  CG.THEATRE_DEV = ["The Resource Frontier", "The Concrete Frontier", "The Mineral Frontier",
+    "The Forgotten Drylands", "The Divided Quarter", "The Dark Valleys", "The Aftershock City",
+    "The Contested Harbour", "The Silent Counties"];
+  // Theatres whose headline is conflict, ceasefire, returnees or protection.
+  CG.THEATRE_PEACE = ["The Vanishing Lake Basin", "The Mended Lands", "The Quieted Province",
+    "The Quiet Frontline", "The Arran Frontier", "The Karran Belt"];
+
+  CG.theatreKind = function (t) {
+    if (t && t.type) return t.type;
+    const n = (t && t.name) || "";
+    if (CG.THEATRE_PEACE.indexOf(n) >= 0) return "peacekeeping";
+    if (CG.THEATRE_DEV.indexOf(n) >= 0) return "development";
+    return "humanitarian";
+  };
+  CG.theatreKindMeta = function (t) { return CG.THEATRE_KINDS[CG.theatreKind(t)]; };
+
+  // Plain-language name for what each card tag means on the ground, used to make
+  // the background paragraph name this theatre's own challenges.
+  CG.TAG_CHALLENGE = {
+    flood: "flooding", drought: "drought", storm: "cyclones", climate: "a shifting climate",
+    health: "disease outbreaks", displacement: "mass displacement", access: "blocked access",
+    supply: "fragile supply lines", governance: "weak institutions", funding: "tight funding",
+    youth: "a restless young population", data: "thin data", digital: "patchy connectivity",
+    info: "rumour and misinformation", community: "frayed local trust",
+    behaviour: "hard-won behaviour change", foresight: "hazards that strike with little warning",
+  };
+
+  // One paragraph of background for a theatre: the place, the kind of mandate,
+  // and the specific challenges its decks will throw at the team.
+  CG.theatreStory = function (t) {
+    if (!t) return "";
+    const kind = CG.theatreKindMeta(t);
+    const ch = (t.tags || []).slice(0, 3).map((x) => CG.TAG_CHALLENGE[x]).filter(Boolean);
+    let challenge = "";
+    if (ch.length === 1) challenge = "Here the team contends with " + ch[0] + ". ";
+    else if (ch.length === 2) challenge = "Here the team contends with " + ch[0] + " and " + ch[1] + ". ";
+    else if (ch.length >= 3) challenge = "Here the team contends with " + ch[0] + ", " + ch[1] + " and " + ch[2] + ". ";
+    return t.blurb + " " + kind.frame + " " + challenge +
+      "You and the rest of the UN Country Team race the long road to a finished mandate.";
+  };
+
+  /* ----------------------------------------------------------------------
    * HOLE CARDS,  a shuffled deck (CG.SNAKE_CARDS). Drawn when you land on a hole.
    * Real setbacks a UN Country Team and its partners run into in the field.
    * why: spoken reason you slide back.   fact: a real coordination truth.

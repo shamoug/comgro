@@ -8,6 +8,16 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  THEATRE BACKGROUND STORY ON JOIN / SOLO START. Every Crisis Theatre
+REM              is now classed as one of three kinds, Humanitarian, Development or
+REM              Peacekeeping, shown as a colour-coded badge, and carries a one
+REM              paragraph background story (the place, the kind of mandate, and the
+REM              challenges its decks will throw at the team). It appears on the
+REM              lobby Join screen before you take a seat, on the solo Deal screen,
+REM              and as the host's entry card when opening a theatre. Kind is set by
+REM              two short name lists (CG.THEATRE_DEV / CG.THEATRE_PEACE), defaulting
+REM              to Humanitarian; the story is built by CG.theatreStory(). content.js
+REM              v21, game.js v43, lobby.js v2, styles.css v28.
 REM  2026-06-29  MULTIPLAYER ACROSS BROWSERS (Crisis Theatres lobby). The game now
 REM              opens on a login screen: name yourself, then see the live list of
 REM              Crisis Theatres other players have open on other browsers. Open
