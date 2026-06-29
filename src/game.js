@@ -214,7 +214,7 @@
     // Carry on...): off, each card waits for a click; on, they advance by
     // themselves, for Human and AI alike. The die roll is never affected by it
     // (AI rolls itself, Human clicks Roll). Toggled live on the board.
-    settings: { music: true, voice: true, diceCount: 1, autoPlay: false },
+    settings: { music: true, voice: true, diceCount: 1, autoPlay: true },
     decks: {},
     zoneSpoken: -1,
     quintet: {},   // shared team tally, reset each game in startGame()
@@ -944,7 +944,7 @@
       const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
       const q = applyQuintet(p, card, -1);
       await showCard(p, card, "snake", B.snakes[n], q);
-      if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.buzzer(); }
+      if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.wah(); }
       toast(`${p.name} drops down to ${B.snakes[n]}`, "bad");
       if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
@@ -969,8 +969,9 @@
       await hop(p, 3, depth);
     } else if (B.surprises.includes(n)) {
       const card = fillCard(weightedDraw(CG.SURPRISE_CARDS, p), p);
-      await showCard(p, card, "surprise", null);
-      await applySurprise(p, card, depth);
+      const outcome = planSurprise(p, card);
+      await showCard(p, card, "surprise", null, null, outcome.consequence);
+      await applySurprise(p, outcome, depth);
     } else if (B.fieldNotes.includes(n)) {
       const note = S.decks.note();
       if (S.settings.music) CG.Audio.sfx.note();
@@ -991,7 +992,7 @@
   // one. The card's mood (a "skip" card is the bad news, everything else is good)
   // tilts the winds, but either way can happen. After the move we resolve the new
   // square so a ladder climbs and a hole drops, bounded so it cannot loop.
-  async function applySurprise(p, card, depth) {
+  function planSurprise(p, card) {
     const B = S.board;
     const good = card.effect !== "skip";
     const ladder = nextAhead(p.pos, Object.keys(B.ladders).map(Number));
@@ -1000,27 +1001,48 @@
     const back = Math.max(1, p.pos - (2 + Math.floor(Math.random() * 4))); // -2..-5
     const r = Math.random();
 
-    let dest, msg, kind;
+    let dest, msg, kind, type;
     if (good) {
-      if (r < 0.05)      { dest = 100;    msg = `An extraordinary break sweeps ${p.name} to the finish 🏁`; kind = "good"; }
-      else if (r < 0.34) { dest = ladder; msg = `Good news carries ${p.name} to the next ladder`; kind = "good"; }
-      else if (r < 0.78) { dest = fwd;    msg = `${p.name} is swept forward to ${fwd}`; kind = "good"; }
-      else if (r < 0.90) { dest = back;   msg = `A small twist sets ${p.name} back to ${back}`; kind = "muted"; }
-      else if (r < 0.97) { dest = hole;   msg = `${p.name} stumbles toward the next hole`; kind = "bad"; }
-      else               { dest = 1;      msg = `A freak setback sends ${p.name} back to square one`; kind = "bad"; }
+      if (r < 0.05)      { dest = 100;    type = "finish"; msg = `An extraordinary break sweeps ${p.name} to the finish 🏁`; kind = "good"; }
+      else if (r < 0.34) { dest = ladder; type = "ladder"; msg = `Good news carries ${p.name} to the next ladder`; kind = "good"; }
+      else if (r < 0.78) { dest = fwd;    type = "fwd";    msg = `${p.name} is swept forward to ${fwd}`; kind = "good"; }
+      else if (r < 0.90) { dest = back;   type = "back";   msg = `A small twist sets ${p.name} back to ${back}`; kind = "muted"; }
+      else if (r < 0.97) { dest = hole;   type = "hole";   msg = `${p.name} stumbles toward the next hole`; kind = "bad"; }
+      else               { dest = 1;      type = "one";    msg = `A freak setback sends ${p.name} back to square one`; kind = "bad"; }
     } else {
-      if (r < 0.05)      { dest = 1;      msg = `Disaster sends ${p.name} right back to square one`; kind = "bad"; }
-      else if (r < 0.34) { dest = hole;   msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
-      else if (r < 0.78) { dest = back;   msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
-      else if (r < 0.90) { dest = fwd;    msg = `A small mercy nudges ${p.name} forward to ${fwd}`; kind = "good"; }
-      else if (r < 0.97) { dest = ladder; msg = `An unexpected opening lifts ${p.name} to the next ladder`; kind = "good"; }
-      else               { dest = 100;    msg = `Against all odds, ${p.name} is swept to the finish 🏁`; kind = "good"; }
+      if (r < 0.05)      { dest = 1;      type = "one";    msg = `Disaster sends ${p.name} right back to square one`; kind = "bad"; }
+      else if (r < 0.34) { dest = hole;   type = "hole";   msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
+      else if (r < 0.78) { dest = back;   type = "back";   msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
+      else if (r < 0.90) { dest = fwd;    type = "fwd";    msg = `A small mercy nudges ${p.name} forward to ${fwd}`; kind = "good"; }
+      else if (r < 0.97) { dest = ladder; type = "ladder"; msg = `An unexpected opening lifts ${p.name} to the next ladder`; kind = "good"; }
+      else               { dest = 100;    type = "finish"; msg = `Against all odds, ${p.name} is swept to the finish 🏁`; kind = "good"; }
     }
     // The next ladder or hole can be missing near the top of the board; fall back
     // to a plain hop so a surprise never fails to move you.
-    if (dest == null) { dest = good ? fwd : back; msg = good ? `${p.name} is swept forward to ${dest}` : `${p.name} is pushed back to ${dest}`; }
-    if (dest === p.pos) dest = good ? Math.min(100, p.pos + 1) : Math.max(1, p.pos - 1);
+    if (dest == null) { dest = good ? fwd : back; type = good ? "fwd" : "back"; msg = good ? `${p.name} is swept forward to ${dest}` : `${p.name} is pushed back to ${dest}`; }
+    if (dest === p.pos) { dest = good ? Math.min(100, p.pos + 1) : Math.max(1, p.pos - 1); type = good ? "fwd" : "back"; }
 
+    return { dest, msg, kind, consequence: surpriseLine(p, dest, type) };
+  }
+
+  // The imposed-move line printed on the surprise card: what happens, how many
+  // steps, and where the player is sent next.
+  function surpriseLine(p, dest, type) {
+    const steps = Math.abs(dest - p.pos);
+    const s = steps === 1 ? "step" : "steps";
+    switch (type) {
+      case "finish": return `As a result, you are swept all the way to the finish at square 100.`;
+      case "one":    return `As a result, you are sent all the way back to square one.`;
+      case "ladder": return `As a result, you are ordered ${steps} ${s} forward to the next ladder at square ${dest}, then up you climb.`;
+      case "hole":   return `As a result, you are ordered ${steps} ${s} forward to the next hole at square ${dest}, then down you go.`;
+      case "fwd":    return `As a result, you move ${steps} ${s} forward to square ${dest}.`;
+      case "back":   return `As a result, you are sent ${steps} ${s} back to square ${dest}.`;
+      default:       return `As a result, you move to square ${dest}.`;
+    }
+  }
+
+  async function applySurprise(p, outcome, depth) {
+    const { dest, msg, kind } = outcome;
     toast(msg, kind);
     if (dest < p.pos) shake();
     await walk(p, dest);
@@ -1109,17 +1131,19 @@
     }
   }
 
-  function showCard(p, card, kind, dest, q) {
+  function showCard(p, card, kind, dest, q, moveLine) {
     return new Promise((resolve) => {
       const quintSpoken = q
         ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.`
         : "";
       const text = `${card.why} ${card.fact}`;
-      const spoken = `${card.title}. ${text}${quintSpoken}`;
+      const spoken = `${card.title}. ${text}${quintSpoken}${moveLine ? " " + moveLine : ""}`;
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${kind}`);
-      const moveHtml = dest != null
-        ? `<div class="ec-move">${p.pos} ${kind === "ladder" ? "▲" : "▼"} ${dest}</div>` : "";
+      const moveHtml = moveLine
+        ? `<div class="ec-move ec-impose">${moveLine}</div>`
+        : (dest != null
+          ? `<div class="ec-move">${p.pos} ${kind === "ladder" ? "▲" : "▼"} ${dest}</div>` : "");
       const quintHtml = q
         ? `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}">` +
             `<span class="eq-ic">${q.meta.icon}</span>` +
@@ -1141,7 +1165,7 @@
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
       speak.onclick = () => CG.Narrate.speak(`${card.title}. ${text}`);
       const cont = el("button", "btn btn-primary", CONT[kind] || "Continue ▸");
-      const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
+      const done = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
       cont.onclick = done;
       actions.appendChild(speak); actions.appendChild(cont);
       c.appendChild(actions);
@@ -1166,7 +1190,7 @@
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
       speak.onclick = () => CG.Narrate.speak(`Field note. ${note}`);
       const cont = el("button", "btn btn-primary", "Carry on ▸");
-      const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
+      const done = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
       cont.onclick = done;
       actions.appendChild(speak); actions.appendChild(cont);
       c.appendChild(actions);
@@ -1213,7 +1237,7 @@
         `${isLast ? " The whole table is home now." : " The rest of the field plays on."}</div>`;
     const actions = el("div", "ec-actions");
     const cont = el("button", "btn btn-primary", isLast ? "Final standings ▸" : "Play on ▸");
-    const finishDone = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
+    const finishDone = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
     cont.onclick = finishDone;
     actions.appendChild(cont);
     c.appendChild(actions);

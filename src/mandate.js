@@ -164,7 +164,7 @@
     // Carry on...): off, each card waits for a click; on, they advance by
     // themselves, for Human and AI alike. The die roll is never affected by it
     // (AI rolls itself, Human clicks Roll). Toggled live on the board.
-    settings: { music: true, voice: true, autoPlay: false },
+    settings: { music: true, voice: true, autoPlay: true },
     cells: [],          // GRID x GRID, each { walls:{N,E,S,W} }
     dist: [],           // GRID x GRID distance (in steps) to the centre
     maxDist: 1,
@@ -1001,7 +1001,7 @@
       const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
       const q = applyQuintet(p, card, -1);
       await showCard(p, card, "trap", q);
-      if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.buzzer(); }
+      if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.wah(); }
       toast(`${p.name} gets lost in the hedges`, "bad");
       if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
@@ -1023,8 +1023,9 @@
       await hopToward(p, 3);
     } else if (sp.kind === "surprise") {
       const card = fillCard(weightedDraw(CG.SURPRISE_CARDS, p), p);
-      await showCard(p, card, "surprise", null);
-      await applySurprise(p, card, depth);
+      const outcome = planSurprise(p, card);
+      await showCard(p, card, "surprise", null, outcome.consequence);
+      await applySurprise(p, outcome, depth);
     } else if (sp.kind === "note") {
       const note = S.decks.note();
       if (S.settings.music) CG.Audio.sfx.note();
@@ -1059,7 +1060,7 @@
   // gate. The card's mood (a "skip" card is the bad news, everything else good)
   // tilts the winds, but either way can happen. The new cell is then resolved so
   // a shortcut climbs and a trap loses you, bounded so it cannot loop.
-  async function applySurprise(p, card, depth) {
+  function planSurprise(p, card) {
     const good = card.effect !== "skip";
     const fromDist = distOf(p.cell);
     const shortcut = nearestAhead(specialsOfKind("shortcut"), fromDist, true);
@@ -1070,27 +1071,48 @@
     const centre = { r: CENTER.r, c: CENTER.c };
     const r = Math.random();
 
-    let dest, msg, kind, warp;
+    let dest, msg, kind, warp, type;
     if (good) {
-      if (r < 0.05)      { dest = centre;   msg = `An extraordinary break sweeps ${p.name} to the centre 🏁`; kind = "good"; warp = "up"; }
-      else if (r < 0.34) { dest = shortcut; msg = `Good news leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
-      else if (r < 0.78) { dest = fwd;      msg = `${p.name} threads ahead toward the centre`; kind = "good"; warp = "up"; }
-      else if (r < 0.90) { dest = back;     msg = `A wrong turn loses ${p.name} ground`; kind = "muted"; warp = "down"; }
-      else if (r < 0.97) { dest = trap;     msg = `${p.name} blunders toward a trap`; kind = "bad"; warp = "down"; }
-      else               { dest = gate;     msg = `A freak setback sends ${p.name} back to the gate`; kind = "bad"; warp = "down"; }
+      if (r < 0.05)      { dest = centre;   type = "centre";   msg = `An extraordinary break sweeps ${p.name} to the centre 🏁`; kind = "good"; warp = "up"; }
+      else if (r < 0.34) { dest = shortcut; type = "shortcut"; msg = `Good news leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
+      else if (r < 0.78) { dest = fwd;      type = "fwd";      msg = `${p.name} threads ahead toward the centre`; kind = "good"; warp = "up"; }
+      else if (r < 0.90) { dest = back;     type = "back";     msg = `A wrong turn loses ${p.name} ground`; kind = "muted"; warp = "down"; }
+      else if (r < 0.97) { dest = trap;     type = "trap";     msg = `${p.name} blunders toward a trap`; kind = "bad"; warp = "down"; }
+      else               { dest = gate;     type = "gate";     msg = `A freak setback sends ${p.name} back to the gate`; kind = "bad"; warp = "down"; }
     } else {
-      if (r < 0.05)      { dest = gate;     msg = `Disaster sends ${p.name} right back to the gate`; kind = "bad"; warp = "down"; }
-      else if (r < 0.34) { dest = trap;     msg = `Bad news leaves ${p.name} lost at the next trap`; kind = "bad"; warp = "down"; }
-      else if (r < 0.78) { dest = back;     msg = `${p.name} loses ground deep in the hedges`; kind = "bad"; warp = "down"; }
-      else if (r < 0.90) { dest = fwd;      msg = `A small mercy threads ${p.name} toward the centre`; kind = "good"; warp = "up"; }
-      else if (r < 0.97) { dest = shortcut; msg = `An opening leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
-      else               { dest = centre;   msg = `Against all odds, ${p.name} reaches the centre 🏁`; kind = "good"; warp = "up"; }
+      if (r < 0.05)      { dest = gate;     type = "gate";     msg = `Disaster sends ${p.name} right back to the gate`; kind = "bad"; warp = "down"; }
+      else if (r < 0.34) { dest = trap;     type = "trap";     msg = `Bad news leaves ${p.name} lost at the next trap`; kind = "bad"; warp = "down"; }
+      else if (r < 0.78) { dest = back;     type = "back";     msg = `${p.name} loses ground deep in the hedges`; kind = "bad"; warp = "down"; }
+      else if (r < 0.90) { dest = fwd;      type = "fwd";      msg = `A small mercy threads ${p.name} toward the centre`; kind = "good"; warp = "up"; }
+      else if (r < 0.97) { dest = shortcut; type = "shortcut"; msg = `An opening leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
+      else               { dest = centre;   type = "centre";   msg = `Against all odds, ${p.name} reaches the centre 🏁`; kind = "good"; warp = "up"; }
     }
     // The next shortcut or trap can be missing; fall back to a plain thread.
-    if (!dest) { dest = good ? fwd : back; warp = good ? "up" : "down"; msg = good ? `${p.name} threads ahead toward the centre` : `${p.name} loses ground deep in the hedges`; }
+    if (!dest) { dest = good ? fwd : back; type = good ? "fwd" : "back"; warp = good ? "up" : "down"; msg = good ? `${p.name} threads ahead toward the centre` : `${p.name} loses ground deep in the hedges`; }
     // Never a non-move: if it lands on the current cell, nudge one corridor.
-    if (dest.r === p.cell.r && dest.c === p.cell.c) { dest = good ? toward(p.cell, 1) : away(p.cell, 1); warp = good ? "up" : "down"; }
+    if (dest.r === p.cell.r && dest.c === p.cell.c) { dest = good ? toward(p.cell, 1) : away(p.cell, 1); type = good ? "fwd" : "back"; warp = good ? "up" : "down"; }
 
+    return { dest, msg, kind, warp, consequence: surpriseLine(p, dest, type) };
+  }
+
+  // The imposed-move line printed on the surprise card: what happens, how many
+  // corridors, and where the player is led next.
+  function surpriseLine(p, dest, type) {
+    const steps = Math.abs(distOf(dest) - distOf(p.cell));
+    const s = steps === 1 ? "corridor" : "corridors";
+    switch (type) {
+      case "centre":   return `As a result, you are swept all the way to the fountain at the centre.`;
+      case "gate":     return `As a result, you are sent all the way back to your gate.`;
+      case "shortcut": return `As a result, you are led ${steps} ${s} ahead to the next trail of golden coins, then it carries you on.`;
+      case "trap":     return `As a result, you are led to the next trap, where you get lost.`;
+      case "fwd":      return `As a result, you thread ${steps} ${s} ahead toward the centre.`;
+      case "back":     return `As a result, you lose ${steps} ${s}, pushed deeper into the hedges.`;
+      default:         return `As a result, you are moved through the maze.`;
+    }
+  }
+
+  async function applySurprise(p, outcome, depth) {
+    const { dest, msg, kind, warp } = outcome;
     toast(msg, kind);
     if (warp === "down") shake();
     await warpTo(p, dest, warp);
@@ -1128,15 +1150,16 @@
     }
   }
 
-  function showCard(p, card, kind, q) {
+  function showCard(p, card, kind, q, moveLine) {
     return new Promise((resolve) => {
       const quintSpoken = q
         ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.`
         : "";
       const text = `${card.why} ${card.fact}`;
-      const spoken = `${card.title}. ${text}${quintSpoken}`;
+      const spoken = `${card.title}. ${text}${quintSpoken}${moveLine ? " " + moveLine : ""}`;
       const over = el("div", "overlay-card");
       const c = el("div", `event-card ${kind === "shortcut" ? "ladder" : kind === "trap" ? "snake" : kind}`);
+      const moveHtml = moveLine ? `<div class="ec-move ec-impose">${moveLine}</div>` : "";
       const quintHtml = q
         ? `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}">` +
             `<span class="eq-ic">${q.meta.icon}</span>` +
@@ -1150,6 +1173,7 @@
         `<div class="ec-band">${BAND[kind] || ""}</div>` +
         `<div class="ec-icon">${card.icon}</div>` +
         `<div class="ec-title">${esc(card.title)}</div>` +
+        moveHtml +
         `<div class="ec-why">${card.why}</div>` +
         `<div class="ec-fact"><span>Side fact</span>${card.fact}</div>` +
         quintHtml;
@@ -1157,7 +1181,7 @@
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
       speak.onclick = () => CG.Narrate.speak(`${card.title}. ${text}`);
       const cont = el("button", "btn btn-primary", CONT[kind] || "Continue ▸");
-      const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
+      const done = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
       cont.onclick = done;
       actions.appendChild(speak); actions.appendChild(cont);
       c.appendChild(actions);
@@ -1183,7 +1207,7 @@
       const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
       speak.onclick = () => CG.Narrate.speak(`Field note. ${note}`);
       const cont = el("button", "btn btn-primary", "Carry on ▸");
-      const done = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
+      const done = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); resolve(); };
       cont.onclick = done;
       actions.appendChild(speak); actions.appendChild(cont);
       c.appendChild(actions);
@@ -1226,7 +1250,7 @@
         `${isLast ? " Every team is home now. The maze is solved." : " The rest of the field is still finding the way."}</div>`;
     const actions = el("div", "ec-actions");
     const cont = el("button", "btn btn-primary", isLast ? "Final standings ▸" : "Play on ▸");
-    const fin = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
+    const fin = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
     cont.onclick = fin;
     actions.appendChild(cont);
     c.appendChild(actions);
