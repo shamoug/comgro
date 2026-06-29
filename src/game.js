@@ -1091,29 +1091,24 @@
   function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
     if (!S.settings.autoPlay) {
-      // Manual play: every seat (Human or AI) waits for the user to click
-      // Continue, but the token must not move until the narrator has finished
-      // the line: hold Continue disabled while the voice is still speaking, then
-      // release it. A safety timer frees a stuck voice so play is never stranded.
-      if (cont && voiced) {
-        cont.disabled = true;
-        let freed = false;
-        const free = () => { if (!freed) { freed = true; cont.disabled = false; } };
-        CG.Narrate.auto(spoken, { onend: free });
-        setTimeout(free, 20000);
-      } else {
-        CG.Narrate.auto(spoken);
-      }
+      // Manual play: read the line aloud, but leave Continue live the whole time
+      // so the user can proceed whenever they like, even before the narrator has
+      // finished (skipping the reading by hand is fine).
+      CG.Narrate.auto(spoken);
       return;
     }
+    // Auto play: never advance before the whole card has been read. With a voice,
+    // wait for the narrator to finish the entire line; without one, hold long
+    // enough to read the card through, scaled to how much text it carries.
     let advanced = false;
     const advance = () => { if (!advanced) { advanced = true; if (over.parentNode) done(); } };
     if (voiced) {
-      CG.Narrate.auto(spoken, { onend: () => setTimeout(advance, 650) });
-      setTimeout(advance, 16000); // safety: never freeze on a stuck voice
+      CG.Narrate.auto(spoken, { onend: () => setTimeout(advance, 700) });
+      setTimeout(advance, 30000); // safety: never freeze on a stuck voice
     } else {
       CG.Narrate.auto(spoken);
-      setTimeout(advance, fallbackMs);
+      const words = String(spoken).trim().split(/\s+/).filter(Boolean).length;
+      setTimeout(advance, Math.min(14000, Math.max(fallbackMs, words * 320)));
     }
   }
 
