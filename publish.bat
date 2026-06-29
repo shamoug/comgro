@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  SURPRISE CARDS SPELL OUT THE MOVE, AUTO CARDS ON BY DEFAULT (both
+REM              games). Every surprise card now prints the imposed move in plain
+REM              words before the token moves: what happens, how many steps, and
+REM              where to next. On the road, "As a result, you are ordered 4 steps
+REM              forward to the next hole at square 58, then down you go"; in the
+REM              maze, "As a result, you thread 3 corridors ahead toward the
+REM              centre". The Auto cards toggle now starts switched on in both
+REM              games. game.js v34, mandate.js v22, styles.css v21.
 REM  2026-06-29  CARD BUTTONS CUT THE VOICE (both games). Clicking any card button,
 REM              Continue, Climb, Down you go, Collect, Carry on, Play on, and the
 REM              rest, now stops the ongoing narration immediately and moves on,
