@@ -725,7 +725,7 @@
       card.innerHTML =
         `<span class="savatar" style="--tok:${p.color}">${p.role.icon}</span>` +
         `<span class="sinfo"><b>${esc(p.name)}</b><small>${esc(p.role.name)}</small><span class="sloot">${loot}</span></span>` +
-        `<span class="spos" title="${p.finished ? "Finishing place" : "Corridors to the centre"}">${posCell}</span>`;
+        `<span class="spos" title="${p.finished ? "Finishing place" : "Steps to the centre"}">${posCell}</span>`;
       if (CG.Hover) CG.Hover.bind(card, () => playerInfo(p));
       box.appendChild(card);
     });

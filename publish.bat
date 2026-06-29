@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  THE MANDATE STOPS DESCRIBING THE MAZE TO PLAYERS. All player-facing
+REM              copy (game card, title, narration, junction and finish cards, win
+REM              screen, tooltips) now talks about the path to the mission and the
+REM              centre, not green hedges, castle gardens, fountains or corridors.
+REM              The board still draws as a maze; only the words changed.
+REM              mandate.js v24, platform.js v10, content.js v19.
 REM  2026-06-29  QUIT GAME BUTTON CLOSES THE GAME (both games). The in-game HUD
 REM              control is now a Quit game button (the X) that closes the current
 REM              game and returns to the Game Room home screen, instead of the old
