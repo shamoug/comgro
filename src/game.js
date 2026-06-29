@@ -208,9 +208,10 @@
     theatre: null,
     busy: false,
     over: false,
-    // autoPlay off means "wait for the user to click": every seat, Human and AI,
-    // waits for a Roll click and every card waits for a Continue click. Turn it
-    // on and the whole table plays itself, hands free. Toggled live on the board.
+    // autoPlay governs the EVENT CARDS only (Continue / Climb / Down you go /
+    // Carry on...): off, each card waits for a click; on, they advance by
+    // themselves, for Human and AI alike. The die roll is never affected by it
+    // (AI rolls itself, Human clicks Roll). Toggled live on the board.
     settings: { music: true, voice: true, diceCount: 1, autoPlay: false },
     decks: {},
     zoneSpoken: -1,
@@ -406,13 +407,12 @@
     const ctrls = el("div", "hud-ctrls");
     ctrls.appendChild(toggle("🎵", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
     ctrls.appendChild(toggle("🗣️", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); }));
-    // Auto-play: when on, the whole table rolls and turns the cards by itself;
-    // when off, every move waits for a click. Changeable at any point in the game.
-    ctrls.appendChild(toggle("▶️ Auto", S.settings.autoPlay, (on) => {
+    // Auto-cards: when on, the event cards (Continue, Climb, Down you go, Carry
+    // on...) advance by themselves; when off, each waits for a click. This never
+    // touches the die roll. Changeable at any point in the game.
+    ctrls.appendChild(toggle("▶️ Auto cards", S.settings.autoPlay, (on) => {
       S.settings.autoPlay = on;
-      toast(on ? "Auto-play on: the table moves on its own" : "Auto-play off: click to move", on ? "good" : "muted");
-      setTurnTag();
-      if (on) maybeAutoRoll();
+      toast(on ? "Auto cards on: cards advance on their own" : "Auto cards off: click to continue", on ? "good" : "muted");
     }));
     const restart = el("button", "chip-toggle", "↺");
     restart.title = "New game";
@@ -774,29 +774,23 @@
   // =======================================================================
   // TURN FLOW
   // =======================================================================
-  function kickOff() { maybeAutoRoll(); }
+  function kickOff() { setTurnTag(); if (S.players[S.current].isAI) scheduleAI(); }
 
   function setTurnTag() {
     const tt = $("#turnTag");
     const p = S.players[S.current];
-    const label = S.settings.autoPlay
-      ? (p.isAI ? p.name + " is moving…" : "Auto-playing…")
-      : (p.isAI ? "Roll for " + p.name : "Your move");
+    // The die is always rolled by the AI itself and clicked by the Human; the
+    // Auto toggle only governs the cards, never the roll.
     if (tt) tt.innerHTML = S.over ? "Game over" :
-      `<span class="dot" style="background:${p.color}"></span>${label}`;
+      `<span class="dot" style="background:${p.color}"></span>${p.isAI ? p.name + " is moving…" : "Your move"}`;
     const btn = $("#rollBtn");
-    // In manual play the button is live for every seat (you click to roll even
-    // for the AI); in auto-play it is disabled because the table rolls itself.
-    if (btn) { btn.disabled = S.busy || S.over || S.settings.autoPlay; btn.classList.toggle("ai", p.isAI && !S.over && S.settings.autoPlay); }
+    if (btn) { btn.disabled = S.busy || S.over || p.isAI; btn.classList.toggle("ai", p.isAI && !S.over); }
   }
 
-  // Roll the current seat automatically, but only while auto-play is on. With it
-  // off, every seat (Human or AI) waits for the user to click Roll.
-  function maybeAutoRoll() {
+  function scheduleAI() {
     if (S.over) return;
     setTurnTag();
-    if (!S.settings.autoPlay) return;
-    setTimeout(() => { if (!S.over && !S.busy && S.settings.autoPlay) onRoll(); }, 750);
+    setTimeout(() => { if (!S.over && S.players[S.current].isAI) onRoll(); }, 850);
   }
 
   // Hide the floating panels (standings + dice dock) while a token travels, so
@@ -875,8 +869,8 @@
     if (again && !S.over) {
       if (S.settings.music) CG.Audio.sfx.doubles();
       toast(`${p.name} earns another roll`, "good");
-      S.busy = false;
-      maybeAutoRoll();
+      S.busy = false; setTurnTag();
+      if (p.isAI) scheduleAI();
       return;
     }
     endTurn();
@@ -892,8 +886,8 @@
       if (np.skipNext) { np.skipNext = false; toast(`${np.name} loses a turn`, "muted"); continue; }
       break;
     } while (++guard <= S.players.length * 2);
-    renderStandings(); renderTokens();
-    maybeAutoRoll();
+    renderStandings(); renderTokens(); setTurnTag();
+    if (!S.over && S.players[S.current].isAI) scheduleAI();
   }
 
   async function animateDice(values) {

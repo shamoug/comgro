@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  AUTO TOGGLE NOW GOVERNS THE CARDS ONLY, NOT THE DIE (both games).
+REM              Refined the day's earlier toggle: the board control is now "Auto
+REM              cards" and decides only whether the event cards (Continue, Climb,
+REM              Down you go, Carry on, Pocket them, Lost again...) advance by
+REM              themselves or wait for a click, for Human and AI alike. The die
+REM              roll is never affected: the AI always rolls itself and the Human
+REM              always clicks Roll, with no toggle on that. game.js v27,
+REM              mandate.js v15.
 REM  2026-06-29  AUTO-PLAY TOGGLE + SURPRISE JUMPS (both games). A new "Auto"
 REM              toggle sits in the board's top controls and can be flipped at any
 REM              time. Off (default) every seat, Human and AI, waits for the user
