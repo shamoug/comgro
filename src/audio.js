@@ -146,6 +146,47 @@
     voice(from, ctx.currentTime, dur, "triangle", gain == null ? 0.2 : gain, sfxGain, to);
   }
 
+  // One hand-clap: a very short burst of band-passed noise with a sharp decay.
+  function clapTick(t, amp) {
+    const len = 0.03;
+    const buf = ctx.createBuffer(1, Math.max(1, Math.ceil(ctx.sampleRate * len)), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.frequency.value = 1500 + Math.random() * 900; bp.Q.value = 0.9;
+    const g = ctx.createGain(); g.gain.value = amp;
+    src.connect(bp); bp.connect(g); g.connect(sfxGain);
+    src.start(t); src.stop(t + len + 0.02);
+  }
+
+  // Warm applause: many short claps, swelling in then fading, for a success.
+  function applause(dur, gain) {
+    ensure(); if (!ctx || muted) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const t0 = ctx.currentTime;
+    dur = dur || 1.4;
+    const peak = gain == null ? 0.28 : gain;
+    const claps = 34;
+    for (let i = 0; i < claps; i++) {
+      const phase = i / claps;
+      const env = Math.sin(Math.PI * phase);            // density swells 0..1..0
+      const jitter = (Math.random() - 0.5) * 0.045;
+      clapTick(t0 + phase * dur + jitter, peak * (0.35 + env));
+    }
+  }
+
+  // Two short low square buzzes: a mild "wrong answer" cue for a setback.
+  function buzzer() {
+    ensure(); if (!ctx || muted) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime;
+    voice(160, t, 0.15, "square", 0.16, sfxGain);
+    voice(160, t + 0.2, 0.15, "square", 0.16, sfxGain);
+  }
+
   Audio.sfx = {
     step:   () => seq([440], 0, 0.05, "sine", 0.08),
     dice:   () => diceRattle(),
@@ -157,5 +198,7 @@
     click:  () => seq([320], 0, 0.05, "sine", 0.1),
     win:    () => seq([523, 659, 784, 1047, 1319, 1568], 0.12, 0.4, "triangle", 0.24),
     lose:   () => seq([392, 330, 262, 196], 0.14, 0.4, "sine", 0.2),
+    clap:   () => applause(),                                 // applause for a success
+    buzzer: () => buzzer(),                                   // gentle buzz for a setback
   };
 })();

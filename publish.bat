@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  CLAP FOR WINS, BUZZER FOR SETBACKS (both games). Successes now get
+REM              a warm burst of synthesised applause: climbing a ladder (a shortcut
+REM              in the maze) and finishing the game. Setbacks (sliding down a snake,
+REM              getting lost in the hedges) get a gentle two-note buzzer. Both are
+REM              generated in-browser, no audio files, and only sound when music is
+REM              on. audio.js v5, game.js v31, mandate.js v19.
 REM  2026-06-29  SURPRISES ALWAYS MOVE YOU (both games). A surprise card no longer
 REM              just hands a bonus or a skipped turn: it always sends you
 REM              somewhere. Usually a hop forward or back; sometimes to the next

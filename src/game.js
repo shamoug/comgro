@@ -936,7 +936,7 @@
       const card = fillCard(weightedDraw(CG.LADDER_CARDS, p), p);
       const q = applyQuintet(p, card, +1);
       await showCard(p, card, "ladder", B.ladders[n], q);
-      if (S.settings.music) CG.Audio.sfx.ladder();
+      if (S.settings.music) { CG.Audio.sfx.ladder(); CG.Audio.sfx.clap(); }
       toast(`${p.name} climbs to ${B.ladders[n]}`, "good");
       if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await slide(p, B.ladders[n], "up", n);
@@ -944,7 +944,7 @@
       const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
       const q = applyQuintet(p, card, -1);
       await showCard(p, card, "snake", B.snakes[n], q);
-      if (S.settings.music) CG.Audio.sfx.snake();
+      if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.buzzer(); }
       toast(`${p.name} drops down to ${B.snakes[n]}`, "bad");
       if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
@@ -1189,7 +1189,7 @@
     S.busy = false;
     setMoving(false);
     const isLast = S.players.every((x) => x.finished);
-    if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
+    if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.sfx.clap(); CG.Audio.setProgress(100); }
     if (!p.isAI) confetti();
     renderStandings(); renderTokens(); setTurnTag();
     toast(`${p.name} completes the mandate · ${ordinal(p.rank)} ${MEDALS[p.rank - 1] || "🏁"}`, "good");
@@ -1294,7 +1294,7 @@
     const order = S.players.slice().sort((a, b) => a.rank - b.rank);
     const winner = order[0];
     const human = S.players.find((x) => !x.isAI);
-    if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.setProgress(100); }
+    if (S.settings.music) { CG.Audio.sfx.win(); CG.Audio.sfx.clap(); CG.Audio.setProgress(100); }
     if (human && human.rank === 1) confetti();
 
     let line;
