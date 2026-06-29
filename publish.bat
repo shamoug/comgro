@@ -8,6 +8,17 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  QUINTET CARDS EXPANDED PAST 50 PERCENT (both games). Players were
+REM              finishing whole games without ever touching a UN 2.0 capability,
+REM              so 140 new, web-researched ladder and hole cards were added, 14
+REM              wins and 14 setbacks for each of the five capabilities: Data,
+REM              Innovation, Digital, Strategic Foresight and Behavioural Science.
+REM              Every new card carries an explicit "quint" and a real, sourced
+REM              field fact (DTM, HDX, anticipatory action triggers, Building
+REM              Blocks, U-Report, Early Warnings for All, behavioural nudges, and
+REM              more). Ladder and hole decks are now about 55 percent Quintet
+REM              relevant, up from a third, and Innovation went from 2 cards to 30.
+REM              English only, no em or en dashes (verified). content.js v18.
 REM  2026-06-29  CLAP FOR WINS, BUZZER FOR SETBACKS (both games). Successes now get
 REM              a warm burst of synthesised applause: climbing a ladder (a shortcut
 REM              in the maze) and finishing the game. Setbacks (sliding down a snake,
