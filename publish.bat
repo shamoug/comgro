@@ -8,6 +8,17 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  SURPRISES ALWAYS MOVE YOU (both games). A surprise card no longer
+REM              just hands a bonus or a skipped turn: it always sends you
+REM              somewhere. Usually a hop forward or back; sometimes to the next
+REM              ladder or into the next hole; and once in a blue moon all the way
+REM              to the finish (square 100) or right back to square one. The card's
+REM              mood (a "skip" card is the bad news) tilts which way, but either
+REM              way can happen, and the landing square is then resolved so a
+REM              ladder still climbs and a hole still drops. The Mandate maze
+REM              mirrors it: threads you toward the centre or loses you in the
+REM              hedges, to the next shortcut or the next trap, and rarely to the
+REM              centre itself or back to your gate. game.js v30, mandate.js v18.
 REM  2026-06-29  QUINTET IMPACT IS NOW RELEVANT, NOT RANDOM (both games). A card
 REM              only strengthens or sets back a UN 2.0 capability when its fact
 REM              genuinely demonstrates one. The old map forced every theme into a
