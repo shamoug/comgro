@@ -285,21 +285,7 @@
     wrap.appendChild(el("h1", "title", "Common Ground"));
     wrap.appendChild(el("p", "subtitle", "The Long Road"));
     wrap.appendChild(el("p", "tagline",
-      "A field-coordination game of Ladders and Holes for a UN Country Team. Roll the dice, ride the lucky breaks, survive the crises, collect trophies and diamonds, and race a hundred squares to a finished mandate."));
-
-    wrap.appendChild(el("p", "pick-label", "Dice"));
-    const diceRow = el("div", "seg-row");
-    [{ n: 1, label: "🎲 One die" }, { n: 2, label: "🎲🎲 Two dice" }].forEach((opt) => {
-      const b = el("button", "seg" + (S.settings.diceCount === opt.n ? " on" : ""), opt.label);
-      b.onclick = () => {
-        S.settings.diceCount = opt.n;
-        diceRow.querySelectorAll(".seg").forEach((x) => x.classList.remove("on"));
-        b.classList.add("on");
-        CG.Audio.sfx.click();
-      };
-      diceRow.appendChild(b);
-    });
-    wrap.appendChild(diceRow);
+      "A field-coordination game of Ladders and Holes for a UN Country Team. Roll the die, ride the lucky breaks, survive the crises, collect trophies and diamonds, and race a hundred squares to a finished mandate."));
 
     const toggles = el("div", "toggle-row");
     toggles.appendChild(toggle("🎵 Music", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
@@ -495,9 +481,8 @@
     wrap.appendChild(stage);
 
     const dock = el("div", "dice-dock"); dock.id = "dock";
-    let diceHtml = "";
-    for (let i = 0; i < S.settings.diceCount; i++) diceHtml += `<div class="die" id="die${i}">${pips(1)}</div>`;
-    dock.innerHTML = `<div class="turn-tag" id="turnTag">Your move</div><div class="dice" id="dice">${diceHtml}</div>`;
+    dock.innerHTML = `<div class="turn-tag" id="turnTag">Your move</div>` +
+      `<div class="dice" id="dice"><div class="die" id="die0">${pips(1)}</div></div>`;
     const btn = el("button", "btn btn-roll", "🎲 Roll"); btn.id = "rollBtn"; btn.onclick = onRoll;
     dock.appendChild(btn);
     wrap.appendChild(dock);
@@ -856,16 +841,14 @@
     // Exact-landing keeps its teeth: you finish ON square 100, never past it.
     // But no one rolls forever. Once a player has reached square 90, we count a
     // "try" each turn they roll from there and fail to land on 100 (overshooting
-    // and bouncing, or stuck on the impossible square 99 with two dice). After 8
-    // failed tries the field steps in and rolls exactly what lands them home.
-    const dc = S.settings.diceCount;
+    // and bouncing). After 8 failed tries the field steps in and rolls exactly
+    // what lands them home.
     const gap = 100 - p.pos;
     const nearBefore = p.pos >= 90;
     const mercy = p.finishTries >= 8 && !p.finished;
 
-    if (mercy && (gap < dc || gap > 6 * dc)) {
-      // Too close to show as a fair roll (square 99 with two dice needs a 1), or a
-      // snake has knocked them out of reach: simply wave them across the line.
+    if (mercy && (gap < 1 || gap > 6)) {
+      // A snake has knocked them out of a single die's reach: wave them across.
       if (S.settings.music) CG.Audio.sfx.dice();
       toast(`After ${p.finishTries} near-misses, the field waves ${p.name} home`, "good");
       setMoving(true);
@@ -874,29 +857,15 @@
       return playerFinishes(p);
     }
 
-    const rolls = [];
-    if (mercy) {
-      // forced exact roll: dice that sum to the gap, so the player lands on 100
-      if (dc === 1) {
-        rolls.push(gap);
-      } else {
-        const lo = Math.max(1, gap - 6), hi = Math.min(6, gap - 1);
-        const d1 = lo + Math.floor(Math.random() * (hi - lo + 1));
-        rolls.push(d1, gap - d1);
-      }
-      toast(`After ${p.finishTries} near-misses, ${p.name} rolls exactly what the road needs`, "good");
-    } else {
-      for (let i = 0; i < dc; i++) rolls.push(1 + Math.floor(Math.random() * 6));
-    }
+    // forced exact roll on mercy, otherwise a fair single die
+    const roll = mercy ? gap : 1 + Math.floor(Math.random() * 6);
+    if (mercy) toast(`After ${p.finishTries} near-misses, ${p.name} rolls exactly what the road needs`, "good");
     if (S.settings.music) CG.Audio.sfx.dice();
 
-    await animateDice(rolls);
-    const sum = rolls.reduce((a, b) => a + b, 0);
-    const doubles = rolls.length === 2 && rolls[0] === rolls[1];
-    const rollText = rolls.length > 1 ? `${rolls.join(" + ")} = <b>${sum}</b>` : `<b>${sum}</b>`;
-    toast(`${p.name} rolls ${rollText}${doubles ? " · doubles" : ""}`, "roll");
+    await animateDice([roll]);
+    toast(`${p.name} rolls <b>${roll}</b>`, "roll");
 
-    let target = p.pos + sum, bounced = false;
+    let target = p.pos + roll, bounced = false;
     if (target > 100) { target = 100 - (target - 100); bounced = true; }
 
     setMoving(true); // clear the board while the token travels
@@ -910,7 +879,8 @@
     // failed try; once these reach 8 the mercy intervention above fires next turn.
     if (nearBefore) p.finishTries++;
 
-    const again = doubles || p.bonusRoll;
+    // A trophy can grant another roll (there are no doubles with a single die).
+    const again = p.bonusRoll;
     p.bonusRoll = false;
     if (again && !S.over) {
       if (S.settings.music) CG.Audio.sfx.doubles();
@@ -1633,7 +1603,7 @@
     return {
       id: null, hostId: myId(),
       theatreIdx: CG.THEATRES.indexOf(theatre), theatre: { name: theatre.name, icon: theatre.icon },
-      board, diceCount: S.settings.diceCount, current: 0, over: false,
+      board, diceCount: 1, current: 0, over: false,
       quintet: newQuintet(), seq: 1, lastWriter: myId(), lastEvent: "",
       players,
     };

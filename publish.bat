@@ -8,6 +8,19 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  ONE DIE ONLY + BIGGER, CLEARER CARDS AND COMPONENTS. Removed the
+REM              two-dice option everywhere: the game is always a single die (the
+REM              title-screen dice picker is gone, doubles are gone, onRoll and the
+REM              dock simplified to one die). Visibility pass across every surface:
+REM              the floating event/note/finish cards are larger with bigger type
+REM              and a stronger dimmed backdrop, and on wide screens they grow again
+REM              (up to 640px, 90px icon, 37px title) so they command the space
+REM              instead of floating small; standings, dice, the deal cards and the
+REM              lobby theatre cards are all enlarged for legibility. Code cleanup:
+REM              fixed a latent .theatre-card class collision (deal vs lobby) by
+REM              scoping both, and removed dead CSS (the old game-room launcher,
+REM              the mode-row buttons, and the retired final-standings list). game.js
+REM              v44, styles.css v29.
 REM  2026-06-29  THEATRE BACKGROUND STORY ON JOIN / SOLO START. Every Crisis Theatre
 REM              is now classed as one of three kinds, Humanitarian, Development or
 REM              Peacekeeping, shown as a colour-coded badge, and carries a one
