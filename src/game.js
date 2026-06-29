@@ -428,10 +428,10 @@
       S.settings.autoPlay = on;
       toast(on ? "Auto cards on: cards advance on their own" : "Auto cards off: click to continue", on ? "good" : "muted");
     }));
-    const restart = el("button", "chip-toggle", "↺");
-    restart.title = "New game";
-    restart.onclick = () => { CG.Narrate.stop(); renderTitle(); };
-    ctrls.appendChild(restart);
+    const quit = el("button", "chip-toggle", "✕");
+    quit.title = "Quit game";
+    quit.onclick = () => { CG.Narrate.stop(); teardownBoard(); CG.Platform.show(); };
+    ctrls.appendChild(quit);
     bar.appendChild(ctrls);
     wrap.appendChild(bar);
 

@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  QUIT GAME BUTTON CLOSES THE GAME (both games). The in-game HUD
+REM              control is now a Quit game button (the X) that closes the current
+REM              game and returns to the Game Room home screen, instead of the old
+REM              New game button that restarted the same game. game.js v36,
+REM              mandate.js v23.
 REM  2026-06-29  HOME-STRETCH TRAP ON THE ROAD. The board now always plants one
 REM              surprise in squares 95-99, and landing on it is always a genuine
 REM              setback (back a few steps, into the next hole, or all the way to
