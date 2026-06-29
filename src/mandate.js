@@ -363,13 +363,13 @@
     wrap.appendChild(el("h1", "title", "Common Ground"));
     wrap.appendChild(el("p", "subtitle", "The Mandate"));
     wrap.appendChild(el("p", "tagline",
-      "A great green hedge maze, the kind that hides in the gardens of old castles. Every player enters from a different gate and threads the corridors toward the fountain at the centre, where the mission is accomplished. Roll the die, ride the shortcuts and surprises, dodge the traps that get you lost, and do not stop rolling until you find the path home. A different maze every time."));
+      "Every player starts from a different gate and finds the way to the centre, where the mission is accomplished. Roll the die, ride the shortcuts and surprises, dodge the traps that get you lost, and do not stop rolling until you find the path home. A different route every time."));
 
     const legend = el("div", "mandate-legend");
     legend.innerHTML = [
       { ic: "🏁", name: "The Centre", blurb: "Reach it to accomplish the mission" },
       { ic: "🪙", name: "Golden coins", blurb: "A coin trail toward the centre" },
-      { ic: "🕳️", name: "Trap", blurb: "You get lost, back into the hedges" },
+      { ic: "🕳️", name: "Trap", blurb: "You get lost and lose ground" },
       { ic: "🏆", name: "Trophy", blurb: "Recognition, and another roll" },
       { ic: "💎", name: "Diamond", blurb: "A windfall that carries you on" },
       { ic: "❓", name: "Surprise", blurb: "A mystery, for better or worse" },
@@ -409,7 +409,7 @@
       icon: "◆",
       title: "The Mandate",
       subtitle: "Set the table",
-      intro: "Choose who takes each seat. Pick Human and name yourself; pick AI and a rival coordinator joins the field. Two to four play, each entering the maze from their own gate.",
+      intro: "Choose who takes each seat. Pick Human and name yourself; pick AI and a rival coordinator joins the field. Two to four play, each starting from their own gate.",
       seatColors: COLORS,
       minSeats: 2, maxSeats: 4, defaultSeats: 2,
       startLabel: "Deal the postings ▸",
@@ -480,7 +480,7 @@
     });
     wrap.appendChild(row);
 
-    const go = el("button", "btn btn-primary big", "Enter the maze ▸");
+    const go = el("button", "btn btn-primary big", "Take up the mandate ▸");
     go.onclick = () => { CG.Audio.sfx.pick(); renderBoard(); kickOff(); };
     wrap.appendChild(go);
     root.appendChild(wrap);
@@ -516,10 +516,10 @@
       S.settings.autoPlay = on;
       toast(on ? "Auto cards on: cards advance on their own" : "Auto cards off: click to continue", on ? "good" : "muted");
     }));
-    const restart = el("button", "chip-toggle", "↺");
-    restart.title = "New game";
-    restart.onclick = () => { CG.Narrate.stop(); renderTitle(); };
-    ctrls.appendChild(restart);
+    const quit = el("button", "chip-toggle", "✕");
+    quit.title = "Quit game";
+    quit.onclick = () => { CG.Narrate.stop(); teardown(); CG.Platform.show(); };
+    ctrls.appendChild(quit);
     bar.appendChild(ctrls);
     wrap.appendChild(bar);
 
@@ -924,7 +924,7 @@
         `<div class="ec-band">A JUNCTION</div>` +
         `<div class="ec-icon">🧭</div>` +
         `<div class="ec-title">Which way?</div>` +
-        `<div class="ec-why">The hedges branch. The fountain is at the centre, but the dice make you spend every step, so choose with care, or get gloriously lost.</div>`;
+        `<div class="ec-why">The path branches. The mission is at the centre, but the dice make you spend every step, so choose with care, or get gloriously lost.</div>`;
       const grid = el("div", "maze-dirs");
       moves.forEach((m) => {
         const b = el("button", "btn btn-ghost maze-dir");
@@ -1002,7 +1002,7 @@
       const q = applyQuintet(p, card, -1);
       await showCard(p, card, "trap", q);
       if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.wah(); }
-      toast(`${p.name} gets lost in the hedges`, "bad");
+      toast(`${p.name} gets lost`, "bad");
       if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
       await warpTo(p, sp.to, "down");
@@ -1082,13 +1082,13 @@
     } else {
       if (r < 0.05)      { dest = gate;     type = "gate";     msg = `Disaster sends ${p.name} right back to the gate`; kind = "bad"; warp = "down"; }
       else if (r < 0.34) { dest = trap;     type = "trap";     msg = `Bad news leaves ${p.name} lost at the next trap`; kind = "bad"; warp = "down"; }
-      else if (r < 0.78) { dest = back;     type = "back";     msg = `${p.name} loses ground deep in the hedges`; kind = "bad"; warp = "down"; }
+      else if (r < 0.78) { dest = back;     type = "back";     msg = `${p.name} loses ground`; kind = "bad"; warp = "down"; }
       else if (r < 0.90) { dest = fwd;      type = "fwd";      msg = `A small mercy threads ${p.name} toward the centre`; kind = "good"; warp = "up"; }
       else if (r < 0.97) { dest = shortcut; type = "shortcut"; msg = `An opening leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
       else               { dest = centre;   type = "centre";   msg = `Against all odds, ${p.name} reaches the centre 🏁`; kind = "good"; warp = "up"; }
     }
     // The next shortcut or trap can be missing; fall back to a plain thread.
-    if (!dest) { dest = good ? fwd : back; type = good ? "fwd" : "back"; warp = good ? "up" : "down"; msg = good ? `${p.name} threads ahead toward the centre` : `${p.name} loses ground deep in the hedges`; }
+    if (!dest) { dest = good ? fwd : back; type = good ? "fwd" : "back"; warp = good ? "up" : "down"; msg = good ? `${p.name} moves ahead toward the centre` : `${p.name} loses ground`; }
     // Never a non-move: if it lands on the current cell, nudge one corridor.
     if (dest.r === p.cell.r && dest.c === p.cell.c) { dest = good ? toward(p.cell, 1) : away(p.cell, 1); type = good ? "fwd" : "back"; warp = good ? "up" : "down"; }
 
@@ -1099,15 +1099,15 @@
   // corridors, and where the player is led next.
   function surpriseLine(p, dest, type) {
     const steps = Math.abs(distOf(dest) - distOf(p.cell));
-    const s = steps === 1 ? "corridor" : "corridors";
+    const s = steps === 1 ? "step" : "steps";
     switch (type) {
-      case "centre":   return `As a result, you are swept all the way to the fountain at the centre.`;
+      case "centre":   return `As a result, you are swept all the way to the centre.`;
       case "gate":     return `As a result, you are sent all the way back to your gate.`;
       case "shortcut": return `As a result, you are led ${steps} ${s} ahead to the next trail of golden coins, then it carries you on.`;
       case "trap":     return `As a result, you are led to the next trap, where you get lost.`;
-      case "fwd":      return `As a result, you thread ${steps} ${s} ahead toward the centre.`;
-      case "back":     return `As a result, you lose ${steps} ${s}, pushed deeper into the hedges.`;
-      default:         return `As a result, you are moved through the maze.`;
+      case "fwd":      return `As a result, you move ${steps} ${s} ahead toward the centre.`;
+      case "back":     return `As a result, you lose ${steps} ${s} of ground.`;
+      default:         return `As a result, you are moved along the path.`;
     }
   }
 
@@ -1239,15 +1239,15 @@
   }
 
   function showFinishCard(p, isLast, done) {
-    const spoken = `${p.name} reaches the centre of the maze, ${ordinal(p.rank)} of the field. The mission is accomplished here.`;
+    const spoken = `${p.name} reaches the centre, ${ordinal(p.rank)} of the field. The mission is accomplished here.`;
     const over = el("div", "overlay-card");
     const c = el("div", "event-card trophy");
     c.innerHTML =
       `<div class="ec-band">${ordinal(p.rank).toUpperCase()} HOME</div>` +
       `<div class="ec-icon">${MEDALS[p.rank - 1] || "🏁"}</div>` +
       `<div class="ec-title">${esc(p.name)} reaches the centre</div>` +
-      `<div class="ec-why">${esc(p.role.name)} threads the last hedge and accomplishes the mission ${ordinal(p.rank)}.` +
-        `${isLast ? " Every team is home now. The maze is solved." : " The rest of the field is still finding the way."}</div>`;
+      `<div class="ec-why">${esc(p.role.name)} reaches the centre and accomplishes the mission ${ordinal(p.rank)}.` +
+        `${isLast ? " Every team is home now. The mission is complete." : " The rest of the field is still finding the way."}</div>`;
     const actions = el("div", "ec-actions");
     const cont = el("button", "btn btn-primary", isLast ? "Final standings ▸" : "Play on ▸");
     const fin = () => { CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); done(); };
@@ -1297,13 +1297,13 @@
         `<span class="champ-note">${esc(c.note)}</span></span>` +
       `</div>`;
     }).join("");
-    return `<div class="champ-head">Champions of the Maze</div><div class="champ-list">${rows}</div>`;
+    return `<div class="champ-head">Champions of the Mandate</div><div class="champ-list">${rows}</div>`;
   }
 
   function championsLine(champs) {
     if (!champs.length) return "";
     const parts = champs.map((c) => `${c.who.map((p) => p.name).join(" and ")}, ${c.title} champion`);
-    return ` And the champions of the maze: ${parts.join("; ")}.`;
+    return ` And the champions of the mandate: ${parts.join("; ")}.`;
   }
 
   function endGame() {
@@ -1329,13 +1329,13 @@
     const over = el("div", "overlay-card show");
     const c = el("div", "event-card win");
     c.innerHTML =
-      `<div class="ec-band">THE MAZE IS SOLVED</div>` +
+      `<div class="ec-band">MISSION ACCOMPLISHED</div>` +
       `<div class="ec-icon">🏁</div>` +
       `<div class="ec-title">The whole table reaches the centre</div>` +
       championsHtml(champs) +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
-    const again = el("button", "btn btn-primary", "Run a new maze ▸");
+    const again = el("button", "btn btn-primary", "Play again ▸");
     again.onclick = () => { over.remove(); CG.Narrate.stop(); renderTitle(); };
     const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
     speak.onclick = () => CG.Narrate.speak(spoken);
