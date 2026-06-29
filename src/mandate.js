@@ -157,7 +157,10 @@
     theatre: null,
     busy: false,
     over: false,
-    settings: { music: true, voice: true },
+    // autoPlay off means "wait for the user to click": every seat, Human and AI,
+    // waits for a Roll click and every card waits for a Continue click. Turn it
+    // on and the whole table threads the maze by itself. Toggled live on the board.
+    settings: { music: true, voice: true, autoPlay: false },
     cells: [],          // GRID x GRID, each { walls:{N,E,S,W} }
     dist: [],           // GRID x GRID distance (in steps) to the centre
     maxDist: 1,
@@ -502,6 +505,14 @@
     const ctrls = el("div", "hud-ctrls");
     ctrls.appendChild(toggle("🎵", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
     ctrls.appendChild(toggle("🗣️", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); }));
+    // Auto-play: when on, the whole table rolls and turns the cards by itself;
+    // when off, every move waits for a click. Changeable at any point in the game.
+    ctrls.appendChild(toggle("▶️ Auto", S.settings.autoPlay, (on) => {
+      S.settings.autoPlay = on;
+      toast(on ? "Auto-play on: the table moves on its own" : "Auto-play off: click to move", on ? "good" : "muted");
+      setTurnTag();
+      if (on) maybeAutoRoll();
+    }));
     const restart = el("button", "chip-toggle", "↺");
     restart.title = "New game";
     restart.onclick = () => { CG.Narrate.stop(); renderTitle(); };
@@ -780,20 +791,28 @@
   // =======================================================================
   // TURN FLOW
   // =======================================================================
-  function kickOff() { setTurnTag(); if (S.players[S.current].isAI) scheduleAI(); }
+  function kickOff() { maybeAutoRoll(); }
 
   function setTurnTag() {
     const tt = $("#turnTag");
     const p = S.players[S.current];
+    const label = S.settings.autoPlay
+      ? (p.isAI ? esc(p.name) + " is moving…" : "Auto-playing…")
+      : (p.isAI ? "Roll for " + esc(p.name) : "Your move");
     if (tt) tt.innerHTML = S.over ? "Mission complete" :
-      `<span class="dot" style="background:${p.color}"></span>${p.isAI ? esc(p.name) + " is moving…" : "Your move"}`;
+      `<span class="dot" style="background:${p.color}"></span>${label}`;
     const btn = $("#rollBtn");
-    if (btn) { btn.disabled = S.busy || S.over || p.isAI; btn.classList.toggle("ai", p.isAI && !S.over); }
+    // In manual play the button is live for every seat (you click to roll even
+    // for the AI); in auto-play it is disabled because the table rolls itself.
+    if (btn) { btn.disabled = S.busy || S.over || S.settings.autoPlay; btn.classList.toggle("ai", p.isAI && !S.over && S.settings.autoPlay); }
   }
-  function scheduleAI() {
+  // Roll the current seat automatically, but only while auto-play is on. With it
+  // off, every seat (Human or AI) waits for the user to click Roll.
+  function maybeAutoRoll() {
     if (S.over) return;
     setTurnTag();
-    setTimeout(() => { if (!S.over && S.players[S.current].isAI) onRoll(); }, 850);
+    if (!S.settings.autoPlay) return;
+    setTimeout(() => { if (!S.over && !S.busy && S.settings.autoPlay) onRoll(); }, 750);
   }
 
   async function onRoll() {
@@ -818,8 +837,8 @@
     if (again && !S.over) {
       if (S.settings.music) CG.Audio.sfx.doubles();
       toast(`${p.name} rolls again`, "good");
-      S.busy = false; setTurnTag();
-      if (p.isAI) scheduleAI();
+      S.busy = false;
+      maybeAutoRoll();
       return;
     }
     endTurn();
@@ -835,8 +854,8 @@
       if (np.skipNext) { np.skipNext = false; toast(`${np.name} loses a turn`, "muted"); continue; }
       break;
     } while (++guard <= S.players.length * 2);
-    renderStandings(); renderTokens(); setTurnTag();
-    if (!S.over && S.players[S.current].isAI) scheduleAI();
+    renderStandings(); renderTokens();
+    maybeAutoRoll();
   }
 
   async function animateDice(values) {
@@ -969,7 +988,8 @@
   // =======================================================================
   // LANDINGS
   // =======================================================================
-  async function resolveLanding(p) {
+  async function resolveLanding(p, depth) {
+    depth = depth || 0;
     const sp = specialAt(p.cell);
     if (!sp) return;
     if (sp.kind === "shortcut") {
@@ -1007,7 +1027,7 @@
     } else if (sp.kind === "surprise") {
       const card = fillCard(weightedDraw(CG.SURPRISE_CARDS, p), p);
       await showCard(p, card, "surprise", null);
-      await applySurprise(p, card);
+      await applySurprise(p, card, depth);
     } else if (sp.kind === "note") {
       const note = S.decks.note();
       if (S.settings.music) CG.Audio.sfx.note();
@@ -1016,7 +1036,63 @@
     renderStandings();
   }
 
-  async function applySurprise(p, card) {
+  // every special cell of one kind, as {r,c}[]
+  function specialsOfKind(kind) {
+    const out = [];
+    Object.keys(S.special).forEach((k) => {
+      if (S.special[k].kind !== kind) return;
+      const [r, c] = k.split(",").map(Number);
+      out.push({ r, c });
+    });
+    return out;
+  }
+  // the nearest such cell that lies ahead of `fromDist`: toward=true means closer
+  // to the centre (good news), toward=false means deeper into the hedges (bad).
+  function nearestAhead(cells, fromDist, toward) {
+    const cand = cells.filter((c) => toward ? distOf(c) < fromDist : distOf(c) > fromDist);
+    if (!cand.length) return null;
+    cand.sort((a, b) => Math.abs(distOf(a) - fromDist) - Math.abs(distOf(b) - fromDist));
+    return cand[0];
+  }
+
+  // From time to time a surprise warps the player to the next landmark, picked by
+  // the mood of the card: good news (anything but a "skip") follows a trail of
+  // coins to the next shortcut, trophy or diamond toward the centre; bad news
+  // drops them at the next trap deeper in the hedges, and once in a while sends
+  // them right back to their gate. Returns true when it took over the surprise.
+  async function surpriseJump(p, card, depth) {
+    if (Math.random() >= 0.3) return false;             // just now and then
+    const fromDist = distOf(p.cell);
+    if (card.effect !== "skip") {                       // good news draws you in
+      const opts = [
+        { cell: nearestAhead(specialsOfKind("shortcut"), fromDist, true), msg: `A turn of luck sweeps ${p.name} to a trail of golden coins` },
+        { cell: nearestAhead(specialsOfKind("trophy"), fromDist, true), msg: `Good news leads ${p.name} to the next trophy 🏆` },
+        { cell: nearestAhead(specialsOfKind("diamond"), fromDist, true), msg: `Good news leads ${p.name} to the next diamond 💎` },
+      ].filter((o) => o.cell);
+      if (!opts.length) return false;
+      const o = opts[Math.floor(Math.random() * opts.length)];
+      toast(o.msg, "good");
+      await warpTo(p, o.cell, "up");
+      if (!atCenter(p) && depth < 2) await resolveLanding(p, depth + 1);
+      return true;
+    }
+    // bad news: usually the next trap, occasionally right back to the gate
+    if (Math.random() < 0.25) {
+      toast(`Bad news sends ${p.name} right back to the gate`, "bad");
+      shake();
+      await warpTo(p, { r: p.entry.cell.r, c: p.entry.cell.c }, "down");
+      return true;
+    }
+    const trap = nearestAhead(specialsOfKind("trap"), fromDist, false);
+    if (!trap) return false;
+    toast(`Bad news leaves ${p.name} lost at the next trap`, "bad");
+    await warpTo(p, trap, "down");
+    if (depth < 2) await resolveLanding(p, depth + 1);
+    return true;
+  }
+
+  async function applySurprise(p, card, depth) {
+    if (await surpriseJump(p, card, depth)) return;
     switch (card.effect) {
       case "bonus": p.bonusRoll = true; toast(`${p.name} earns a bonus roll`, "good"); break;
       case "skip": p.skipNext = true; toast(`${p.name} will lose a turn`, "bad"); break;
@@ -1034,7 +1110,9 @@
 
   function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
-    if (!p.isAI) {
+    if (!S.settings.autoPlay) {
+      // Manual play: every seat (Human or AI) waits for the user to click
+      // Continue; hold it disabled while the narrator is still reading the line.
       if (cont && voiced) {
         cont.disabled = true;
         let freed = false;
