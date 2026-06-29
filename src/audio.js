@@ -146,45 +146,88 @@
     voice(from, ctx.currentTime, dur, "triangle", gain == null ? 0.2 : gain, sfxGain, to);
   }
 
-  // One hand-clap: a very short burst of band-passed noise with a sharp decay.
+  // One hand-clap: a sharp, brief crack of high noise with a snappy attack
+  // and a fast decay, so a crowd of them reads as real clapping, not static.
   function clapTick(t, amp) {
-    const len = 0.03;
-    const buf = ctx.createBuffer(1, Math.max(1, Math.ceil(ctx.sampleRate * len)), ctx.sampleRate);
+    const len = 0.05;
+    const sr = ctx.sampleRate;
+    const buf = ctx.createBuffer(1, Math.max(1, Math.ceil(sr * len)), sr);
     const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) {
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+      const p = i / d.length;
+      // tiny silence then an instant attack, then exponential snap-off
+      const env = p < 0.04 ? p / 0.04 : Math.pow(1 - (p - 0.04) / (1 - 0.04), 4);
+      d[i] = (Math.random() * 2 - 1) * env;
     }
     const src = ctx.createBufferSource(); src.buffer = buf;
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass"; hp.frequency.value = 1100;
     const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass"; bp.frequency.value = 1500 + Math.random() * 900; bp.Q.value = 0.9;
+    bp.type = "bandpass"; bp.frequency.value = 1900 + Math.random() * 1500; bp.Q.value = 1.4;
     const g = ctx.createGain(); g.gain.value = amp;
-    src.connect(bp); bp.connect(g); g.connect(sfxGain);
+    src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(sfxGain);
     src.start(t); src.stop(t + len + 0.02);
   }
 
-  // Warm applause: many short claps, swelling in then fading, for a success.
+  // A crowd of applause: a few sharp lead claps up front, then a dense wash
+  // that swells and fades. Each clap is jittered in time so it never sounds
+  // like a metronome.
   function applause(dur, gain) {
-    ensure(); if (!ctx || muted) return;
-    if (ctx.state === "suspended") ctx.resume();
+    if (!ctx) return;
     const t0 = ctx.currentTime;
-    dur = dur || 1.4;
-    const peak = gain == null ? 0.28 : gain;
-    const claps = 34;
+    dur = dur || 1.6;
+    const peak = gain == null ? 0.3 : gain;
+    // three crisp foreground claps to kick it off
+    [0, 0.12, 0.26].forEach((dt, i) => clapTick(t0 + dt, peak * (0.9 - i * 0.12)));
+    // the crowd behind: many softer, denser claps swelling 0..1..0
+    const claps = 48;
     for (let i = 0; i < claps; i++) {
       const phase = i / claps;
-      const env = Math.sin(Math.PI * phase);            // density swells 0..1..0
-      const jitter = (Math.random() - 0.5) * 0.045;
-      clapTick(t0 + phase * dur + jitter, peak * (0.35 + env));
+      const env = Math.sin(Math.PI * phase);
+      const jitter = (Math.random() - 0.5) * 0.06;
+      clapTick(t0 + 0.18 + phase * (dur - 0.18) + jitter, peak * (0.18 + env * 0.55));
     }
   }
 
-  // Two short low square buzzes: a mild "wrong answer" cue for a setback.
-  function buzzer() {
+  // Celebration cue: a bright rising "ta-da" arpeggio with a shimmer on top,
+  // riding over a warm wash of applause. Used for a real success.
+  function celebrate() {
     ensure(); if (!ctx || muted) return;
     if (ctx.state === "suspended") ctx.resume();
     const t = ctx.currentTime;
-    voice(160, t, 0.15, "square", 0.16, sfxGain);
-    voice(160, t + 0.2, 0.15, "square", 0.16, sfxGain);
+    const arp = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6, a major lift
+    arp.forEach((f, i) => voice(f, t + i * 0.08, 0.45, "triangle", 0.2, sfxGain));
+    voice(1318.5, t + 0.34, 0.6, "sine", 0.12, sfxGain);   // sparkle high above
+    voice(1567.98, t + 0.42, 0.5, "sine", 0.09, sfxGain);
+    applause(1.7, 0.24);
+  }
+
+  // A long, descending, warbling wail: the cartoon "waaaaa" of disappointment.
+  // A sawtooth tone bends downward with a vibrato wobble for the crying quality.
+  function wah() {
+    ensure(); if (!ctx || muted) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime;
+    const dur = 1.1;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 1300;
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(470, t);
+    o.frequency.exponentialRampToValueAtTime(150, t + dur);   // the falling "waaaa"
+    // vibrato: a gentle wobble that gives it the crying warble
+    const vib = ctx.createOscillator();
+    const vibAmt = ctx.createGain();
+    vib.type = "sine"; vib.frequency.value = 6.5; vibAmt.gain.value = 16;
+    vib.connect(vibAmt); vibAmt.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.24, t + 0.08);
+    g.gain.setValueAtTime(0.24, t + dur * 0.55);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(lp); lp.connect(g); g.connect(sfxGain);
+    o.start(t); o.stop(t + dur + 0.05);
+    vib.start(t); vib.stop(t + dur + 0.05);
   }
 
   Audio.sfx = {
@@ -198,7 +241,7 @@
     click:  () => seq([320], 0, 0.05, "sine", 0.1),
     win:    () => seq([523, 659, 784, 1047, 1319, 1568], 0.12, 0.4, "triangle", 0.24),
     lose:   () => seq([392, 330, 262, 196], 0.14, 0.4, "sine", 0.2),
-    clap:   () => applause(),                                 // applause for a success
-    buzzer: () => buzzer(),                                   // gentle buzz for a setback
+    clap:   () => celebrate(),                                // applause + fanfare for a success
+    wah:    () => wah(),                                      // descending "waaaa" for a setback
   };
 })();

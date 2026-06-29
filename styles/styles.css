@@ -454,6 +454,8 @@ button { font-family: inherit; cursor: pointer; }
 @keyframes pop { from { transform: scale(.3) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
 .ec-title { font-family: "Fraunces", serif; font-size: 27px; font-weight: 700; margin-bottom: 6px; line-height: 1.15; color: var(--ink); }
 .ec-move { display: inline-block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 15px; background: #eef3fb; padding: 4px 16px; border-radius: 999px; margin-bottom: 13px; }
+/* a surprise spells out the imposed move as a full sentence, not a short pill */
+.ec-move.ec-impose { display: block; font-size: 14.5px; line-height: 1.5; background: #fff6e6; border: 1px solid rgba(214,158,46,.4); color: #5a4205; border-radius: 12px; padding: 11px 15px; text-align: left; }
 .ec-why { font-size: 15.5px; line-height: 1.55; margin-bottom: 16px; color: #2e3f54; }
 .ec-fact { background: #f4f8ff; border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; font-size: 14px; line-height: 1.55; text-align: left; color: var(--ink); }
 .ec-fact.big { font-size: 16px; }

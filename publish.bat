@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  CARD BUTTONS CUT THE VOICE (both games). Clicking any card button,
+REM              Continue, Climb, Down you go, Collect, Carry on, Play on, and the
+REM              rest, now stops the ongoing narration immediately and moves on,
+REM              instead of letting the voice finish first. game.js v34,
+REM              mandate.js v22.
 REM  2026-06-29  QUINTET CARDS EXPANDED PAST 50 PERCENT (both games). Players were
 REM              finishing whole games without ever touching a UN 2.0 capability,
 REM              so 140 new, web-researched ladder and hole cards were added, 14
