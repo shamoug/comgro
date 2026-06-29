@@ -111,7 +111,19 @@
       }
       return out;
     };
-    return { ladders, snakes, trophies: take(4), diamonds: take(5), surprises: take(6), fieldNotes: take(5) };
+    // Always plant one surprise in the home stretch (95-99) and mark it as
+    // always-negative, so the final approach carries a real risk to the end.
+    const takeIn = (lo, hi) => {
+      const opts = [];
+      for (let s = lo; s <= hi; s++) if (!used.has(s)) opts.push(s);
+      if (!opts.length) return null;
+      const s = opts[Math.floor(Math.random() * opts.length)];
+      used.add(s); return s;
+    };
+    const negativeSurprise = takeIn(95, 99);
+    const surprises = take(negativeSurprise == null ? 6 : 5);
+    if (negativeSurprise != null) surprises.push(negativeSurprise);
+    return { ladders, snakes, trophies: take(4), diamonds: take(5), surprises, fieldNotes: take(5), negativeSurprise };
   }
 
   // Draw a card, favouring ones whose tag matches the crisis theatre, so the
@@ -994,7 +1006,8 @@
   // square so a ladder climbs and a hole drops, bounded so it cannot loop.
   function planSurprise(p, card) {
     const B = S.board;
-    const good = card.effect !== "skip";
+    const forcedBad = p.pos === B.negativeSurprise;
+    const good = !forcedBad && card.effect !== "skip";
     const ladder = nextAhead(p.pos, Object.keys(B.ladders).map(Number));
     const hole = nextAhead(p.pos, Object.keys(B.snakes).map(Number));
     const fwd = Math.min(100, p.pos + 2 + Math.floor(Math.random() * 5)); // +2..+6
@@ -1002,7 +1015,12 @@
     const r = Math.random();
 
     let dest, msg, kind, type;
-    if (good) {
+    if (forcedBad) {
+      // the home-stretch trap: always a genuine setback, never a reprieve.
+      if (r < 0.15)             { dest = 1;    type = "one";  msg = `Disaster sends ${p.name} right back to square one`; kind = "bad"; }
+      else if (r < 0.45 && hole != null) { dest = hole; type = "hole"; msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
+      else                      { dest = back; type = "back"; msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
+    } else if (good) {
       if (r < 0.05)      { dest = 100;    type = "finish"; msg = `An extraordinary break sweeps ${p.name} to the finish 🏁`; kind = "good"; }
       else if (r < 0.34) { dest = ladder; type = "ladder"; msg = `Good news carries ${p.name} to the next ladder`; kind = "good"; }
       else if (r < 0.78) { dest = fwd;    type = "fwd";    msg = `${p.name} is swept forward to ${fwd}`; kind = "good"; }

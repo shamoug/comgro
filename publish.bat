@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  HOME-STRETCH TRAP ON THE ROAD. The board now always plants one
+REM              surprise in squares 95-99, and landing on it is always a genuine
+REM              setback (back a few steps, into the next hole, or all the way to
+REM              square one), so the final approach to the finish always carries
+REM              real risk. game.js v35.
 REM  2026-06-29  AUTO CARDS TOGGLE READS CLEARLY AS ON. An active toggle is now a
 REM              solid blue chip with white text and a soft glow, not a faint blue
 REM              tint, so the Auto cards default (on) is unmistakable at a glance.
