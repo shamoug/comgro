@@ -1052,51 +1052,50 @@
     return cand[0];
   }
 
-  // From time to time a surprise warps the player to the next landmark, picked by
-  // the mood of the card: good news (anything but a "skip") follows a trail of
-  // coins to the next shortcut, trophy or diamond toward the centre; bad news
-  // drops them at the next trap deeper in the hedges, and once in a while sends
-  // them right back to their gate. Returns true when it took over the surprise.
-  async function surpriseJump(p, card, depth) {
-    if (Math.random() >= 0.3) return false;             // just now and then
-    const fromDist = distOf(p.cell);
-    if (card.effect !== "skip") {                       // good news draws you in
-      const opts = [
-        { cell: nearestAhead(specialsOfKind("shortcut"), fromDist, true), msg: `A turn of luck sweeps ${p.name} to a trail of golden coins` },
-        { cell: nearestAhead(specialsOfKind("trophy"), fromDist, true), msg: `Good news leads ${p.name} to the next trophy 🏆` },
-        { cell: nearestAhead(specialsOfKind("diamond"), fromDist, true), msg: `Good news leads ${p.name} to the next diamond 💎` },
-      ].filter((o) => o.cell);
-      if (!opts.length) return false;
-      const o = opts[Math.floor(Math.random() * opts.length)];
-      toast(o.msg, "good");
-      await warpTo(p, o.cell, "up");
-      if (!atCenter(p) && depth < 2) await resolveLanding(p, depth + 1);
-      return true;
-    }
-    // bad news: usually the next trap, occasionally right back to the gate
-    if (Math.random() < 0.25) {
-      toast(`Bad news sends ${p.name} right back to the gate`, "bad");
-      shake();
-      await warpTo(p, { r: p.entry.cell.r, c: p.entry.cell.c }, "down");
-      return true;
-    }
-    const trap = nearestAhead(specialsOfKind("trap"), fromDist, false);
-    if (!trap) return false;
-    toast(`Bad news leaves ${p.name} lost at the next trap`, "bad");
-    await warpTo(p, trap, "down");
-    if (depth < 2) await resolveLanding(p, depth + 1);
-    return true;
-  }
-
+  // A surprise ALWAYS moves you through the maze. Usually it threads you a few
+  // corridors toward the centre or loses you a few in the hedges; sometimes it
+  // leads you to the next shortcut or strands you at the next trap; and once in a
+  // blue moon it carries you all the way to the centre or right back to your
+  // gate. The card's mood (a "skip" card is the bad news, everything else good)
+  // tilts the winds, but either way can happen. The new cell is then resolved so
+  // a shortcut climbs and a trap loses you, bounded so it cannot loop.
   async function applySurprise(p, card, depth) {
-    if (await surpriseJump(p, card, depth)) return;
-    switch (card.effect) {
-      case "bonus": p.bonusRoll = true; toast(`${p.name} earns a bonus roll`, "good"); break;
-      case "skip": p.skipNext = true; toast(`${p.name} will lose a turn`, "bad"); break;
-      case "gem": p.diamonds++; award(p, 4); burst(p.cell, "up", 14); toast(`${p.name} pockets a diamond 💎`, "good"); break;
-      case "advance": toast(`${p.name} threads ahead`, "good"); await hopToward(p, 3); break;
-      default: break;
+    const good = card.effect !== "skip";
+    const fromDist = distOf(p.cell);
+    const shortcut = nearestAhead(specialsOfKind("shortcut"), fromDist, true);
+    const trap = nearestAhead(specialsOfKind("trap"), fromDist, false);
+    const fwd = toward(p.cell, 2 + Math.floor(Math.random() * 4));  // 2..5 toward centre
+    const back = away(p.cell, 2 + Math.floor(Math.random() * 4));   // 2..5 deeper in
+    const gate = { r: p.entry.cell.r, c: p.entry.cell.c };
+    const centre = { r: CENTER.r, c: CENTER.c };
+    const r = Math.random();
+
+    let dest, msg, kind, warp;
+    if (good) {
+      if (r < 0.05)      { dest = centre;   msg = `An extraordinary break sweeps ${p.name} to the centre 🏁`; kind = "good"; warp = "up"; }
+      else if (r < 0.34) { dest = shortcut; msg = `Good news leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
+      else if (r < 0.78) { dest = fwd;      msg = `${p.name} threads ahead toward the centre`; kind = "good"; warp = "up"; }
+      else if (r < 0.90) { dest = back;     msg = `A wrong turn loses ${p.name} ground`; kind = "muted"; warp = "down"; }
+      else if (r < 0.97) { dest = trap;     msg = `${p.name} blunders toward a trap`; kind = "bad"; warp = "down"; }
+      else               { dest = gate;     msg = `A freak setback sends ${p.name} back to the gate`; kind = "bad"; warp = "down"; }
+    } else {
+      if (r < 0.05)      { dest = gate;     msg = `Disaster sends ${p.name} right back to the gate`; kind = "bad"; warp = "down"; }
+      else if (r < 0.34) { dest = trap;     msg = `Bad news leaves ${p.name} lost at the next trap`; kind = "bad"; warp = "down"; }
+      else if (r < 0.78) { dest = back;     msg = `${p.name} loses ground deep in the hedges`; kind = "bad"; warp = "down"; }
+      else if (r < 0.90) { dest = fwd;      msg = `A small mercy threads ${p.name} toward the centre`; kind = "good"; warp = "up"; }
+      else if (r < 0.97) { dest = shortcut; msg = `An opening leads ${p.name} to a trail of golden coins`; kind = "good"; warp = "up"; }
+      else               { dest = centre;   msg = `Against all odds, ${p.name} reaches the centre 🏁`; kind = "good"; warp = "up"; }
     }
+    // The next shortcut or trap can be missing; fall back to a plain thread.
+    if (!dest) { dest = good ? fwd : back; warp = good ? "up" : "down"; msg = good ? `${p.name} threads ahead toward the centre` : `${p.name} loses ground deep in the hedges`; }
+    // Never a non-move: if it lands on the current cell, nudge one corridor.
+    if (dest.r === p.cell.r && dest.c === p.cell.c) { dest = good ? toward(p.cell, 1) : away(p.cell, 1); warp = good ? "up" : "down"; }
+
+    toast(msg, kind);
+    if (warp === "down") shake();
+    await warpTo(p, dest, warp);
+    if (atCenter(p)) return;            // onRoll detects the win
+    if (depth < 2) await resolveLanding(p, depth + 1);
   }
 
   // =======================================================================

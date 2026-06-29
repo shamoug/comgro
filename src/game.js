@@ -985,52 +985,47 @@
     return ahead.length ? ahead[0] : null;
   }
 
-  // From time to time a surprise sweeps the player to the next landmark, picked
-  // by the mood of the card: good news (anything but a "skip") carries them up to
-  // the next ladder, trophy or diamond ahead; bad news drops them into the next
-  // hole, and once in a while all the way back to square one. Most surprises
-  // still play out as their plain effect, so these jumps stay rare. Returns true
-  // when it took over the surprise, false to let the normal effect run.
-  async function surpriseJump(p, card, depth) {
-    if (Math.random() >= 0.3) return false;            // just now and then
-    const B = S.board;
-    if (card.effect !== "skip") {                      // good news lifts you forward
-      const dests = [
-        { sq: nextAhead(p.pos, Object.keys(B.ladders).map(Number)), msg: `A turn of luck sweeps ${p.name} to the next ladder` },
-        { sq: nextAhead(p.pos, B.trophies), msg: `Good news carries ${p.name} to the next trophy 🏆` },
-        { sq: nextAhead(p.pos, B.diamonds), msg: `Good news leads ${p.name} to the next diamond 💎` },
-      ].filter((d) => d.sq != null);
-      if (!dests.length) return false;
-      const d = dests[Math.floor(Math.random() * dests.length)];
-      toast(d.msg, "good");
-      await walk(p, d.sq);
-      if (p.pos !== 100 && depth < 2) await resolveLanding(p, depth + 1);
-      return true;
-    }
-    // bad news: usually the next hole, occasionally right back to the start
-    if (p.pos > 1 && Math.random() < 0.25) {
-      toast(`Bad news sends ${p.name} right back to square one`, "bad");
-      shake();
-      await walk(p, 1);
-      return true;
-    }
-    const hole = nextAhead(p.pos, Object.keys(B.snakes).map(Number));
-    if (hole == null) return false;
-    toast(`Bad news drops ${p.name} into the next hole`, "bad");
-    await walk(p, hole);
-    if (depth < 2) await resolveLanding(p, depth + 1);
-    return true;
-  }
-
+  // A surprise ALWAYS moves you. Usually it is a hop forward or back; sometimes
+  // it sweeps you to the next ladder or drops you into the next hole; and once in
+  // a blue moon it carries you all the way to the finish or right back to square
+  // one. The card's mood (a "skip" card is the bad news, everything else is good)
+  // tilts the winds, but either way can happen. After the move we resolve the new
+  // square so a ladder climbs and a hole drops, bounded so it cannot loop.
   async function applySurprise(p, card, depth) {
-    if (await surpriseJump(p, card, depth)) return;
-    switch (card.effect) {
-      case "bonus": p.bonusRoll = true; toast(`${p.name} earns a bonus roll`, "good"); break;
-      case "skip": p.skipNext = true; toast(`${p.name} will lose a turn`, "bad"); break;
-      case "gem": p.diamonds++; award(p, 4); burst(p.pos, "up", 14); toast(`${p.name} pockets a diamond 💎`, "good"); break;
-      case "advance": toast(`${p.name} jumps ahead`, "good"); await hop(p, 3, depth); break;
-      default: break;
+    const B = S.board;
+    const good = card.effect !== "skip";
+    const ladder = nextAhead(p.pos, Object.keys(B.ladders).map(Number));
+    const hole = nextAhead(p.pos, Object.keys(B.snakes).map(Number));
+    const fwd = Math.min(100, p.pos + 2 + Math.floor(Math.random() * 5)); // +2..+6
+    const back = Math.max(1, p.pos - (2 + Math.floor(Math.random() * 4))); // -2..-5
+    const r = Math.random();
+
+    let dest, msg, kind;
+    if (good) {
+      if (r < 0.05)      { dest = 100;    msg = `An extraordinary break sweeps ${p.name} to the finish 🏁`; kind = "good"; }
+      else if (r < 0.34) { dest = ladder; msg = `Good news carries ${p.name} to the next ladder`; kind = "good"; }
+      else if (r < 0.78) { dest = fwd;    msg = `${p.name} is swept forward to ${fwd}`; kind = "good"; }
+      else if (r < 0.90) { dest = back;   msg = `A small twist sets ${p.name} back to ${back}`; kind = "muted"; }
+      else if (r < 0.97) { dest = hole;   msg = `${p.name} stumbles toward the next hole`; kind = "bad"; }
+      else               { dest = 1;      msg = `A freak setback sends ${p.name} back to square one`; kind = "bad"; }
+    } else {
+      if (r < 0.05)      { dest = 1;      msg = `Disaster sends ${p.name} right back to square one`; kind = "bad"; }
+      else if (r < 0.34) { dest = hole;   msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
+      else if (r < 0.78) { dest = back;   msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
+      else if (r < 0.90) { dest = fwd;    msg = `A small mercy nudges ${p.name} forward to ${fwd}`; kind = "good"; }
+      else if (r < 0.97) { dest = ladder; msg = `An unexpected opening lifts ${p.name} to the next ladder`; kind = "good"; }
+      else               { dest = 100;    msg = `Against all odds, ${p.name} is swept to the finish 🏁`; kind = "good"; }
     }
+    // The next ladder or hole can be missing near the top of the board; fall back
+    // to a plain hop so a surprise never fails to move you.
+    if (dest == null) { dest = good ? fwd : back; msg = good ? `${p.name} is swept forward to ${dest}` : `${p.name} is pushed back to ${dest}`; }
+    if (dest === p.pos) dest = good ? Math.min(100, p.pos + 1) : Math.max(1, p.pos - 1);
+
+    toast(msg, kind);
+    if (dest < p.pos) shake();
+    await walk(p, dest);
+    if (p.pos === 100) return;           // onRoll detects the win
+    if (depth < 2) await resolveLanding(p, depth + 1);
   }
 
   // a forward hop (treasure / lucky break); may chain once into another square
