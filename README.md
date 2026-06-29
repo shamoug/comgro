@@ -1,12 +1,9 @@
-# Common Ground: The Game Room
+# Common Ground: The Long Road
 
-A small game platform for a UN Country Team. Each seat at the table can be a human
-(you name them) or an AI rival (named for you). Open it and pick how you want to
-play. Everything runs in the browser, with spoken narration and an original
-cinematic score generated live.
-
-The Game Room is built to grow. It currently ships two games, **The Long Road**
-and **The Mandate**, and more can be added as cards on the launcher.
+A small game for a UN Country Team. Each seat at the table can be a human
+(you name them) or an AI rival (named for you). Open it and play. Everything runs
+in the browser, with spoken narration and an original cinematic score generated
+live.
 
 ## The Long Road, Ladders &amp; Holes
 
@@ -25,23 +22,6 @@ you are posted to.
 - **Surprise cards ❓** are a mystery: a bonus, a jump ahead, a found gem, or a lost turn.
 - **Field notes ★** drop a fun fact as you pass.
 
-## The Mandate, a journey of choices
-
-A game in the spirit of the Game of Life. You do not only race: you **make
-choices** and **build a legacy**. **Spin the wheel** and travel a winding road,
-generated fresh every game with one real **fork** where you pick your route.
-
-- **Crossroads ⚖️** are real dilemmas: speed or trust, fast money or flexible
-  money, your logo or the result. Each option carries a trade-off.
-- **Funding 💰, Trust 🤝 and Capacity 👥** are the three resources you collect.
-- **Milestones ⭐** are the big career markers: worth more, and you spin again.
-- **Events ⚡** are the breaks and setbacks the field really deals.
-- The whole table shares the **UN 2.0 Quintet of Change**, as in The Long Road.
-
-The twist: play runs until the **last** player reaches the handover, and the
-**richest legacy wins, not the fastest finish**. Finishing early earns a bonus,
-but the coordinator who built the deepest legacy completes the mandate.
-
 It is a single static website. No backend, no build step, no accounts, no
 external media. Drop it on GitHub Pages and it just runs.
 
@@ -53,8 +33,8 @@ external media. Drop it on GitHub Pages and it just runs.
 
 1. Build your table: choose **2 to 4 players**, and for each seat pick **Human or
    AI**. Human seats type a name; AI seats are given a random one (with a die to
-   reroll). Mix freely: solo against AI, hotseat with friends, or all AI. For the
-   Long Road, also choose **one die or two dice** for the pace you want.
+   reroll). Mix freely: solo against AI, hotseat with friends, or all AI. Also
+   choose **one die or two dice** for the pace you want.
 2. The deal hands you a **Job Title** (your avatar this game) and posts you to a
    **Crisis Theatre** (the country).
 3. Press **Roll**. You move the sum of your dice.
@@ -102,15 +82,14 @@ Netlify, an S3 bucket, a USB stick). Relative paths keep it working everywhere.
 ## Project layout
 
 ```
-index.html          Loads the data, the games, then the launcher.
-data/content.js     ALL content for both games: decks, cards, theatres, names, story.
+index.html          Loads the data, the game, then the launcher.
+data/content.js     ALL game content: decks, cards, theatres, names, story.
 src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
 src/narrate.js      Warm English narration (Web Speech API).
-src/setup.js        Shared "build your table" roster screen (Human / AI seats).
+src/setup.js        The "build your table" roster screen (Human / AI seats).
 src/game.js         The Long Road: dynamic board, dice, movement, render.
-src/mandate.js      The Mandate: winding road, spinner, resources, decisions.
-src/platform.js     The launcher that lets you choose a game.
-styles/styles.css   One self-contained stylesheet (boards, dice, cards are CSS/SVG).
+src/platform.js     The launcher that boots the game.
+styles/styles.css   One self-contained stylesheet (board, dice, cards are CSS/SVG).
 ```
 
 **To change the story, edit only `data/content.js`.** Add or rewrite hole cards,

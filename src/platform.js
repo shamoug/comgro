@@ -1,13 +1,13 @@
 /* =========================================================================
  * COMMON GROUND, platform.js
- * The game launcher. Boots the page and lets the player choose which game to
- * play. Each game registers itself (CG.SnakesGame, CG.MandateGame) and exposes
- * a show() method; the launcher just mounts the chosen one. Games return here
- * via their own "back to games" link. More games can be added as cards below.
+ * The launcher. Boots the page straight into the game. Common Ground is now a
+ * single game, The Long Road (CG.SnakesGame), which registers itself and
+ * exposes a show() method; the launcher just mounts it. The in-game Quit button
+ * calls back here to return to the game's own title screen. If more games are
+ * added later, this is where a chooser would live again.
  * ========================================================================= */
 (function () {
   const CG = (window.CG = window.CG || {});
-  const app = () => document.getElementById("app");
   function el(tag, cls, html) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -17,41 +17,7 @@
 
   function show() {
     if (CG.Narrate) CG.Narrate.stop();
-    const root = app();
-    root.innerHTML = "";
-    const wrap = el("div", "screen platform-screen");
-    wrap.appendChild(el("div", "title-glow"));
-    wrap.appendChild(el("div", "logo-mark", "◆"));
-    wrap.appendChild(el("h1", "title", "Common Ground"));
-    wrap.appendChild(el("p", "subtitle", "The Game Room"));
-    wrap.appendChild(el("p", "tagline",
-      "Two games, one table. Pick how you want to play, gather your AI rivals, and learn a little about how real coordination works along the way."));
-
-    const grid = el("div", "game-grid");
-
-    const snakes = el("button", "game-card snakes-card");
-    snakes.innerHTML =
-      `<div class="gc-icon">🪜🕳️</div>` +
-      `<div class="gc-title">The Long Road</div>` +
-      `<div class="gc-sub">Ladders &amp; Holes</div>` +
-      `<div class="gc-desc">Race a hundred squares to a finished mandate. Climb the lucky breaks, dodge the crises, collect trophies and diamonds. A different board every time.</div>` +
-      `<div class="gc-play">Play ▸</div>`;
-    snakes.onclick = () => CG.SnakesGame && CG.SnakesGame.show();
-
-    const mandate = el("button", "game-card mandate-card");
-    mandate.innerHTML =
-      `<div class="gc-icon">🧭🏁</div>` +
-      `<div class="gc-title">The Mandate</div>` +
-      `<div class="gc-sub">Find the path to the mission</div>` +
-      `<div class="gc-desc">Start from your own gate and find your way to the centre, where the mission is accomplished. Roll the die, take the shortcuts, dodge the traps that get you lost. A different route every time, finished only when the last team is home.</div>` +
-      `<div class="gc-play">Play ▸</div>`;
-    mandate.onclick = () => CG.MandateGame && CG.MandateGame.show();
-
-    grid.appendChild(snakes);
-    grid.appendChild(mandate);
-    wrap.appendChild(grid);
-    wrap.appendChild(el("p", "byline", "Designed by <b>Digital Solutions Lab</b>"));
-    root.appendChild(wrap);
+    if (CG.SnakesGame) CG.SnakesGame.show();
   }
 
   // Tap outside a floating card to dismiss it. Clicking the dim backdrop runs
