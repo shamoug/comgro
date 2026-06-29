@@ -103,14 +103,17 @@
     CG.QUINTET.forEach((c) => (q[c.key] = 0));
     return q;
   }
-  // A shortcut strengthens a capability, a trap sets one back; the capability
-  // is inferred from the card's tag, exactly as in The Long Road.
-  function applyQuintet(p, tag, dir) {
-    const key = CG.quintetForTag(tag);
+  // A shortcut can strengthen a capability and a trap set one back; the
+  // capability comes from the card itself (an explicit "quint", or a principled
+  // mapping of its tag) so the nudge fits the fact, exactly as in The Long Road.
+  // A card whose fact relates to no capability touches none.
+  function applyQuintet(p, card, dir) {
+    award(p, dir > 0 ? 3 : -2);   // perseverance counts whether or not a capability is touched
+    const key = (card && card.quint) || CG.quintetForTag(card && card.tag);
+    if (!key) return null;
     const meta = CG.quintetMeta(key);
     S.quintet[key] = (S.quintet[key] || 0) + dir;
     p.contrib[key] = (p.contrib[key] || 0) + dir;
-    award(p, dir > 0 ? 3 : -2);
     return { key, meta, dir, level: S.quintet[key] };
   }
   function award(p, pts) { p.points = Math.max(0, (p.points || 0) + pts); }
@@ -988,19 +991,19 @@
     if (!sp) return;
     if (sp.kind === "shortcut") {
       const card = fillCard(weightedDraw(CG.LADDER_CARDS, p), p);
-      const q = applyQuintet(p, card.tag, +1);
+      const q = applyQuintet(p, card, +1);
       await showCard(p, card, "shortcut", q);
       if (S.settings.music) CG.Audio.sfx.ladder();
       toast(`${p.name} follows a trail of golden coins`, "good");
-      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
+      if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await warpTo(p, sp.to, "up");
     } else if (sp.kind === "trap") {
       const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
-      const q = applyQuintet(p, card.tag, -1);
+      const q = applyQuintet(p, card, -1);
       await showCard(p, card, "trap", q);
       if (S.settings.music) CG.Audio.sfx.snake();
       toast(`${p.name} gets lost in the hedges`, "bad");
-      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
+      if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
       await warpTo(p, sp.to, "down");
     } else if (sp.kind === "trophy") {
