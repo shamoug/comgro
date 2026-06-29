@@ -14,6 +14,8 @@
   let master = null;
   let musicGain = null;
   let sfxGain = null;
+  let reverb = null;      // a hall reverb the richer SFX are sent into
+  let reverbGain = null;
   let started = false;
   let muted = false;
   let loopTimer = null;
@@ -41,6 +43,25 @@
     master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
     musicGain = ctx.createGain(); musicGain.gain.value = 0.0; musicGain.connect(master);
     sfxGain = ctx.createGain(); sfxGain.gain.value = 0.7; sfxGain.connect(master);
+    reverb = ctx.createConvolver(); reverb.buffer = makeReverbIR(2.4, 2.6);
+    reverbGain = ctx.createGain(); reverbGain.gain.value = 0.8;
+    reverb.connect(reverbGain); reverbGain.connect(master);
+  }
+
+  // A synthesised hall impulse: exponentially-decaying stereo noise. Convolving
+  // a dry tone with this gives it space and tail, the difference between a cheap
+  // beep and a sound that feels designed.
+  function makeReverbIR(seconds, decay) {
+    const rate = ctx.sampleRate;
+    const len = Math.max(1, Math.floor(rate * seconds));
+    const ir = ctx.createBuffer(2, len, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+      }
+    }
+    return ir;
   }
 
   function freq(semi) { return ROOT * Math.pow(2, semi / 12); }
@@ -146,88 +167,67 @@
     voice(from, ctx.currentTime, dur, "triangle", gain == null ? 0.2 : gain, sfxGain, to);
   }
 
-  // One hand-clap: a sharp, brief crack of high noise with a snappy attack
-  // and a fast decay, so a crowd of them reads as real clapping, not static.
-  function clapTick(t, amp) {
-    const len = 0.05;
-    const sr = ctx.sampleRate;
-    const buf = ctx.createBuffer(1, Math.max(1, Math.ceil(sr * len)), sr);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) {
-      const p = i / d.length;
-      // tiny silence then an instant attack, then exponential snap-off
-      const env = p < 0.04 ? p / 0.04 : Math.pow(1 - (p - 0.04) / (1 - 0.04), 4);
-      d[i] = (Math.random() * 2 - 1) * env;
-    }
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass"; hp.frequency.value = 1100;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass"; bp.frequency.value = 1900 + Math.random() * 1500; bp.Q.value = 1.4;
-    const g = ctx.createGain(); g.gain.value = amp;
-    src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(sfxGain);
-    src.start(t); src.stop(t + len + 0.02);
-  }
-
-  // A crowd of applause: a few sharp lead claps up front, then a dense wash
-  // that swells and fades. Each clap is jittered in time so it never sounds
-  // like a metronome.
-  function applause(dur, gain) {
+  // A single FM bell/glockenspiel note: a sine carrier whose pitch is shaped by
+  // a fast-decaying modulator, giving a bright metallic "ting" with a soft tail.
+  // Sent dry to the SFX bus and wet to the reverb so it rings in a hall.
+  function bell(f, t, dur, peak, wet) {
     if (!ctx) return;
-    const t0 = ctx.currentTime;
-    dur = dur || 1.6;
-    const peak = gain == null ? 0.3 : gain;
-    // three crisp foreground claps to kick it off
-    [0, 0.12, 0.26].forEach((dt, i) => clapTick(t0 + dt, peak * (0.9 - i * 0.12)));
-    // the crowd behind: many softer, denser claps swelling 0..1..0
-    const claps = 48;
-    for (let i = 0; i < claps; i++) {
-      const phase = i / claps;
-      const env = Math.sin(Math.PI * phase);
-      const jitter = (Math.random() - 0.5) * 0.06;
-      clapTick(t0 + 0.18 + phase * (dur - 0.18) + jitter, peak * (0.18 + env * 0.55));
-    }
+    const car = ctx.createOscillator(); car.type = "sine"; car.frequency.value = f;
+    const mod = ctx.createOscillator(); mod.type = "sine"; mod.frequency.value = f * 1.5;
+    const modAmt = ctx.createGain();
+    modAmt.gain.setValueAtTime(f * 1.4, t);
+    modAmt.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.5);
+    mod.connect(modAmt); modAmt.connect(car.frequency);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.006);   // instant mallet attack
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);   // long bell decay
+    car.connect(g); g.connect(sfxGain);
+    if (reverb) { const w = ctx.createGain(); w.gain.value = wet == null ? 0.6 : wet; g.connect(w); w.connect(reverb); }
+    car.start(t); car.stop(t + dur + 0.05); mod.start(t); mod.stop(t + dur + 0.05);
   }
 
-  // Celebration cue: a bright rising "ta-da" arpeggio with a shimmer on top,
-  // riding over a warm wash of applause. Used for a real success.
+  // A warm, mellow tone built from two detuned voices through a lowpass: a soft
+  // horn rather than a buzzy raw oscillator. Optional downward glide for a sigh.
+  function warmTone(f, t, dur, peak, cutoff, glideTo, wet) {
+    if (!ctx) return;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = cutoff || 1500;
+    [-7, 7].forEach((cents) => {
+      const o = ctx.createOscillator(); o.type = "sawtooth"; o.detune.value = cents;
+      o.frequency.setValueAtTime(f, t);
+      if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t + dur);
+      o.connect(lp); o.start(t); o.stop(t + dur + 0.05);
+    });
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    lp.connect(g); g.connect(sfxGain);
+    if (reverb) { const w = ctx.createGain(); w.gain.value = wet == null ? 0.5 : wet; g.connect(w); w.connect(reverb); }
+  }
+
+  // Success: a bright rising glockenspiel arpeggio with a shimmering chord on
+  // top, ringing out in the reverb. Clean, joyful, "you did it".
   function celebrate() {
     ensure(); if (!ctx || muted) return;
     if (ctx.state === "suspended") ctx.resume();
     const t = ctx.currentTime;
-    const arp = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6, a major lift
-    arp.forEach((f, i) => voice(f, t + i * 0.08, 0.45, "triangle", 0.2, sfxGain));
-    voice(1318.5, t + 0.34, 0.6, "sine", 0.12, sfxGain);   // sparkle high above
-    voice(1567.98, t + 0.42, 0.5, "sine", 0.09, sfxGain);
-    applause(1.7, 0.24);
+    // ascending major pentatonic: C5 D5 E5 G5 A5 C6
+    const run = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+    run.forEach((f, i) => bell(f, t + i * 0.085, 1.6, 0.24, 0.55));
+    // a shimmering chord left ringing above once the run lands
+    [1046.5, 1318.5, 1567.98].forEach((f, i) => bell(f, t + 0.55 + i * 0.015, 2.2, 0.12, 0.75));
   }
 
-  // A long, descending, warbling wail: the cartoon "waaaaa" of disappointment.
-  // A sawtooth tone bends downward with a vibrato wobble for the crying quality.
-  function wah() {
+  // Setback: the classic "sad trombone" descent, three mellow horn notes
+  // stepping down with the last one drooping off, warm and a little comic.
+  function sadTrombone() {
     ensure(); if (!ctx || muted) return;
     if (ctx.state === "suspended") ctx.resume();
     const t = ctx.currentTime;
-    const dur = 1.1;
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass"; lp.frequency.value = 1300;
-    o.type = "sawtooth";
-    o.frequency.setValueAtTime(470, t);
-    o.frequency.exponentialRampToValueAtTime(150, t + dur);   // the falling "waaaa"
-    // vibrato: a gentle wobble that gives it the crying warble
-    const vib = ctx.createOscillator();
-    const vibAmt = ctx.createGain();
-    vib.type = "sine"; vib.frequency.value = 6.5; vibAmt.gain.value = 16;
-    vib.connect(vibAmt); vibAmt.connect(o.frequency);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.24, t + 0.08);
-    g.gain.setValueAtTime(0.24, t + dur * 0.55);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(lp); lp.connect(g); g.connect(sfxGain);
-    o.start(t); o.stop(t + dur + 0.05);
-    vib.start(t); vib.stop(t + dur + 0.05);
+    warmTone(311.13, t,        0.4, 0.2, 1500, 293.66, 0.4);  // E♭4 -> D4
+    warmTone(293.66, t + 0.34, 0.4, 0.2, 1450, 277.18, 0.4);  // D4  -> C♯4
+    warmTone(277.18, t + 0.68, 1.0, 0.22, 1400, 196.0, 0.55); // C♯4 droops down to G3
   }
 
   Audio.sfx = {
@@ -241,7 +241,7 @@
     click:  () => seq([320], 0, 0.05, "sine", 0.1),
     win:    () => seq([523, 659, 784, 1047, 1319, 1568], 0.12, 0.4, "triangle", 0.24),
     lose:   () => seq([392, 330, 262, 196], 0.14, 0.4, "sine", 0.2),
-    clap:   () => celebrate(),                                // applause + fanfare for a success
-    wah:    () => wah(),                                      // descending "waaaa" for a setback
+    clap:   () => celebrate(),                                // rising glockenspiel for a success
+    wah:    () => sadTrombone(),                              // sad-trombone descent for a setback
   };
 })();
