@@ -1,6 +1,6 @@
 /* =========================================================================
  * COMMON GROUND, setup.js
- * A shared "build your table" roster screen used by both games. For every seat
+ * The "build your table" roster screen. For every seat
  * you choose Human or AI. Pick Human and you type the name; pick AI and a random
  * name is assigned (with a die to reroll). Returns a clean roster array
  *   [{ isAI: boolean, name: string }, ...]
@@ -24,7 +24,7 @@
   const NAMES = () => (CG.AGENT_NAMES && CG.AGENT_NAMES.length ? CG.AGENT_NAMES : ["Amara", "Diego", "Mei", "Kofi"]);
 
   /* ----------------------------------------------------------------------
-   * SHARED PLAYER HOVER CARD,  used by both games. Hover (or tap, on touch
+   * PLAYER HOVER CARD. Hover (or tap, on touch
    * screens) a player token or standings row to see their name, job title,
    * affiliation, current score, and their Quintet of Change contribution.
    * A single floating card is reused, positioned in viewport coordinates.

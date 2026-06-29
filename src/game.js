@@ -262,11 +262,6 @@
     root.innerHTML = "";
     const wrap = el("div", "screen title-screen");
     wrap.appendChild(el("div", "title-glow"));
-    if (CG.Platform) {
-      const back = el("button", "back-link", "← Games");
-      back.onclick = () => { CG.Narrate.stop(); CG.Platform.show(); };
-      wrap.appendChild(back);
-    }
     wrap.appendChild(el("div", "logo-mark", "◆"));
     wrap.appendChild(el("h1", "title", "Common Ground"));
     wrap.appendChild(el("p", "subtitle", "The Long Road"));

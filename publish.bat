@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  THE MAZE GAME IS REMOVED. Common Ground is now a single game,
+REM              The Long Road. The Mandate (the green hedge maze) is gone:
+REM              src/mandate.js deleted, its data (the CG.MANDATE_ arrays and
+REM              MANDATE_STORY) stripped from content.js, and its CSS removed.
+REM              The launcher no longer shows a Game Room; it boots straight into
+REM              The Long Road, and the title screen drops the old Games back
+REM              link. README updated to a single game. content.js v20,
+REM              game.js v37, platform.js v11, setup.js v6, styles.css v23.
 REM  2026-06-29  THE MANDATE STOPS DESCRIBING THE MAZE TO PLAYERS. All player-facing
 REM              copy (game card, title, narration, junction and finish cards, win
 REM              screen, tooltips) now talks about the path to the mission and the
