@@ -1105,27 +1105,24 @@
   function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
     if (!S.settings.autoPlay) {
-      // Manual play: every seat (Human or AI) waits for the user to click
-      // Continue; hold it disabled while the narrator is still reading the line.
-      if (cont && voiced) {
-        cont.disabled = true;
-        let freed = false;
-        const free = () => { if (!freed) { freed = true; cont.disabled = false; } };
-        CG.Narrate.auto(spoken, { onend: free });
-        setTimeout(free, 20000);
-      } else {
-        CG.Narrate.auto(spoken);
-      }
+      // Manual play: read the line aloud, but leave Continue live the whole time
+      // so the user can proceed whenever they like, even before the narrator has
+      // finished (skipping the reading by hand is fine).
+      CG.Narrate.auto(spoken);
       return;
     }
+    // Auto play: never advance before the whole card has been read. With a voice,
+    // wait for the narrator to finish the entire line; without one, hold long
+    // enough to read the card through, scaled to how much text it carries.
     let advanced = false;
     const advance = () => { if (!advanced) { advanced = true; if (over.parentNode) done(); } };
     if (voiced) {
-      CG.Narrate.auto(spoken, { onend: () => setTimeout(advance, 650) });
-      setTimeout(advance, 16000);
+      CG.Narrate.auto(spoken, { onend: () => setTimeout(advance, 700) });
+      setTimeout(advance, 30000);
     } else {
       CG.Narrate.auto(spoken);
-      setTimeout(advance, fallbackMs);
+      const words = String(spoken).trim().split(/\s+/).filter(Boolean).length;
+      setTimeout(advance, Math.min(14000, Math.max(fallbackMs, words * 320)));
     }
   }
 

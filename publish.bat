@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  CARD READING PACE (both games). Auto cards never advances before
+REM              the whole card has been read: with narration on it waits for the
+REM              narrator to finish the entire line; with narration off it holds
+REM              long enough to read the card through, scaled to its text (up to 14
+REM              seconds), instead of a flat short pause. Manual proceed is now free:
+REM              the Continue button stays live the moment a card appears, so the
+REM              user can click on without waiting for the reading. game.js v28,
+REM              mandate.js v16.
 REM  2026-06-29  AUTO TOGGLE NOW GOVERNS THE CARDS ONLY, NOT THE DIE (both games).
 REM              Refined the day's earlier toggle: the board control is now "Auto
 REM              cards" and decides only whether the event cards (Continue, Climb,
