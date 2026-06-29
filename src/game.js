@@ -244,6 +244,11 @@
     decks: {},
     zoneSpoken: -1,
     quintet: {},   // shared team tally, reset each game in startGame()
+    // Multiplayer link. When online, the shared game state lives in the JSON
+    // store; only the browser that controls the current seat acts, and it
+    // writes the result for the others to read. seq guards against re-applying
+    // our own echoed write or an older snapshot.
+    net: { online: false, gameId: null, hostId: null, seq: 0, acting: false, lastEvent: "" },
   };
 
   // Token colours, all distinct from ladder-wood and hole-green.
@@ -443,8 +448,11 @@
     });
     auto.title = "Auto cards"; ctrls.appendChild(auto);
     const quit = el("button", "chip-toggle", "✕");
-    quit.title = "Quit game";
-    quit.onclick = () => { CG.Narrate.stop(); teardownBoard(); CG.Platform.show(); };
+    quit.title = S.net.online ? "Leave theatre" : "Quit game";
+    quit.onclick = () => {
+      if (S.net.online) return leaveGame();
+      CG.Narrate.stop(); teardownBoard(); CG.Platform.show();
+    };
     ctrls.appendChild(quit);
     bar.appendChild(ctrls);
     wrap.appendChild(bar);
@@ -807,18 +815,21 @@
   function setTurnTag() {
     const tt = $("#turnTag");
     const p = S.players[S.current];
-    // The die is always rolled by the AI itself and clicked by the Human; the
-    // Auto toggle only governs the cards, never the roll.
+    // A seat is "mine to roll" when it is a human seat that I own (or, solo,
+    // simply the human seat). The AI rolls itself; the Auto toggle only governs
+    // the cards, never the roll. Online, another player's seat shows their name.
+    const mine = p && !p.isAI && (!S.net.online || p.ownerId === myId());
     if (tt) tt.innerHTML = S.over ? "Game over" :
-      `<span class="dot" style="background:${p.color}"></span>${p.isAI ? p.name + " is moving…" : "Your move"}`;
+      `<span class="dot" style="background:${p.color}"></span>${mine ? "Your move" : esc(p.name) + " is moving…"}`;
     const btn = $("#rollBtn");
-    if (btn) { btn.disabled = S.busy || S.over || p.isAI; btn.classList.toggle("ai", p.isAI && !S.over); }
+    if (btn) { btn.disabled = S.busy || S.over || !mine; btn.classList.toggle("ai", !mine && !S.over); }
   }
 
   function scheduleAI() {
     if (S.over) return;
+    if (S.net.online && !iControl()) { setTurnTag(); return; } // not our AI to drive
     setTurnTag();
-    setTimeout(() => { if (!S.over && S.players[S.current].isAI) onRoll(); }, 850);
+    setTimeout(() => { if (!S.over && S.players[S.current].isAI && iControl()) onRoll(); }, 850);
   }
 
   // Hide the floating panels (standings + dice dock) while a token travels, so
@@ -830,10 +841,18 @@
 
   async function onRoll() {
     if (S.busy || S.over) return;
+    if (S.net.online && !iControl()) return;   // only the seat's controller may roll
     S.busy = true;
     const btn = $("#rollBtn"); if (btn) btn.disabled = true;
 
     const p = S.players[S.current];
+    // Online: announce the move at once so the table sees who is acting and the
+    // host failover does not mistake a long turn for a dropped player.
+    if (S.net.online) {
+      S.net.acting = true;
+      lastProgressAt = CG.Net.now();
+      pushState(`${p.name} is on the move…`);
+    }
 
     // Exact-landing keeps its teeth: you finish ON square 100, never past it.
     // But no one rolls forever. Once a player has reached square 90, we count a
@@ -897,7 +916,9 @@
     if (again && !S.over) {
       if (S.settings.music) CG.Audio.sfx.doubles();
       toast(`${p.name} earns another roll`, "good");
-      S.busy = false; setTurnTag();
+      S.busy = false;
+      if (S.net.online) { lastProgressAt = CG.Net.now(); pushState(`${p.name} earns another roll (square ${p.pos})`); }
+      setTurnTag();
       if (p.isAI) scheduleAI();
       return;
     }
@@ -906,6 +927,7 @@
 
   function endTurn() {
     S.busy = false;
+    const moved = S.players[S.current];
     let guard = 0;
     do {
       S.current = (S.current + 1) % S.players.length;
@@ -915,6 +937,15 @@
       break;
     } while (++guard <= S.players.length * 2);
     renderStandings(); renderTokens(); setTurnTag();
+    if (S.net.online) {
+      // Hand the turn to the table: write where the mover ended, then take the
+      // next turn only if it is ours (an AI we host, or another seat we own).
+      S.net.acting = false;
+      lastProgressAt = CG.Net.now();
+      const home = moved.finished ? ` and finishes ${ordinal(moved.rank)} ${MEDALS[moved.rank - 1] || "🏁"}` : "";
+      pushState(`${moved.name} moves to square ${moved.pos}${home}`).then(() => maybeAct());
+      return;
+    }
     if (!S.over && S.players[S.current].isAI) scheduleAI();
   }
 
@@ -1035,19 +1066,15 @@
       else if (r < 0.45 && hole != null) { dest = hole; type = "hole"; msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
       else                      { dest = back; type = "back"; msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
     } else if (good) {
+      // Good news only ever helps: forward, up to the next ladder, or the finish.
       if (r < 0.05)      { dest = 100;    type = "finish"; msg = `An extraordinary break sweeps ${p.name} to the finish 🏁`; kind = "good"; }
-      else if (r < 0.34) { dest = ladder; type = "ladder"; msg = `Good news carries ${p.name} to the next ladder`; kind = "good"; }
-      else if (r < 0.78) { dest = fwd;    type = "fwd";    msg = `${p.name} is swept forward to ${fwd}`; kind = "good"; }
-      else if (r < 0.90) { dest = back;   type = "back";   msg = `A small twist sets ${p.name} back to ${back}`; kind = "muted"; }
-      else if (r < 0.97) { dest = hole;   type = "hole";   msg = `${p.name} stumbles toward the next hole`; kind = "bad"; }
-      else               { dest = 1;      type = "one";    msg = `A freak setback sends ${p.name} back to square one`; kind = "bad"; }
+      else if (r < 0.40) { dest = ladder; type = "ladder"; msg = `Good news carries ${p.name} to the next ladder`; kind = "good"; }
+      else               { dest = fwd;    type = "fwd";    msg = `${p.name} is swept forward to ${fwd}`; kind = "good"; }
     } else {
+      // Bad news only ever hurts: back, down into the next hole, or square one.
       if (r < 0.05)      { dest = 1;      type = "one";    msg = `Disaster sends ${p.name} right back to square one`; kind = "bad"; }
-      else if (r < 0.34) { dest = hole;   type = "hole";   msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
-      else if (r < 0.78) { dest = back;   type = "back";   msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
-      else if (r < 0.90) { dest = fwd;    type = "fwd";    msg = `A small mercy nudges ${p.name} forward to ${fwd}`; kind = "good"; }
-      else if (r < 0.97) { dest = ladder; type = "ladder"; msg = `An unexpected opening lifts ${p.name} to the next ladder`; kind = "good"; }
-      else               { dest = 100;    type = "finish"; msg = `Against all odds, ${p.name} is swept to the finish 🏁`; kind = "good"; }
+      else if (r < 0.40) { dest = hole;   type = "hole";   msg = `Bad news drops ${p.name} into the next hole`; kind = "bad"; }
+      else               { dest = back;   type = "back";   msg = `${p.name} is pushed back to ${back}`; kind = "bad"; }
     }
     // The next ladder or hole can be missing near the top of the board; fall back
     // to a plain hop so a surprise never fails to move you.
@@ -1250,7 +1277,7 @@
     renderStandings(); renderTokens(); setTurnTag();
     toast(`${p.name} completes the mandate · ${ordinal(p.rank)} ${MEDALS[p.rank - 1] || "🏁"}`, "good");
     showFinishCard(p, isLast, () => {
-      if (isLast) return endGame();
+      if (isLast) return endGame(true);
       endTurn(); // hand the road to the next player still running
     });
   }
@@ -1343,10 +1370,17 @@
   }
 
   // Every player is home: show the full finishing order and wrap up.
-  function endGame() {
+  function endGame(local) {
     S.over = true; S.busy = false;
     setMoving(false);
     renderStandings(); renderTokens(); setTurnTag();
+    if (S.net.online) {
+      // Stop driving; if we are the browser that saw the finish, write the final
+      // state once. An over game falls out of the lobby list on its own.
+      S.net.acting = false;
+      CG.Net.stopPoll();
+      if (local) pushState("The whole table is home", { summary: true });
+    }
     const order = S.players.slice().sort((a, b) => a.rank - b.rank);
     const winner = order[0];
     const human = S.players.find((x) => !x.isAI);
@@ -1379,8 +1413,12 @@
       championsHtml(champs) +
       `<div class="ec-why">${esc(line)}</div>`;
     const actions = el("div", "ec-actions");
-    const again = el("button", "btn btn-primary", "Run the road again ▸");
-    again.onclick = () => { over.remove(); CG.Narrate.stop(); renderTitle(); };
+    const again = el("button", "btn btn-primary", S.net.online ? "Back to the theatres ▸" : "Run the road again ▸");
+    again.onclick = () => {
+      over.remove(); CG.Narrate.stop();
+      if (S.net.online) { S.net.online = false; CG.Net.stopPoll(); CG.Lobby ? CG.Lobby.show() : renderTitle(); }
+      else renderTitle();
+    };
     const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
     speak.onclick = () => CG.Narrate.speak(spoken);
     actions.appendChild(speak); actions.appendChild(again);
@@ -1407,9 +1445,221 @@
     }
   }
 
+  // =======================================================================
+  // MULTIPLAYER
+  // Several browsers share one game through the JSON store. The seat whose turn
+  // it is has exactly one controller: a human seat is driven by its owner, an
+  // AI seat by the game host. So only ever one browser acts per turn and writes
+  // never collide. Everyone else polls, applies the new state, and renders it.
+  // =======================================================================
+  const myId = () => (CG.Net ? CG.Net.clientId : "local");
+
+  // Do I control whoever's turn it is right now?
+  function iControl() {
+    if (!S.net.online) return true;            // solo: always
+    const p = S.players[S.current];
+    if (!p) return false;
+    if (p.isAI) return S.net.hostId === myId(); // host drives the AI seats
+    return p.ownerId === myId();                // a human seat is driven by its owner
+  }
+  function iOwnAnySeat() {
+    return S.players.some((p) => !p.isAI && p.ownerId === myId());
+  }
+
+  // Flatten the live state into the plain object stored for the table.
+  function serialize() {
+    return {
+      id: S.net.gameId,
+      hostId: S.net.hostId,
+      theatreIdx: CG.THEATRES.indexOf(S.theatre),
+      theatre: { name: S.theatre.name, icon: S.theatre.icon },
+      board: S.board,
+      diceCount: S.settings.diceCount,
+      current: S.current,
+      over: S.over,
+      quintet: S.quintet,
+      seq: S.net.seq,
+      lastWriter: myId(),
+      lastEvent: S.net.lastEvent || "",
+      players: S.players.map((p) => ({
+        name: p.name, isAI: p.isAI, ownerId: p.ownerId || null,
+        roleIdx: CG.ROLES.indexOf(p.role), icon: p.role.icon, color: p.color,
+        pos: p.pos, points: p.points, trophies: p.trophies, diamonds: p.diamonds,
+        contrib: p.contrib, finished: p.finished, rank: p.rank,
+        skipNext: p.skipNext, bonusRoll: p.bonusRoll, finishTries: p.finishTries,
+      })),
+    };
+  }
+
+  // Rebuild the live state from a stored game (roles and the theatre are
+  // restored by index so every browser draws the same board and people).
+  function deserialize(game) {
+    S.net.gameId = game.id;
+    S.net.hostId = game.hostId;
+    S.theatre = CG.THEATRES[game.theatreIdx] || CG.THEATRES[0];
+    S.board = game.board;
+    S.settings.diceCount = game.diceCount || 1;
+    S.current = game.current || 0;
+    S.over = !!game.over;
+    S.quintet = game.quintet || newQuintet();
+    S.net.seq = game.seq || 0;
+    S.players = (game.players || []).map((sp) => {
+      const role = CG.ROLES[sp.roleIdx] || CG.ROLES[0];
+      return {
+        name: sp.name, isAI: sp.isAI, ownerId: sp.ownerId || null,
+        role, tags: CG.roleTags(role), color: sp.color,
+        pos: sp.pos || 1, points: sp.points || 0,
+        trophies: sp.trophies || 0, diamonds: sp.diamonds || 0,
+        contrib: sp.contrib || newQuintet(),
+        finished: !!sp.finished, rank: sp.rank || 0,
+        skipNext: !!sp.skipNext, bonusRoll: !!sp.bonusRoll, finishTries: sp.finishTries || 0,
+      };
+    });
+  }
+
+  // Write the current state for the table. Bumps seq so the others know it is
+  // newer than what they hold (and newer than our own last write, so we do not
+  // re-apply our echo). Fire and forget: a failed write retries next turn, it
+  // must never stall the animation.
+  function pushState(eventText, opts) {
+    if (!S.net.online) return Promise.resolve();
+    S.net.seq = (S.net.seq || 0) + 1;
+    if (eventText != null) S.net.lastEvent = eventText;
+    const game = serialize();
+    return CG.Net.putGame(game, opts).catch((e) => { /* try again next turn */ });
+  }
+
+  // Take whatever turn is now ours to take. Called after entering a game and
+  // after every applied remote update. Does nothing on a seat we do not drive.
+  function maybeAct() {
+    setTurnTag(); renderTokens(); renderStandings();
+    if (S.over || S.busy) return;
+    if (!iControl()) return;
+    const p = S.players[S.current];
+    if (p.isAI) scheduleAI();        // host rolls for the AI
+    // a human seat we own: the Roll button is live (setTurnTag enabled it)
+  }
+
+  // A remote snapshot arrived from the poll. Apply it unless it is stale, our
+  // own echo, or we are mid-move (we re-check on the next tick). Tokens snap to
+  // the shared positions and the table is told what just happened.
+  function applyRemote(game) {
+    if (!S.net.online) return;
+    if (!game) return handleGameGone();
+    if ((game.seq || 0) <= (S.net.seq || 0)) return;   // nothing newer than we hold
+    if (S.busy || S.net.acting) return;                // do not disturb our own turn
+    const wasOver = S.over;
+    deserialize(game);
+    renderTokens(); renderStandings();
+    if (game.lastEvent && game.lastWriter !== myId()) toast(game.lastEvent, "muted");
+    if (S.over && !wasOver) return showRemoteOver();
+    maybeAct();
+  }
+
+  // Host failover: if it is a human seat's turn but it has gone quiet for a
+  // while (the owner closed their tab), the host hands the seat back to the AI
+  // so the road does not stall, and it becomes joinable again.
+  let lastProgressAt = 0;
+  function checkStall(game) {
+    if (!S.net.online || S.net.hostId !== myId() || !game || game.over) return;
+    const cur = game.players && game.players[game.current];
+    if (!cur || cur.isAI) { lastProgressAt = CG.Net.now(); return; }
+    if ((game.seq || 0) !== (S.net.seq || 0)) { lastProgressAt = CG.Net.now(); return; }
+    if (!lastProgressAt) lastProgressAt = CG.Net.now();
+    if (CG.Net.now() - lastProgressAt > 45000) {
+      lastProgressAt = CG.Net.now();
+      S.players[game.current].isAI = true;
+      S.players[game.current].ownerId = null;
+      toast(`${cur.name} went quiet, the field takes the seat`, "muted");
+      pushState(`${cur.name}'s seat is now run by the field`, { summary: true })
+        .then(() => maybeAct());
+    }
+  }
+
+  function handleGameGone() {
+    if (!S.net.online) return;
+    S.net.online = false; CG.Net.stopPoll();
+    toast("This theatre has closed", "muted");
+    setTimeout(() => CG.Lobby && CG.Lobby.show(), 1200);
+  }
+
+  function showRemoteOver() {
+    CG.Net.stopPoll();
+    endGame(false);
+  }
+
+  // Start polling the shared game and wire each snapshot through apply + stall.
+  function startSync() {
+    if (!S.net.online || !CG.Net) return;
+    CG.Net.poll(S.net.gameId, (game) => { checkStall(game); applyRemote(game); });
+  }
+
+  // Release the seats we own (so others can take them) and leave for the lobby.
+  function leaveGame() {
+    CG.Narrate.stop(); teardownBoard(); CG.Net.stopPoll();
+    if (S.net.online && iOwnAnySeat() && !S.over) {
+      S.players.forEach((p) => { if (!p.isAI && p.ownerId === myId()) { p.ownerId = null; p.isAI = true; } });
+      pushState(`A coordinator has left ${S.theatre.name}`, { summary: true });
+    }
+    S.net.online = false;
+    CG.Lobby ? CG.Lobby.show() : CG.Platform.show();
+  }
+
+  // Build the shared game object a host opens a new online theatre with: the
+  // creator takes seat one, the rest start as AI seats anyone can take over.
+  function buildOnlineGame(hostName, seatCount) {
+    const theatre = CG.THEATRES[Math.floor(Math.random() * CG.THEATRES.length)];
+    const board = generateBoard();
+    const roles = shuffle(CG.ROLES);
+    const names = (CG.AGENT_NAMES && CG.AGENT_NAMES.length ? CG.AGENT_NAMES : ["Amara", "Diego", "Mei", "Kofi"]).slice();
+    const taken = [];
+    const players = [];
+    for (let i = 0; i < seatCount; i++) {
+      const isAI = i !== 0;
+      let nm;
+      if (!isAI) nm = hostName;
+      else {
+        const pool = names.filter((n) => taken.indexOf(n) < 0);
+        nm = (pool.length ? pool : names)[Math.floor(Math.random() * (pool.length ? pool.length : names.length))];
+      }
+      taken.push(nm);
+      players.push({
+        name: nm, isAI, ownerId: isAI ? null : myId(),
+        roleIdx: CG.ROLES.indexOf(roles[i % roles.length]), icon: roles[i % roles.length].icon,
+        color: COLORS[i % COLORS.length], pos: 1, points: 0, trophies: 0, diamonds: 0,
+        contrib: newQuintet(), finished: false, rank: 0,
+        skipNext: false, bonusRoll: false, finishTries: 0,
+      });
+    }
+    return {
+      id: null, hostId: myId(),
+      theatreIdx: CG.THEATRES.indexOf(theatre), theatre: { name: theatre.name, icon: theatre.icon },
+      board, diceCount: S.settings.diceCount, current: 0, over: false,
+      quintet: newQuintet(), seq: 1, lastWriter: myId(), lastEvent: "",
+      players,
+    };
+  }
+
+  // Enter a shared game: light up audio/narration to the local preferences,
+  // restore the state, draw the board, then take any turn that is ours.
+  function showMulti(game) {
+    ensureDecks();
+    if (S.settings.music) CG.Audio.start();
+    CG.Narrate.setEnabled(S.settings.voice);
+    deserialize(game);
+    S.net.online = true; S.busy = false; S.zoneSpoken = -1;
+    lastProgressAt = CG.Net.now();
+    renderBoard();
+    startSync();
+    maybeAct();
+  }
+
   // ---- public API (the platform launcher mounts the game) ---------------
   CG.SnakesGame = {
     title: "Common Ground: The Long Road",
-    show: function () { ensureDecks(); teardownBoard(); renderTitle(); },
+    show: function () { ensureDecks(); teardownBoard(); S.net.online = false; renderTitle(); },
+    // Multiplayer entry points, used by the lobby.
+    buildOnlineGame,
+    showMulti,
   };
 })();
