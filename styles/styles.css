@@ -203,7 +203,10 @@ button { font-family: inherit; cursor: pointer; }
 .brand { font-family: "Space Grotesk", sans-serif; font-size: 15px; color: var(--blue); }
 .brand b { color: var(--ink); }
 .brand span { color: var(--muted); font-weight: 500; }
-.theatre-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-sm); margin: 0 auto; min-width: 0; max-width: 46vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; }
+.theatre-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-sm); margin: 0 auto; min-width: 0; max-width: 46vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; color: var(--ink); }
+.theatre-chip.clickable { cursor: pointer; }
+.theatre-chip.clickable::after { content: " ⓘ"; opacity: .55; font-weight: 700; }
+.theatre-chip.clickable:hover { border-color: var(--blue); color: var(--blue); box-shadow: var(--shadow); }
 .hud-ctrls { display: flex; gap: 8px; flex: none; position: relative; z-index: 3; }
 
 /* in-game controls are icon-only: clean round buttons, never squeezed or hidden */
@@ -508,10 +511,10 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---- responsive ------------------------------------------------------- */
 @media (max-width: 760px) {
-  .hud-top { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; }
+  .hud-top { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; gap: 8px; }
   .brand { font-size: 13px; }
-  .brand span { display: none; }
-  .theatre-chip { display: none; }
+  .brand span, .brand b { display: none; }   /* leave just the ◆ to free room for the tappable theatre name */
+  .theatre-chip { display: inline-block; font-size: 12px; padding: 6px 12px; max-width: 50vw; }
   /* compact standings as a centred row of avatar + position chips */
   .standings { top: calc(46px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; }
   .scard { flex: 0 1 auto; min-width: 0; padding: 5px 9px 5px 6px; gap: 6px; }

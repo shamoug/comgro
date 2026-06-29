@@ -8,6 +8,19 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  JOIN RULES, TAP THE THEATRE NAME, AND A CLEAN EXIT. (1) Only AI
+REM              seats can be taken over now: a seat a human holds (even one who
+REM              stepped away) stays theirs until the host hands it back to the AI,
+REM              so newcomers can no longer bump a real player. The lobby and the
+REM              join screen both reflect this (human seats show "in play"). (2) The
+REM              theatre name in the top bar is now a button: tap it any time to
+REM              re-read the theatre's background story (on desktop and mobile, the
+REM              name is shown and tappable; the brand collapses to the diamond on
+REM              phones to make room). (3) Leaving a game now fully stops it: any
+REM              in-flight turn, scheduled AI move, or card is cut off (S.over set,
+REM              the board torn down, the card renderers guard on a live board), so
+REM              no cards, score flashes or updates from the game you left ever pop
+REM              up over the lobby. game.js v45, lobby.js v3, styles.css v30.
 REM  2026-06-29  ONE DIE ONLY + BIGGER, CLEARER CARDS AND COMPONENTS. Removed the
 REM              two-dice option everywhere: the game is always a single die (the
 REM              title-screen dice picker is gone, doubles are gone, onRoll and the
