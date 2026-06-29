@@ -75,7 +75,7 @@ button { font-family: inherit; cursor: pointer; }
   box-shadow: var(--shadow-sm);
   transition: all .15s ease;
 }
-.chip-toggle.on { color: var(--blue); border-color: var(--blue); background: #eaf1ff; }
+.chip-toggle.on { color: #fff; border-color: var(--blue); background: var(--blue); box-shadow: 0 2px 6px rgba(38,99,235,.35); }
 
 /* shared scrolly screens */
 .title-screen, .deal-screen {

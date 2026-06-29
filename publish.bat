@@ -8,6 +8,10 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  AUTO CARDS TOGGLE READS CLEARLY AS ON. An active toggle is now a
+REM              solid blue chip with white text and a soft glow, not a faint blue
+REM              tint, so the Auto cards default (on) is unmistakable at a glance.
+REM              styles.css v22.
 REM  2026-06-29  SURPRISE CARDS SPELL OUT THE MOVE, AUTO CARDS ON BY DEFAULT (both
 REM              games). Every surprise card now prints the imposed move in plain
 REM              words before the token moves: what happens, how many steps, and
