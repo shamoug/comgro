@@ -8,6 +8,19 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  AUTO-PLAY TOGGLE + SURPRISE JUMPS (both games). A new "Auto"
+REM              toggle sits in the board's top controls and can be flipped at any
+REM              time. Off (default) every seat, Human and AI, waits for the user
+REM              to click Roll, and every card waits for a Continue click; on, the
+REM              whole table rolls and turns the cards by itself, hands free.
+REM              Surprises now, now and then (about 30 percent), sweep a player to
+REM              the next landmark by the mood of the card: good news to the next
+REM              ladder, trophy or diamond ahead; bad news to the next hole, or
+REM              once in a while right back to square one. The Mandate maze mirrors
+REM              this: good news warps to the next shortcut/trophy/diamond toward
+REM              the centre, bad news to the next trap or back to the gate. Most
+REM              surprises still play out as their plain effect. game.js v21,
+REM              mandate.js v14.
 REM  2026-06-28  The "Play" button on each launcher game card now sticks to the
 REM              lower bottom of the card, at the same vertical location on both
 REM              cards. The cards stretch to equal height in the grid, so a

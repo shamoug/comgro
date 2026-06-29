@@ -208,7 +208,10 @@
     theatre: null,
     busy: false,
     over: false,
-    settings: { music: true, voice: true, diceCount: 1 },
+    // autoPlay off means "wait for the user to click": every seat, Human and AI,
+    // waits for a Roll click and every card waits for a Continue click. Turn it
+    // on and the whole table plays itself, hands free. Toggled live on the board.
+    settings: { music: true, voice: true, diceCount: 1, autoPlay: false },
     decks: {},
     zoneSpoken: -1,
     quintet: {},   // shared team tally, reset each game in startGame()
@@ -403,6 +406,14 @@
     const ctrls = el("div", "hud-ctrls");
     ctrls.appendChild(toggle("🎵", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
     ctrls.appendChild(toggle("🗣️", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); }));
+    // Auto-play: when on, the whole table rolls and turns the cards by itself;
+    // when off, every move waits for a click. Changeable at any point in the game.
+    ctrls.appendChild(toggle("▶️ Auto", S.settings.autoPlay, (on) => {
+      S.settings.autoPlay = on;
+      toast(on ? "Auto-play on: the table moves on its own" : "Auto-play off: click to move", on ? "good" : "muted");
+      setTurnTag();
+      if (on) maybeAutoRoll();
+    }));
     const restart = el("button", "chip-toggle", "↺");
     restart.title = "New game";
     restart.onclick = () => { CG.Narrate.stop(); renderTitle(); };
@@ -763,21 +774,29 @@
   // =======================================================================
   // TURN FLOW
   // =======================================================================
-  function kickOff() { setTurnTag(); if (S.players[S.current].isAI) scheduleAI(); }
+  function kickOff() { maybeAutoRoll(); }
 
   function setTurnTag() {
     const tt = $("#turnTag");
     const p = S.players[S.current];
+    const label = S.settings.autoPlay
+      ? (p.isAI ? p.name + " is moving…" : "Auto-playing…")
+      : (p.isAI ? "Roll for " + p.name : "Your move");
     if (tt) tt.innerHTML = S.over ? "Game over" :
-      `<span class="dot" style="background:${p.color}"></span>${p.isAI ? p.name + " is moving…" : "Your move"}`;
+      `<span class="dot" style="background:${p.color}"></span>${label}`;
     const btn = $("#rollBtn");
-    if (btn) { btn.disabled = S.busy || S.over || p.isAI; btn.classList.toggle("ai", p.isAI && !S.over); }
+    // In manual play the button is live for every seat (you click to roll even
+    // for the AI); in auto-play it is disabled because the table rolls itself.
+    if (btn) { btn.disabled = S.busy || S.over || S.settings.autoPlay; btn.classList.toggle("ai", p.isAI && !S.over && S.settings.autoPlay); }
   }
 
-  function scheduleAI() {
+  // Roll the current seat automatically, but only while auto-play is on. With it
+  // off, every seat (Human or AI) waits for the user to click Roll.
+  function maybeAutoRoll() {
     if (S.over) return;
     setTurnTag();
-    setTimeout(() => { if (!S.over && S.players[S.current].isAI) onRoll(); }, 850);
+    if (!S.settings.autoPlay) return;
+    setTimeout(() => { if (!S.over && !S.busy && S.settings.autoPlay) onRoll(); }, 750);
   }
 
   // Hide the floating panels (standings + dice dock) while a token travels, so
@@ -856,8 +875,8 @@
     if (again && !S.over) {
       if (S.settings.music) CG.Audio.sfx.doubles();
       toast(`${p.name} earns another roll`, "good");
-      S.busy = false; setTurnTag();
-      if (p.isAI) scheduleAI();
+      S.busy = false;
+      maybeAutoRoll();
       return;
     }
     endTurn();
@@ -873,8 +892,8 @@
       if (np.skipNext) { np.skipNext = false; toast(`${np.name} loses a turn`, "muted"); continue; }
       break;
     } while (++guard <= S.players.length * 2);
-    renderStandings(); renderTokens(); setTurnTag();
-    if (!S.over && S.players[S.current].isAI) scheduleAI();
+    renderStandings(); renderTokens();
+    maybeAutoRoll();
   }
 
   async function animateDice(values) {
@@ -964,7 +983,51 @@
     renderStandings();
   }
 
+  // The nearest landmark ahead of `from` from a list of squares, or null.
+  function nextAhead(from, squares) {
+    const ahead = squares.filter((s) => s > from).sort((a, b) => a - b);
+    return ahead.length ? ahead[0] : null;
+  }
+
+  // From time to time a surprise sweeps the player to the next landmark, picked
+  // by the mood of the card: good news (anything but a "skip") carries them up to
+  // the next ladder, trophy or diamond ahead; bad news drops them into the next
+  // hole, and once in a while all the way back to square one. Most surprises
+  // still play out as their plain effect, so these jumps stay rare. Returns true
+  // when it took over the surprise, false to let the normal effect run.
+  async function surpriseJump(p, card, depth) {
+    if (Math.random() >= 0.3) return false;            // just now and then
+    const B = S.board;
+    if (card.effect !== "skip") {                      // good news lifts you forward
+      const dests = [
+        { sq: nextAhead(p.pos, Object.keys(B.ladders).map(Number)), msg: `A turn of luck sweeps ${p.name} to the next ladder` },
+        { sq: nextAhead(p.pos, B.trophies), msg: `Good news carries ${p.name} to the next trophy 🏆` },
+        { sq: nextAhead(p.pos, B.diamonds), msg: `Good news leads ${p.name} to the next diamond 💎` },
+      ].filter((d) => d.sq != null);
+      if (!dests.length) return false;
+      const d = dests[Math.floor(Math.random() * dests.length)];
+      toast(d.msg, "good");
+      await walk(p, d.sq);
+      if (p.pos !== 100 && depth < 2) await resolveLanding(p, depth + 1);
+      return true;
+    }
+    // bad news: usually the next hole, occasionally right back to the start
+    if (p.pos > 1 && Math.random() < 0.25) {
+      toast(`Bad news sends ${p.name} right back to square one`, "bad");
+      shake();
+      await walk(p, 1);
+      return true;
+    }
+    const hole = nextAhead(p.pos, Object.keys(B.snakes).map(Number));
+    if (hole == null) return false;
+    toast(`Bad news drops ${p.name} into the next hole`, "bad");
+    await walk(p, hole);
+    if (depth < 2) await resolveLanding(p, depth + 1);
+    return true;
+  }
+
   async function applySurprise(p, card, depth) {
+    if (await surpriseJump(p, card, depth)) return;
     switch (card.effect) {
       case "bonus": p.bonusRoll = true; toast(`${p.name} earns a bonus roll`, "good"); break;
       case "skip": p.skipNext = true; toast(`${p.name} will lose a turn`, "bad"); break;
@@ -1033,11 +1096,11 @@
   // safety cap guards against a voice that never reports it ended.
   function narrateCard(p, spoken, over, done, fallbackMs, cont) {
     const voiced = CG.Narrate.isEnabled() && CG.Narrate.supported();
-    if (!p.isAI) {
-      // Human paces with the button, but the token must not move until the
-      // narrator has finished the line: hold Continue disabled while the voice
-      // is still speaking, then release it. A safety timer frees a stuck voice
-      // so the player is never stranded.
+    if (!S.settings.autoPlay) {
+      // Manual play: every seat (Human or AI) waits for the user to click
+      // Continue, but the token must not move until the narrator has finished
+      // the line: hold Continue disabled while the voice is still speaking, then
+      // release it. A safety timer frees a stuck voice so play is never stranded.
       if (cont && voiced) {
         cont.disabled = true;
         let freed = false;
