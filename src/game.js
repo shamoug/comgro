@@ -180,7 +180,21 @@
   // Bank (or dock) perseverance points; the running score that crowns the
   // Perseverance champion at the end. It floors at zero.
   function award(p, pts) {
-    p.points = Math.max(0, (p.points || 0) + pts);
+    const before = p.points || 0;
+    p.points = Math.max(0, before + pts);
+    const delta = p.points - before;       // the real change after the zero floor
+    if (delta) flashScore(delta);
+  }
+
+  // Flash a big +N / -N over the board for a beat: green for gains, red for
+  // losses, then fade away. A pure bit of feedback, no game state.
+  function flashScore(delta) {
+    const host = boardBox || app();
+    if (!host) return;
+    const sign = delta > 0 ? "+" : "-";
+    const f = el("div", "score-pop " + (delta > 0 ? "gain" : "loss"), sign + Math.abs(delta));
+    host.appendChild(f);
+    setTimeout(() => f.remove(), 1300);
   }
 
   // Build the data shown in the shared hover card for one player.

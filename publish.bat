@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  BIG SCORE FLASH ON EVERY POINT CHANGE. When a player gains or
+REM              loses perseverance points, a large +N / -N flashes over the
+REM              board for about a second then fades: green for gains, red for
+REM              losses. Driven from award() in game.js (after the zero floor,
+REM              so it never flashes a phantom change), styled as .score-pop.
+REM              game.js v38, styles.css v24.
 REM  2026-06-29  THE MAZE GAME IS REMOVED. Common Ground is now a single game,
 REM              The Long Road. The Mandate (the green hedge maze) is gone:
 REM              src/mandate.js deleted, its data (the CG.MANDATE_ arrays and
