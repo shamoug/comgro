@@ -207,8 +207,15 @@ button { font-family: inherit; cursor: pointer; }
 .brand { font-family: "Space Grotesk", sans-serif; font-size: 15px; color: var(--blue); }
 .brand b { color: var(--ink); }
 .brand span { color: var(--muted); font-weight: 500; }
-.theatre-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-sm); margin: 0 auto; }
-.hud-ctrls { display: flex; gap: 8px; }
+.theatre-chip { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-sm); margin: 0 auto; min-width: 0; max-width: 46vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; }
+.hud-ctrls { display: flex; gap: 8px; flex: none; position: relative; z-index: 3; }
+
+/* in-game controls are icon-only: clean round buttons, never squeezed or hidden */
+.hud-ctrls.icons .chip-toggle {
+  width: 38px; height: 38px; padding: 0; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 17px; line-height: 1; border-radius: 50%;
+}
 
 .standings { position: absolute; top: 54px; left: 16px; z-index: 15; display: flex; flex-direction: column; gap: 7px; width: 230px; transition: opacity .35s ease, transform .35s ease; }
 .scard {

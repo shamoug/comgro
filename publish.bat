@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  IN-GAME TOGGLES ARE ICON-ONLY AND ALWAYS VISIBLE. The top-bar
+REM              controls (music, narration, auto cards, quit) are now clean round
+REM              icon buttons with no text label; "Auto cards" text is dropped, a
+REM              tooltip explains each. The control cluster sits above the theatre
+REM              chip (z-index) and can't be squeezed or hidden, and the theatre
+REM              chip now ellipsises instead of colliding. game.js v39, styles.css v25.
 REM  2026-06-29  BIG SCORE FLASH ON EVERY POINT CHANGE. When a player gains or
 REM              loses perseverance points, a large +N / -N flashes over the
 REM              board for about a second then fades: green for gains, red for

@@ -427,16 +427,21 @@
     const bar = el("header", "hud-top");
     bar.innerHTML = `<div class="brand">◆ <b>Common Ground</b><span> · The Long Road</span></div>`;
     bar.appendChild(el("div", "theatre-chip", `${S.theatre.icon} ${S.theatre.name}`));
-    const ctrls = el("div", "hud-ctrls");
-    ctrls.appendChild(toggle("🎵", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); }));
-    ctrls.appendChild(toggle("🗣️", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); }));
+    // Icon-only controls (the .icons class strips text sizing/padding so each is
+    // a clean round icon button). A title on every one explains what it does.
+    const ctrls = el("div", "hud-ctrls icons");
+    const music = toggle("🎵", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); });
+    music.title = "Music"; ctrls.appendChild(music);
+    const voice = toggle("🗣️", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); });
+    voice.title = "Narration"; ctrls.appendChild(voice);
     // Auto-cards: when on, the event cards (Continue, Climb, Down you go, Carry
     // on...) advance by themselves; when off, each waits for a click. This never
     // touches the die roll. Changeable at any point in the game.
-    ctrls.appendChild(toggle("▶️ Auto cards", S.settings.autoPlay, (on) => {
+    const auto = toggle("▶️", S.settings.autoPlay, (on) => {
       S.settings.autoPlay = on;
       toast(on ? "Auto cards on: cards advance on their own" : "Auto cards off: click to continue", on ? "good" : "muted");
-    }));
+    });
+    auto.title = "Auto cards"; ctrls.appendChild(auto);
     const quit = el("button", "chip-toggle", "✕");
     quit.title = "Quit game";
     quit.onclick = () => { CG.Narrate.stop(); teardownBoard(); CG.Platform.show(); };
