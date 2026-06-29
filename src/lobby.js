@@ -202,7 +202,7 @@
         const game = CG.SnakesGame.buildOnlineGame(CG.Net.getName(), size);
         await CG.Net.createGame(game);
         if (CG.Audio) CG.Audio.sfx.pick();
-        CG.SnakesGame.showMulti(game);
+        CG.SnakesGame.showMulti(game, { intro: true });
       } catch (e) {
         go.disabled = false; go.textContent = "Open it ▸";
         flash(wrap, "Could not open the theatre. Please try again.");
@@ -232,9 +232,20 @@
     let game;
     try { game = await CG.Net.getGame(id); } catch (e) { game = null; }
     if (!game) { sub.innerHTML = "This theatre has closed."; return; }
-    sub.innerHTML =
-      `<b>${esc((game.theatre && game.theatre.name) || "Crisis Theatre")}</b>. Take over an AI seat, or one a player has left. ` +
-      `Your name is yours to set.`;
+    sub.innerHTML = "Take over an AI seat, or one a player has left. Your name is yours to set.";
+
+    // Background: the theatre's kind and one-paragraph story, read before you sit.
+    const t = (CG.THEATRES || [])[game.theatreIdx];
+    if (t) {
+      const kind = CG.theatreKindMeta(t);
+      const story = el("div", "theatre-story");
+      story.innerHTML =
+        `<div class="ts-head"><span class="ts-icon">${t.icon}</span>` +
+          `<div class="ts-id"><b>${esc(t.name)}</b>` +
+          `<span class="kind-badge ${kind.key}">${kind.icon} ${kind.label}</span></div></div>` +
+        `<p class="ts-body">${esc(CG.theatreStory(t))}</p>`;
+      list.parentNode.insertBefore(story, list);
+    }
 
     renderSeatPicker(list, game);
   }

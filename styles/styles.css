@@ -740,3 +740,30 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 12px;
   font-size: 14px; font-weight: 600; box-shadow: var(--shadow-sm); z-index: 60;
 }
+
+/* =========================================================================
+ * THEATRE KIND BADGE + BACKGROUND STORY. Shown when you join a theatre (lobby)
+ * or start a solo game (deal screen), and on the host's entry card.
+ * ========================================================================= */
+.kind-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 999px; margin-left: 6px;
+  font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: .01em; text-transform: none; vertical-align: middle;
+  border: 1px solid var(--line); background: #fff; color: var(--muted);
+}
+.kind-badge.humanitarian { color: #b3531e; background: rgba(255, 138, 60, .12); border-color: rgba(255, 138, 60, .4); }
+.kind-badge.development { color: #1e6e3a; background: rgba(47, 158, 84, .12); border-color: rgba(47, 158, 84, .4); }
+.kind-badge.peacekeeping { color: #2f5bd0; background: rgba(47, 107, 255, .12); border-color: rgba(47, 107, 255, .4); }
+
+.theatre-story {
+  width: min(560px, 92vw); margin: 0 auto 6px;
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  padding: 16px 18px; box-shadow: var(--shadow-sm); text-align: left;
+}
+.theatre-story .ts-head { display: flex; align-items: center; gap: 12px; }
+.theatre-story .ts-icon { font-size: 30px; line-height: 1; }
+.theatre-story .ts-id { display: flex; flex-direction: column; gap: 4px; }
+.theatre-story .ts-id b { font-size: 17px; color: var(--ink); font-family: "Fraunces", serif; }
+.theatre-story .ts-id .kind-badge { margin-left: 0; align-self: flex-start; }
+.theatre-story .ts-body { margin: 11px 0 0; color: var(--muted); font-size: 14px; line-height: 1.62; }

@@ -381,12 +381,13 @@
     wrap.appendChild(el("p", "deal-kicker", "Your posting"));
     wrap.appendChild(el("h2", "deal-head", "The Country Team"));
 
+    const kind = CG.theatreKindMeta(S.theatre);
     const theatre = el("div", "deal-card theatre-card");
     theatre.innerHTML =
       `<div class="deal-icon">${S.theatre.icon}</div>` +
-      `<div class="deal-label">Crisis Theatre</div>` +
+      `<div class="deal-label">Crisis Theatre <span class="kind-badge ${kind.key}">${kind.icon} ${kind.label}</span></div>` +
       `<div class="deal-title">${S.theatre.name}</div>` +
-      `<div class="deal-text">${S.theatre.blurb}</div>`;
+      `<div class="deal-text">${esc(CG.theatreStory(S.theatre))}</div>`;
     wrap.appendChild(theatre);
 
     const row = el("div", "deal-roles");
@@ -1639,8 +1640,9 @@
   }
 
   // Enter a shared game: light up audio/narration to the local preferences,
-  // restore the state, draw the board, then take any turn that is ours.
-  function showMulti(game) {
+  // restore the state, draw the board, then take any turn that is ours. opts.intro
+  // shows the theatre's background first (the host has no join screen to read it).
+  function showMulti(game, opts) {
     ensureDecks();
     if (S.settings.music) CG.Audio.start();
     CG.Narrate.setEnabled(S.settings.voice);
@@ -1650,6 +1652,28 @@
     renderBoard();
     startSync();
     maybeAct();
+    if (opts && opts.intro) showTheatreIntro();
+  }
+
+  // A one-time card naming the theatre, its kind, and its one-paragraph story.
+  function showTheatreIntro() {
+    const t = S.theatre;
+    const kind = CG.theatreKindMeta(t);
+    const over = el("div", "overlay-card");
+    const c = el("div", "event-card note");
+    c.innerHTML =
+      `<div class="ec-band">${kind.icon} ${kind.label.toUpperCase()}</div>` +
+      `<div class="ec-icon">${t.icon}</div>` +
+      `<div class="ec-title">${esc(t.name)}</div>` +
+      `<div class="ec-fact big"><span>Your posting</span>${esc(CG.theatreStory(t))}</div>`;
+    const actions = el("div", "ec-actions");
+    const cont = el("button", "btn btn-primary", "Enter the theatre ▸");
+    cont.onclick = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); };
+    actions.appendChild(cont);
+    c.appendChild(actions);
+    over.appendChild(c);
+    app().appendChild(over);
+    requestAnimationFrame(() => over.classList.add("show"));
   }
 
   // ---- public API (the platform launcher mounts the game) ---------------
