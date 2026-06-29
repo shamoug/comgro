@@ -8,6 +8,21 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  QUINTET IMPACT IS NOW RELEVANT, NOT RANDOM (both games). A card
+REM              only strengthens or sets back a UN 2.0 capability when its fact
+REM              genuinely demonstrates one. The old map forced every theme into a
+REM              capability (funding -> Innovation, governance -> Data, access ->
+REM              Innovation) and picked at random for the rest, which made no sense.
+REM              Now the mapping is principled: data -> Data, digital -> Digital,
+REM              foresight/climate/flood/storm/drought -> Strategic Foresight,
+REM              info/behaviour -> Behavioural Science, and two clearly-innovation
+REM              cards carry an explicit Innovation tag. Operational themes (funding,
+REM              access, governance, health, displacement, supply, community, youth,
+REM              any) demonstrate no single capability, so they touch none: the
+REM              meter only moves for a reason. The random fallback is gone. A card
+REM              can still name its own capability with an explicit "quint" field.
+REM              Perseverance points are still banked for every climb or setback.
+REM              content.js v17, game.js v29, mandate.js v17.
 REM  2026-06-29  CARD READING PACE (both games). Auto cards never advances before
 REM              the whole card has been read: with narration on it waits for the
 REM              narrator to finish the entire line; with narration off it holds

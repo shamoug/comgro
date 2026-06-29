@@ -141,25 +141,27 @@
 
   // ---- the UN 2.0 Quintet of Change -------------------------------------
   // The whole table shares one set of five capabilities: the progress the
-  // country team makes together. Every player's ladders strengthen one and
-  // every player's holes set one back, so the counters tally collectively and
-  // a capability can fall below zero. The capability touched is inferred from
-  // the card's tag, so the nudge fits the event.
+  // country team makes together. A win can strengthen one and a setback set one
+  // back, so the counters tally collectively and a capability can fall below
+  // zero. The capability is taken from the card itself (an explicit "quint", or
+  // a principled mapping of its tag) so the nudge fits the fact. A card whose
+  // fact relates to no capability simply touches none.
   function newQuintet() {
     const q = {};
     CG.QUINTET.forEach((c) => (q[c.key] = 0));
     return q;
   }
-  function applyQuintet(p, tag, dir) {
-    const key = CG.quintetForTag(tag);
+  function applyQuintet(p, card, dir) {
+    // Perseverance is banked for every climb or setback, capability or not, so
+    // progress always counts; points never fall below zero.
+    award(p, dir > 0 ? 3 : -2);
+    // Nudge a capability only when the card's fact genuinely demonstrates one.
+    const key = (card && card.quint) || CG.quintetForTag(card && card.tag);
+    if (!key) return null;
     const meta = CG.quintetMeta(key);
     const level = (S.quintet[key] || 0) + dir;   // shared tally; can climb positive or fall negative
     S.quintet[key] = level;
-    // Per player: the net push this player gives each capability, and the
-    // perseverance points they bank. Ladders build, holes set back; points
-    // never fall below zero so the score reads as a tally of what you achieved.
-    p.contrib[key] = (p.contrib[key] || 0) + dir;
-    award(p, dir > 0 ? 3 : -2);
+    p.contrib[key] = (p.contrib[key] || 0) + dir; // this player's net push on it
     return { key, meta, dir, level };
   }
 
@@ -932,19 +934,19 @@
     const n = p.pos;
     if (B.ladders[n]) {
       const card = fillCard(weightedDraw(CG.LADDER_CARDS, p), p);
-      const q = applyQuintet(p, card.tag, +1);
+      const q = applyQuintet(p, card, +1);
       await showCard(p, card, "ladder", B.ladders[n], q);
       if (S.settings.music) CG.Audio.sfx.ladder();
       toast(`${p.name} climbs to ${B.ladders[n]}`, "good");
-      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
+      if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} strengthened`, "good");
       await slide(p, B.ladders[n], "up", n);
     } else if (B.snakes[n]) {
       const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
-      const q = applyQuintet(p, card.tag, -1);
+      const q = applyQuintet(p, card, -1);
       await showCard(p, card, "snake", B.snakes[n], q);
       if (S.settings.music) CG.Audio.sfx.snake();
       toast(`${p.name} drops down to ${B.snakes[n]}`, "bad");
-      if (!p.isAI) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
+      if (!p.isAI && q) toast(`${q.meta.icon} ${q.meta.name} set back`, "bad");
       shake();
       await slide(p, B.snakes[n], "down", n);
     } else if (B.trophies.includes(n)) {

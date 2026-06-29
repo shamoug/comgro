@@ -99,20 +99,30 @@
     { key: "behaviour",  icon: "🧠", name: "Behavioural Science", blurb: "Designing for how people really decide." },
   ];
 
-  // Which capability a card touches, inferred from its tag. Anything unmapped
-  // (or tagged "any") picks a capability at random, so every event nudges one.
+  // Which capability a card touches, mapped only where the card's theme
+  // genuinely demonstrates one of the five (and so makes sense in both
+  // directions: a win strengthens it, a setback sets it back). Operational
+  // themes (funding, access, governance, health, displacement, supply,
+  // community, youth, and "any") demonstrate no single capability, so they are
+  // left out and nudge nothing. A specific card can still name its own
+  // capability with an explicit "quint" field when its fact clearly fits one.
   CG.QUINTET_BY_TAG = {
-    data: "data", governance: "data", displacement: "data",
-    digital: "digital", supply: "digital",
-    health: "innovation", funding: "innovation", access: "innovation",
-    climate: "foresight", storm: "foresight", flood: "foresight", drought: "foresight",
-    info: "behaviour", community: "behaviour", youth: "behaviour", behaviour: "behaviour",
-    foresight: "foresight",
+    // Data: evidence, assessments, registration, statistics, imagery.
+    data: "data",
+    // Digital: connectivity, telecoms, digital ID, online services, platforms.
+    digital: "digital",
+    // Strategic Foresight: reading and preparing for the next shock.
+    foresight: "foresight", climate: "foresight", flood: "foresight",
+    storm: "foresight", drought: "foresight",
+    // Behavioural Science: communication and how people decide and act.
+    behaviour: "behaviour", info: "behaviour",
   };
 
+  // The capability a card touches, or null when its fact fits none. No random
+  // fallback: an event that does not clearly relate to a capability leaves the
+  // Quintet untouched, so the meter only ever moves for a reason.
   CG.quintetForTag = function (tag) {
-    if (tag && CG.QUINTET_BY_TAG[tag]) return CG.QUINTET_BY_TAG[tag];
-    return CG.QUINTET[Math.floor(Math.random() * CG.QUINTET.length)].key;
+    return (tag && CG.QUINTET_BY_TAG[tag]) || null;
   };
   CG.quintetMeta = function (key) {
     for (let i = 0; i < CG.QUINTET.length; i++) if (CG.QUINTET[i].key === key) return CG.QUINTET[i];
@@ -701,7 +711,7 @@
     { icon: "🏞️", title: "Landslide Seals the Valley", tag: "storm", why: "Saturated hillsides gave way and buried the only road in, cutting off a community we can now reach only on foot.", fact: "Heavy rain triggers landslides that isolate communities, so hazard mapping flags the routes most likely to fail before they do." },
     { icon: "🧊", title: "Harsh Winter Catches Us Short", tag: "climate", why: "Temperatures dropped faster than planned and the winterisation kits are still on a truck somewhere up the line.", fact: "Cold-season needs are predictable to the week, so winterisation that arrives after the first frost has already missed the point." },
     { icon: "📑", title: "Reporting Burden Buries the Team", tag: "data", why: "Every donor wants a different report in a different format, and the staff are filling forms instead of running the programme.", fact: "Fragmented reporting demands drain frontline time, so harmonised reporting is a quiet but real boost to delivery capacity." },
-    { icon: "🤖", title: "Tech Pilot Goes Nowhere", tag: "digital", why: "We launched a shiny new digital tool nobody was trained to use, and it now sits idle while we revert to paper.", fact: "Technology without training and buy-in fails, so adoption is planned as carefully as the tool itself." },
+    { icon: "🤖", title: "Tech Pilot Goes Nowhere", tag: "digital", quint: "innovation", why: "We launched a shiny new digital tool nobody was trained to use, and it now sits idle while we revert to paper.", fact: "Technology without training and buy-in fails, so adoption is planned as carefully as the tool itself." },
     { icon: "🧭", title: "Coordination Meeting Without Decisions", tag: "any", why: "Everyone showed up, everyone talked, and nothing was actually decided, so the same gaps will be there next week.", fact: "Coordination is judged by decisions made, not meetings held, so a clear agenda and follow-up beat a full room every time." },
     { icon: "🩹", title: "Gap Between Relief and Recovery", tag: "any", why: "The emergency phase wound down but development had not yet stepped in, and people fell straight through the seam.", fact: "The handover from relief to recovery is where people get dropped, so humanitarian and development actors plan the transition together from the start." },
   ];
@@ -861,7 +871,7 @@
     { icon: "🤖", title: "UN 2.0 Skills Land in the Office", tag: "digital", why: "Modern data, digital and foresight skills help a small team punch above its weight.", fact: "UN 2.0 builds a quintet of capabilities: data, digital, innovation, strategic foresight and behavioural science." },
     { icon: "🧠", title: "Behavioural Science Lifts Uptake", tag: "behaviour", why: "Understanding how people actually decide makes a campaign land where posters alone fail.", fact: "Behavioural science in UN 2.0 applies knowledge of how people act and decide to design better interventions." },
     { icon: "🛰️", title: "Strategic Foresight Maps Scenarios", tag: "foresight", why: "Thinking through plausible futures today helps the team prepare instead of react.", fact: "Strategic foresight gives teams structured methods to imagine futures and make better decisions now." },
-    { icon: "🚀", title: "Innovation Pilot Scales Up", tag: "digital", why: "A small idea tested and proven can spread to reach far more people.", fact: "UN 2.0 innovation capacity is about quickly generating, testing and scaling ideas that benefit people." },
+    { icon: "🚀", title: "Innovation Pilot Scales Up", tag: "digital", quint: "innovation", why: "A small idea tested and proven can spread to reach far more people.", fact: "UN 2.0 innovation capacity is about quickly generating, testing and scaling ideas that benefit people." },
     { icon: "📡", title: "Digital Service Reaches Remote Users", tag: "digital", why: "Going digital extends services to people a physical office could never serve.", fact: "UN 2.0 digital expertise shifts to digitally enabled solutions that improve connectivity and service delivery." },
     { icon: "📶", title: "Emergency Telecoms Restore Comms", tag: "info", why: "Reconnecting responders and communities is the backbone every other sector relies on.", fact: "The Emergency Telecommunications Cluster restores connectivity for responders and affected people after a disaster." },
     { icon: "🚚", title: "Logistics Cluster Pools Transport", tag: "supply", why: "Sharing warehouses, trucks and airlift stretches scarce capacity across all agencies.", fact: "The Logistics Cluster provides shared transport, storage and coordination so agencies do not duplicate supply chains." },
