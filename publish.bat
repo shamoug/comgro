@@ -8,6 +8,13 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  SURPRISE NEWS NOW MATCHES ITS MOOD. Fixed the surprise-card logic
+REM              so good news only ever helps and bad news only ever hurts. Good
+REM              news now sends you forward, up to the next ladder, or (rarely) to
+REM              the finish, never into a hole or back. Bad news now sends you back,
+REM              down into the next hole, or (rarely) to square one, never forward,
+REM              up a ladder, or to the finish. Bad news can no longer be a bonus.
+REM              game.js v40.
 REM  2026-06-29  TOGGLE ON-STATE IS LIGHT BLUE, NOT DARK. An active toggle now
 REM              fills with a soft light-blue (#dce8ff) and dark-blue text/border
 REM              instead of solid dark blue, while still reading clearly as on.

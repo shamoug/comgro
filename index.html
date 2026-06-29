@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" />
 
   <!-- Styles (relative path so it works on GitHub Pages and from file://) -->
-  <link rel="stylesheet" href="styles/styles.css?v=26" />
+  <link rel="stylesheet" href="styles/styles.css?v=27" />
 
   <!-- Inline favicon (no external asset) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◆</text></svg>" />
@@ -31,11 +31,14 @@
   <!-- DATA: all flavour text, board layout, and decks -->
   <script src="data/content.js?v=20"></script>
 
-  <!-- LOGIC + RENDER: audio, narration, the game, then the launcher -->
+  <!-- LOGIC + RENDER: audio, narration, networking, the game, the lobby,
+       then the launcher. net.js loads before the game and lobby that use it. -->
   <script src="src/audio.js?v=7"></script>
   <script src="src/narrate.js?v=4"></script>
   <script src="src/setup.js?v=6"></script>
-  <script src="src/game.js?v=39"></script>
-  <script src="src/platform.js?v=11"></script>
+  <script src="src/net.js?v=1"></script>
+  <script src="src/game.js?v=41"></script>
+  <script src="src/lobby.js?v=1"></script>
+  <script src="src/platform.js?v=12"></script>
 </body>
 </html>
