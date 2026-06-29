@@ -189,8 +189,8 @@
   // Flash a big +N / -N over the board for a beat: green for gains, red for
   // losses, then fade away. A pure bit of feedback, no game state.
   function flashScore(delta) {
-    const host = boardBox || app();
-    if (!host) return;
+    const host = boardBox;
+    if (!host) return;                 // only over a live board, never over the lobby
     const sign = delta > 0 ? "+" : "-";
     const f = el("div", "score-pop " + (delta > 0 ? "gain" : "loss"), sign + Math.abs(delta));
     host.appendChild(f);
@@ -418,7 +418,11 @@
 
     const bar = el("header", "hud-top");
     bar.innerHTML = `<div class="brand">◆ <b>Common Ground</b><span> · The Long Road</span></div>`;
-    bar.appendChild(el("div", "theatre-chip", `${S.theatre.icon} ${S.theatre.name}`));
+    // The theatre name is a button: tap it any time to re-read the background.
+    const tChip = el("button", "theatre-chip clickable", `${S.theatre.icon} ${esc(S.theatre.name)}`);
+    tChip.title = "Theatre background";
+    tChip.onclick = () => showTheatreIntro();
+    bar.appendChild(tChip);
     // Icon-only controls (the .icons class strips text sizing/padding so each is
     // a clean round icon button). A title on every one explains what it does.
     const ctrls = el("div", "hud-ctrls icons");
@@ -955,6 +959,7 @@
   }
 
   async function resolveLanding(p, depth) {
+    if (!boardBox) return;             // the board is gone (player left): draw nothing
     depth = depth || 0;
     const B = S.board;
     const n = p.pos;
@@ -1161,6 +1166,7 @@
 
   function showCard(p, card, kind, dest, q, moveLine) {
     return new Promise((resolve) => {
+      if (!boardBox) return resolve();   // board gone (player left): show nothing
       const quintSpoken = q
         ? ` Your ${q.meta.name} capability ${q.dir > 0 ? "grows stronger" : "takes a hit"}.`
         : "";
@@ -1206,6 +1212,7 @@
 
   function showNote(p, note) {
     return new Promise((resolve) => {
+      if (!boardBox) return resolve();   // board gone (player left): show nothing
       const spoken = `Field note. ${note}`;
       const over = el("div", "overlay-card");
       const c = el("div", "event-card note");
@@ -1254,6 +1261,7 @@
   // The finishing player's placement card. AI players auto-advance once the
   // line has been read; a human taps to play on (or to see the standings).
   function showFinishCard(p, isLast, done) {
+    if (!boardBox) return;             // board gone (player left): show nothing
     const spoken = `${p.name} completes the mandate, finishing in ${ordinal(p.rank)} place.`;
     const over = el("div", "overlay-card");
     const c = el("div", "event-card trophy");
@@ -1340,6 +1348,7 @@
 
   // Every player is home: show the full finishing order and wrap up.
   function endGame(local) {
+    if (!boardBox) return;             // board gone (player left): show nothing
     S.over = true; S.busy = false;
     setMoving(false);
     renderStandings(); renderTokens(); setTurnTag();
@@ -1385,7 +1394,7 @@
     const again = el("button", "btn btn-primary", S.net.online ? "Back to the theatres ▸" : "Run the road again ▸");
     again.onclick = () => {
       over.remove(); CG.Narrate.stop();
-      if (S.net.online) { S.net.online = false; CG.Net.stopPoll(); CG.Lobby ? CG.Lobby.show() : renderTitle(); }
+      if (S.net.online) { S.net.online = false; CG.Net.stopPoll(); teardownBoard(); CG.Lobby ? CG.Lobby.show() : renderTitle(); }
       else renderTitle();
     };
     const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
@@ -1547,7 +1556,7 @@
 
   function handleGameGone() {
     if (!S.net.online) return;
-    S.net.online = false; CG.Net.stopPoll();
+    S.net.online = false; S.over = true; CG.Net.stopPoll(); teardownBoard();
     toast("This theatre has closed", "muted");
     setTimeout(() => CG.Lobby && CG.Lobby.show(), 1200);
   }
@@ -1570,6 +1579,9 @@
       S.players.forEach((p) => { if (!p.isAI && p.ownerId === myId()) { p.ownerId = null; p.isAI = true; } });
       pushState(`A coordinator has left ${S.theatre.name}`, { summary: true });
     }
+    // Stop the loop: any in-flight turn or scheduled AI move bails out, and the
+    // card renderers go quiet, so nothing from this game pops up over the lobby.
+    S.over = true;
     S.net.online = false;
     CG.Lobby ? CG.Lobby.show() : CG.Platform.show();
   }
@@ -1622,11 +1634,13 @@
     renderBoard();
     startSync();
     maybeAct();
-    if (opts && opts.intro) showTheatreIntro();
+    if (opts && opts.intro) showTheatreIntro("Enter the theatre ▸");
   }
 
-  // A one-time card naming the theatre, its kind, and its one-paragraph story.
-  function showTheatreIntro() {
+  // A card naming the theatre, its kind, and its one-paragraph story. Shown as
+  // the host's entry intro, and again whenever the theatre name is tapped.
+  function showTheatreIntro(label) {
+    if (!boardBox) return;                       // not on the board: nothing to show over
     const t = S.theatre;
     const kind = CG.theatreKindMeta(t);
     const over = el("div", "overlay-card");
@@ -1637,7 +1651,7 @@
       `<div class="ec-title">${esc(t.name)}</div>` +
       `<div class="ec-fact big"><span>Your posting</span>${esc(CG.theatreStory(t))}</div>`;
     const actions = el("div", "ec-actions");
-    const cont = el("button", "btn btn-primary", "Enter the theatre ▸");
+    const cont = el("button", "btn btn-primary", label || "Close ▸");
     cont.onclick = () => { over.classList.remove("show"); setTimeout(() => over.remove(), 250); };
     actions.appendChild(cont);
     c.appendChild(actions);

@@ -148,7 +148,9 @@
     games.forEach((g) => {
       const seats = g.seats || [];
       const humans = seats.filter((s) => !s.isAI && s.owned).length;
-      const takeable = seats.filter((s) => s.isAI || !s.owned).length;
+      // Only AI seats can be taken over. A seat a human holds (even one who has
+      // stepped away) is theirs until the host hands it back to the AI.
+      const takeable = seats.filter((s) => s.isAI).length;
       const card = el("div", "theatre-card");
       card.innerHTML =
         `<div class="tc-top"><span class="tc-icon">${g.icon || "◆"}</span>` +
@@ -256,14 +258,15 @@
     let any = false;
     (game.players || []).forEach((p, i) => {
       const mine = !p.isAI && p.ownerId === myId;
-      const takeable = p.isAI || !p.ownerId;
+      // Only an AI seat can be taken over (your own seat can be resumed).
+      const takeable = p.isAI;
       const row = el("div", "seat-row");
       row.style.setProperty("--tok", p.color);
       row.appendChild(el("span", "seat-badge", "" + (i + 1)));
       row.appendChild(el("span", "join-avatar", p.icon || "◆"));
 
       const info = el("div", "join-info");
-      const tag = mine ? "🙋 your seat" : (p.isAI ? "🤖 AI" : (takeable ? "· open seat" : "🙋 player"));
+      const tag = mine ? "🙋 your seat" : (p.isAI ? "🤖 AI" : "🙋 player");
       info.innerHTML = `<b>${esc(p.name)}</b><small>${tag}</small>`;
       row.appendChild(info);
 
@@ -300,7 +303,8 @@
     try { game = await CG.Net.getGame(id); } catch (e) { game = null; }
     if (!game) { return bounce("This theatre has closed."); }
     const seat = game.players[idx];
-    const free = seat && (seat.isAI || !seat.ownerId || seat.ownerId === CG.Net.clientId);
+    // Claimable only if it is still an AI seat (or already ours, a resume).
+    const free = seat && (seat.isAI || seat.ownerId === CG.Net.clientId);
     if (!free) {
       // Someone beat us to it: re-show the picker with the fresh state.
       const list = document.querySelector(".join-list");
