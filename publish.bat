@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  OPPONENTS WALK, THEY DO NOT TELEPORT. A watched player's token now
+REM              steps square by square along the board path (like your own does),
+REM              instead of gliding straight to the final square in one hop. A big
+REM              jump (a ladder or hole slide) still glides directly rather than
+REM              crawling through dozens of squares, and the watch card now waits
+REM              for the walk to finish before it covers the board. Fixes maybeAct
+REM              rebuilding the tokens mid-animation (which had been snapping them).
+REM              game.js v47.
 REM  2026-06-29  WATCHERS SEE THE WHOLE TURN (movement + the actual card). Other
 REM              players' turns are no longer a silent snap to the final square.
 REM              The acting browser now broadcasts each beat of its turn in the
