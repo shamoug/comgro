@@ -248,7 +248,10 @@
     // store; only the browser that controls the current seat acts, and it
     // writes the result for the others to read. seq guards against re-applying
     // our own echoed write or an older snapshot.
-    net: { online: false, gameId: null, hostId: null, seq: 0, acting: false, lastEvent: "" },
+    // beat/show broadcast every roll and card so remote players see the whole
+    // turn (movement + the actual card), not just the final position. shownBeat
+    // is the last beat THIS browser has played, to avoid replaying it.
+    net: { online: false, gameId: null, hostId: null, seq: 0, acting: false, lastEvent: "", beat: 0, shownBeat: 0, show: null },
   };
 
   // Token colours, all distinct from ladder-wood and hole-green.
@@ -405,6 +408,7 @@
   function teardownBoard() {
     if (resizeObs) { try { resizeObs.disconnect(); } catch (e) {} resizeObs = null; }
     if (relayoutHandler) { window.removeEventListener("resize", relayoutHandler); relayoutHandler = null; }
+    clearRemoteCard();
     boardBox = null; overlaySvg = null;
   }
 
@@ -868,6 +872,9 @@
 
     await animateDice([roll]);
     toast(`${p.name} rolls <b>${roll}</b>`, "roll");
+    // Tell the table the roll (and where the mover is leaving from) so watchers
+    // see the die and the move, not just the result.
+    if (S.net.online) emitBeat({ t: "roll", seat: S.current, value: roll }, `${p.name} rolls ${roll}`);
 
     let target = p.pos + roll, bounced = false;
     if (target > 100) { target = 100 - (target - 100); bounced = true; }
@@ -966,6 +973,7 @@
     if (B.ladders[n]) {
       const card = fillCard(weightedDraw(CG.LADDER_CARDS, p), p);
       const q = applyQuintet(p, card, +1);
+      if (S.net.online) emitCardBeat(p, "ladder", card, B.ladders[n], q, null, `${p.name} climbs to ${B.ladders[n]}`);
       await showCard(p, card, "ladder", B.ladders[n], q);
       if (S.settings.music) { CG.Audio.sfx.ladder(); CG.Audio.sfx.clap(); }
       toast(`${p.name} climbs to ${B.ladders[n]}`, "good");
@@ -974,6 +982,7 @@
     } else if (B.snakes[n]) {
       const card = fillCard(weightedDraw(CG.SNAKE_CARDS, p), p);
       const q = applyQuintet(p, card, -1);
+      if (S.net.online) emitCardBeat(p, "snake", card, B.snakes[n], q, null, `${p.name} drops down to ${B.snakes[n]}`);
       await showCard(p, card, "snake", B.snakes[n], q);
       if (S.settings.music) { CG.Audio.sfx.snake(); CG.Audio.sfx.wah(); }
       toast(`${p.name} drops down to ${B.snakes[n]}`, "bad");
@@ -984,6 +993,7 @@
       const card = fillCard(weightedDraw(CG.TROPHY_CARDS, p), p);
       p.trophies++;
       award(p, 5);
+      if (S.net.online) emitCardBeat(p, "trophy", card, null, null, null, `${p.name} collects a trophy 🏆`);
       await showCard(p, card, "trophy", null);
       if (S.settings.music) CG.Audio.sfx.note();
       burst(n, "up", 18);
@@ -993,6 +1003,7 @@
       const card = fillCard(weightedDraw(CG.DIAMOND_CARDS, p), p);
       p.diamonds++;
       award(p, 4);
+      if (S.net.online) emitCardBeat(p, "diamond", card, null, null, null, `${p.name} finds a diamond 💎`);
       await showCard(p, card, "diamond", null);
       if (S.settings.music) CG.Audio.sfx.note();
       burst(n, "up", 18);
@@ -1001,11 +1012,13 @@
     } else if (B.surprises.includes(n)) {
       const card = fillCard(weightedDraw(CG.SURPRISE_CARDS, p), p);
       const outcome = planSurprise(p, card);
+      if (S.net.online) emitCardBeat(p, "surprise", card, null, null, outcome.consequence, `${p.name} hits a surprise`);
       await showCard(p, card, "surprise", null, null, outcome.consequence);
       await applySurprise(p, outcome, depth);
     } else if (B.fieldNotes.includes(n)) {
       const note = S.decks.note();
       if (S.settings.music) CG.Audio.sfx.note();
+      if (S.net.online) emitBeat({ t: "note", seat: S.players.indexOf(p), note }, `${p.name} reads a field note`);
       await showNote(p, note);
     }
     renderStandings();
@@ -1459,6 +1472,8 @@
       seq: S.net.seq,
       lastWriter: myId(),
       lastEvent: S.net.lastEvent || "",
+      beat: S.net.beat || 0,
+      show: S.net.show || null,
       players: S.players.map((p) => ({
         name: p.name, isAI: p.isAI, ownerId: p.ownerId || null,
         roleIdx: CG.ROLES.indexOf(p.role), icon: p.role.icon, color: p.color,
@@ -1481,6 +1496,7 @@
     S.over = !!game.over;
     S.quintet = game.quintet || newQuintet();
     S.net.seq = game.seq || 0;
+    S.net.beat = game.beat || 0;
     S.players = (game.players || []).map((sp) => {
       const role = CG.ROLES[sp.roleIdx] || CG.ROLES[0];
       return {
@@ -1507,6 +1523,24 @@
     return CG.Net.putGame(game, opts).catch((e) => { /* try again next turn */ });
   }
 
+  // Broadcast one beat of a turn (a roll or a card) so every other browser can
+  // play it: the show payload travels in the state, tagged with a rising beat
+  // number and our id, and the others present it (and skip our own echo). Only
+  // the acting browser ever calls this, and only online.
+  function emitBeat(show, eventText) {
+    if (!S.net.online) return Promise.resolve();
+    S.net.beat = (S.net.beat || 0) + 1;
+    S.net.shownBeat = S.net.beat;                 // we are showing it live ourselves
+    S.net.show = Object.assign({ beat: S.net.beat, by: myId() }, show);
+    return pushState(eventText);
+  }
+  const slimCard = (c) => ({ icon: c.icon, title: c.title, why: c.why, fact: c.fact });
+  // Tell the table which card a player just drew, before we animate it locally.
+  function emitCardBeat(p, kind, card, dest, q, moveLine, eventText) {
+    emitBeat({ t: "card", seat: S.players.indexOf(p), kind, card: slimCard(card),
+      dest: dest == null ? null : dest, q: q || null, moveLine: moveLine || null }, eventText);
+  }
+
   // Take whatever turn is now ours to take. Called after entering a game and
   // after every applied remote update. Does nothing on a seat we do not drive.
   function maybeAct() {
@@ -1519,19 +1553,100 @@
   }
 
   // A remote snapshot arrived from the poll. Apply it unless it is stale, our
-  // own echo, or we are mid-move (we re-check on the next tick). Tokens snap to
-  // the shared positions and the table is told what just happened.
+  // own echo, or we are mid-move (we re-check on the next tick). Tokens glide to
+  // the shared positions (so the move is visible) and any new beat (a roll or a
+  // card the acting player just hit) is presented, so watchers see the whole
+  // turn, not just the result.
   function applyRemote(game) {
     if (!S.net.online) return;
     if (!game) return handleGameGone();
     if ((game.seq || 0) <= (S.net.seq || 0)) return;   // nothing newer than we hold
     if (S.busy || S.net.acting) return;                // do not disturb our own turn
     const wasOver = S.over;
+    const prev = S.players.map((p) => p.pos);
     deserialize(game);
-    renderTokens(); renderStandings();
-    if (game.lastEvent && game.lastWriter !== myId()) toast(game.lastEvent, "muted");
+    syncTokens(prev);                                  // glide tokens to the new squares
+    renderStandings();
+    const show = game.show;
+    if (show && (show.beat || 0) > (S.net.shownBeat || 0)) {
+      S.net.shownBeat = show.beat;
+      if (show.by !== myId()) presentRemote(show);     // play the beat (skip our own echo)
+    } else if (game.lastEvent && game.lastWriter !== myId()) {
+      toast(game.lastEvent, "muted");
+    }
     if (S.over && !wasOver) return showRemoteOver();
     maybeAct();
+  }
+
+  // Move every token to its current square without rebuilding the layer, so the
+  // CSS transition animates the hop. Rebuild only if the seating changed.
+  function syncTokens(prev) {
+    const layer = $("#tokens");
+    if (!layer) return;
+    if (layer.children.length !== S.players.length) { renderTokens(); return; }
+    S.players.forEach((p, i) => {
+      const t = $("#tok" + i);
+      if (!t) return;
+      t.classList.toggle("active", i === S.current && !S.over);
+      if (!prev || prev[i] !== p.pos) { t.classList.add("remote-move"); moveTokenTo(i, p.pos); }
+    });
+  }
+
+  // Present a beat broadcast by the acting player: a roll (flash the die) or a
+  // card / field note (a read-only card that auto-dismisses, so it never blocks).
+  function presentRemote(show) {
+    if (!boardBox || !show) return;
+    if (show.t === "roll") {
+      const seat = S.players[show.seat];
+      const d = $("#die0");
+      if (d) { d.innerHTML = pips(show.value); d.classList.remove("settle"); void d.offsetWidth; d.classList.add("settle"); }
+      if (seat) toast(`${seat.name} rolls ${show.value}`, "roll");
+      return;
+    }
+    if (show.t === "card" || show.t === "note") showRemoteCard(show);
+  }
+
+  // The read-only "watch" card other players' turns show. Replaces any previous
+  // one and clears itself after a few seconds (or on a click).
+  let remoteCardEl = null;
+  function clearRemoteCard() { if (remoteCardEl) { const e = remoteCardEl; remoteCardEl = null; e.classList.remove("show"); setTimeout(() => e.remove(), 200); } }
+  function showRemoteCard(show) {
+    if (!boardBox) return;
+    clearRemoteCard();
+    const seat = S.players[show.seat];
+    const over = el("div", "overlay-card watch");
+    let c;
+    if (show.t === "note") {
+      c = el("div", "event-card note");
+      c.innerHTML = (seat ? whoHtml(seat) : "") +
+        `<div class="ec-band">FIELD NOTE</div><div class="ec-icon">★</div>` +
+        `<div class="ec-fact big"><span>From the field</span>${esc(show.note)}</div>`;
+    } else {
+      const card = show.card || {}, kind = show.kind || "surprise", q = show.q;
+      const moveHtml = show.moveLine
+        ? `<div class="ec-move ec-impose">${esc(show.moveLine)}</div>`
+        : (show.dest != null ? `<div class="ec-move">${kind === "ladder" ? "▲" : "▼"} ${show.dest}</div>` : "");
+      const quintHtml = q
+        ? `<div class="ec-quint ${q.dir > 0 ? "up" : "down"}"><span class="eq-ic">${q.meta.icon}</span>` +
+          `<span class="eq-txt"><b>${esc(q.meta.name)}</b> ${q.dir > 0 ? "strengthened" : "set back"}` +
+          `<small>UN 2.0 Quintet of Change</small></span><span class="eq-delta">${q.dir > 0 ? "+1" : "−1"}</span></div>`
+        : "";
+      c = el("div", "event-card " + kind);
+      c.innerHTML = (seat ? whoHtml(seat) : "") +
+        `<div class="ec-band">${BAND[kind] || ""}</div>` +
+        `<div class="ec-icon">${card.icon || "◆"}</div>` +
+        `<div class="ec-title">${esc(card.title || "")}</div>` + moveHtml +
+        (card.why ? `<div class="ec-why">${esc(card.why)}</div>` : "") +
+        (card.fact ? `<div class="ec-fact"><span>Side fact</span>${esc(card.fact)}</div>` : "") +
+        quintHtml;
+    }
+    c.appendChild(el("div", "ec-watch", `👀 watching ${esc(seat ? seat.name : "the table")}`));
+    over.appendChild(c);
+    over.onclick = clearRemoteCard;
+    app().appendChild(over);
+    remoteCardEl = over;
+    requestAnimationFrame(() => over.classList.add("show"));
+    setTimeout(() => { if (remoteCardEl === over) clearRemoteCard(); }, 4600);
   }
 
   // Host failover: if it is a human seat's turn but it has gone quiet for a
@@ -1630,6 +1745,7 @@
     CG.Narrate.setEnabled(S.settings.voice);
     deserialize(game);
     S.net.online = true; S.busy = false; S.zoneSpoken = -1;
+    S.net.shownBeat = game.beat || 0;   // do not replay the beat in progress as we arrive
     lastProgressAt = CG.Net.now();
     renderBoard();
     startSync();
