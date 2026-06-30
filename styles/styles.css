@@ -172,10 +172,10 @@ button { font-family: inherit; cursor: pointer; }
   padding: 18px 20px; width: 210px; box-shadow: var(--shadow);
   animation: dealIn .5s cubic-bezier(.2, .8, .2, 1) both;
 }
-.deal-card.theatre-card { width: min(440px, 92vw); border-top: 3px solid var(--gold); }
+.deal-card.theatre-card { width: min(360px, 92vw); border-top: 3px solid var(--gold); }
 .role-card { border-top: 3px solid var(--tok); }
 @keyframes dealIn { from { opacity: 0; transform: translateY(26px) rotateX(16deg); } to { opacity: 1; transform: none; } }
-.deal-icon { font-size: 50px; line-height: 1; }
+.deal-icon { font-size: 42px; line-height: 1; }
 .deal-avatar {
   width: 64px; height: 64px; margin: 0 auto; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; font-size: 30px;
@@ -183,9 +183,9 @@ button { font-family: inherit; cursor: pointer; }
   border: 2px solid var(--tok); box-shadow: 0 8px 20px -8px var(--tok);
 }
 .deal-label { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px; font-weight: 700; }
-.deal-title { font-family: "Fraunces", serif; font-size: 23px; font-weight: 700; }
-.deal-title.small { font-size: 17px; }
-.deal-text { color: var(--muted); font-size: 14.5px; line-height: 1.62; margin-top: 8px; }
+.deal-title { font-family: "Fraunces", serif; font-size: 20px; font-weight: 700; }
+.deal-title.small { font-size: 16px; }
+.deal-text { color: var(--muted); font-size: 13px; line-height: 1.52; margin-top: 7px; }
 
 /* ======================================================================= */
 /* BOARD SCREEN, full-screen rectangular board                             */
@@ -216,25 +216,25 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 17px; line-height: 1; border-radius: 50%;
 }
 
-.standings { position: absolute; top: 54px; left: 16px; z-index: 15; display: flex; flex-direction: column; gap: 8px; width: 256px; transition: opacity .35s ease, transform .35s ease; }
+.standings { position: absolute; top: 54px; left: 16px; z-index: 15; display: flex; flex-direction: column; gap: 7px; width: 224px; transition: opacity .35s ease, transform .35s ease; }
 .scard {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--panel-solid); border: 1px solid var(--line); border-radius: 13px;
-  padding: 9px 12px; box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; gap: 9px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 7px 10px; box-shadow: var(--shadow-sm);
   transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
 .scard.active { border-color: var(--tok); box-shadow: 0 0 0 1px var(--tok) inset, 0 8px 22px -8px var(--tok); transform: translateX(4px); }
 .savatar {
-  width: 34px; height: 34px; border-radius: 50%; flex: none;
-  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
   background: radial-gradient(circle at 35% 30%, #fff, color-mix(in srgb, var(--tok) 24%, #fff));
   border: 2px solid var(--tok);
 }
-.sinfo { display: flex; flex-direction: column; line-height: 1.22; min-width: 0; }
-.sinfo b { font-size: 15px; }
-.sinfo small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sloot { font-size: 13px; margin-top: 3px; display: flex; gap: 7px; }
-.spos { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 22px; color: var(--tok); }
+.sinfo { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.sinfo b { font-size: 13.5px; }
+.sinfo small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sloot { font-size: 12px; margin-top: 2px; display: flex; gap: 6px; }
+.spos { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 18px; color: var(--tok); }
 
 /* UN 2.0 Quintet of Change meter (the human player's five capabilities) */
 .quint-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; box-shadow: var(--shadow-sm); }
@@ -377,22 +377,22 @@ button { font-family: inherit; cursor: pointer; }
 .board-screen.moving .standings { opacity: 0; transform: translateX(-18px); pointer-events: none; }
 .board-screen.moving .dice-dock { opacity: 0; transform: translate(-50%, 26px); pointer-events: none; }
 .board-screen.moving .board-credit { opacity: 0; }
-.turn-tag { font-size: 15px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 9px; min-width: 128px; }
-.turn-tag .dot { width: 11px; height: 11px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+.turn-tag { font-size: 14px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 122px; }
+.turn-tag .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
 .dice { display: flex; gap: 12px; }
 .die {
-  width: 66px; height: 66px;
+  width: 54px; height: 54px;
   background: linear-gradient(155deg, #ffffff, #e6ecf6);
-  border: 1px solid rgba(40,80,130,.14); border-radius: 15px;
+  border: 1px solid rgba(40,80,130,.14); border-radius: 13px;
   display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-  padding: 10px;
+  padding: 8px;
   box-shadow: inset 0 -4px 8px rgba(40,70,120,.1), inset 0 2px 2px #fff, 0 6px 14px rgba(40,70,120,.25);
 }
 .die.rolling { animation: tumble .14s linear infinite; }
 @keyframes tumble { 0% { transform: rotate(-12deg) translateY(0) scale(1); } 50% { transform: rotate(12deg) translateY(-6px) scale(1.05); } 100% { transform: rotate(-12deg) translateY(0) scale(1); } }
 .die.settle { animation: dieSettle .26s cubic-bezier(.3,1.4,.5,1); }
 @keyframes dieSettle { 0% { transform: scale(1.18, .82); } 60% { transform: scale(.94, 1.06); } 100% { transform: scale(1); } }
-.pip { border-radius: 50%; place-self: center; width: 11px; height: 11px; background: transparent; }
+.pip { border-radius: 50%; place-self: center; width: 9px; height: 9px; background: transparent; }
 .pip.on { background: #2a4366; box-shadow: inset 0 1px 1px rgba(0,0,0,.3); }
 
 /* toasts */
@@ -422,17 +422,17 @@ button { font-family: inherit; cursor: pointer; }
 }
 .overlay-card.show { opacity: 1; }
 .event-card {
-  width: min(540px, 94vw);
-  /* never taller than the screen: a long card scrolls inside itself rather than
-     spilling off the top and bottom (common on phones with a lot of card text) */
-  max-height: 92vh; max-height: calc(100dvh - 28px);
+  width: min(420px, 92vw);
+  /* only scroll when the screen genuinely cannot fit the card: it caps at the
+     viewport height and scrolls inside itself rather than spilling off-screen. */
+  max-height: 92vh; max-height: calc(100dvh - 24px);
   overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   background: #fff; border: 1px solid var(--line);
-  border-radius: 24px; padding: 30px 32px; text-align: center;
-  box-shadow: 0 30px 70px rgba(20, 40, 80, .4), 0 0 0 1px rgba(40, 80, 130, .06);
+  border-radius: 20px; padding: 22px 24px; text-align: center;
+  box-shadow: 0 22px 50px rgba(20, 40, 80, .32), 0 0 0 1px rgba(40, 80, 130, .06);
   transform: translateY(18px) scale(.95);
   transition: transform .32s cubic-bezier(.2, .9, .3, 1.1);
-  border-top: 5px solid var(--blue);
+  border-top: 4px solid var(--blue);
 }
 .overlay-card.show .event-card { transform: none; }
 .event-card.ladder { border-top-color: var(--gold); }
@@ -442,9 +442,9 @@ button { font-family: inherit; cursor: pointer; }
 .event-card.surprise { border-top-color: var(--violet); }
 .event-card.note, .event-card.win { border-top-color: var(--gold); }
 .ec-who {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 9px;
   justify-content: flex-start; text-align: left;
-  margin: -6px 0 14px; padding: 8px 14px;
+  margin: -4px 0 11px; padding: 6px 12px;
   background: color-mix(in srgb, var(--who, #2f6bff) 9%, #fff);
   border: 1px solid color-mix(in srgb, var(--who, #2f6bff) 24%, var(--line));
   border-radius: 999px;
@@ -474,16 +474,16 @@ button { font-family: inherit; cursor: pointer; }
 .event-card.trophy .ec-band, .event-card.win .ec-band, .event-card.note .ec-band { color: var(--gold); }
 .event-card.diamond .ec-band { color: var(--cyan); }
 .event-card.surprise .ec-band { color: var(--violet); }
-.ec-icon { font-size: 74px; line-height: 1; margin: 10px 0 8px; animation: pop .45s cubic-bezier(.2,.9,.3,1.4) both; }
+.ec-icon { font-size: 54px; line-height: 1; margin: 6px 0 5px; animation: pop .45s cubic-bezier(.2,.9,.3,1.4) both; }
 @keyframes pop { from { transform: scale(.3) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
-.ec-title { font-family: "Fraunces", serif; font-size: 31px; font-weight: 700; margin-bottom: 8px; line-height: 1.14; color: var(--ink); }
-.ec-move { display: inline-block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 16px; background: #eef3fb; padding: 5px 18px; border-radius: 999px; margin-bottom: 14px; }
+.ec-title { font-family: "Fraunces", serif; font-size: 23px; font-weight: 700; margin-bottom: 6px; line-height: 1.16; color: var(--ink); }
+.ec-move { display: inline-block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; background: #eef3fb; padding: 4px 15px; border-radius: 999px; margin-bottom: 12px; }
 /* a surprise spells out the imposed move as a full sentence, not a short pill */
-.ec-move.ec-impose { display: block; font-size: 15.5px; line-height: 1.5; background: #fff6e6; border: 1px solid rgba(214,158,46,.4); color: #5a4205; border-radius: 12px; padding: 12px 16px; text-align: left; }
-.ec-why { font-size: 16.5px; line-height: 1.58; margin-bottom: 17px; color: #2e3f54; }
-.ec-fact { background: #f4f8ff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 17px; font-size: 15px; line-height: 1.58; text-align: left; color: var(--ink); }
-.ec-fact.big { font-size: 17.5px; line-height: 1.6; }
-.ec-fact span { display: block; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 800; margin-bottom: 6px; }
+.ec-move.ec-impose { display: block; font-size: 13.5px; line-height: 1.5; background: #fff6e6; border: 1px solid rgba(214,158,46,.4); color: #5a4205; border-radius: 12px; padding: 10px 13px; text-align: left; }
+.ec-why { font-size: 14.5px; line-height: 1.52; margin-bottom: 13px; color: #2e3f54; }
+.ec-fact { background: #f4f8ff; border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; font-size: 13.5px; line-height: 1.5; text-align: left; color: var(--ink); }
+.ec-fact.big { font-size: 14.5px; line-height: 1.55; }
+.ec-fact span { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 800; margin-bottom: 4px; }
 /* the UN 2.0 Quintet nudge, shown on a ladder/snake card */
 .ec-quint { display: flex; align-items: center; gap: 11px; text-align: left; margin-top: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); }
 .ec-quint.up { background: rgba(47,158,84,.1); border-color: rgba(47,158,84,.34); }
@@ -507,7 +507,7 @@ button { font-family: inherit; cursor: pointer; }
 /* a player who has already reached the end sits dimmed in the standings */
 .scard.done { opacity: .72; }
 .scard.done .spos { font-size: 17px; }
-.ec-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+.ec-actions { display: flex; gap: 10px; margin-top: 15px; justify-content: center; flex-wrap: wrap; }
 
 /* ---- responsive ------------------------------------------------------- */
 @media (max-width: 760px) {
@@ -541,23 +541,6 @@ button { font-family: inherit; cursor: pointer; }
   .savatar { width: 23px; height: 23px; font-size: 12px; }
   .spos { font-size: 15px; }
   .turn-tag { display: none; }
-}
-
-/* On a wide screen the floating cards grow, so they command the space instead
-   of floating small in the middle of a big board. */
-@media (min-width: 860px) {
-  .event-card { width: min(640px, 58vw); padding: 40px 48px; border-radius: 28px; }
-  .ec-icon { font-size: 90px; margin-top: 6px; }
-  .ec-title { font-size: 37px; }
-  .ec-move { font-size: 17px; }
-  .ec-why { font-size: 18.5px; line-height: 1.6; }
-  .ec-fact { font-size: 16.5px; padding: 17px 21px; }
-  .ec-fact.big { font-size: 20px; }
-  .ec-band { font-size: 12.5px; }
-  .ec-who-id b { font-size: 16.5px; }
-  .ec-who-id small { font-size: 12.5px; }
-  .ec-actions { margin-top: 22px; gap: 12px; }
-  .ec-actions .btn { font-size: 16px; padding: 14px 28px; }
 }
 
 /* Back link, used on the setup, create and join screens to step back. */
@@ -658,45 +641,45 @@ button { font-family: inherit; cursor: pointer; }
   align-items: stretch; justify-content: flex-start;
   padding: clamp(16px, 4vw, 40px); gap: 14px; overflow-y: auto;
 }
-.lobby-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; width: 100%; max-width: 960px; margin: 0 auto; }
-.lobby-title { display: flex; align-items: center; gap: 13px; text-align: left; }
-.logo-mark.sm { width: 52px; height: 52px; font-size: 28px; margin: 0; }
-.title.sm { font-size: clamp(26px, 4vw, 36px); margin: 0; }
-.subtitle.sm { font-size: 14px; margin: 3px 0 0; letter-spacing: .02em; }
-.lobby-who { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--muted); }
+.lobby-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; width: 100%; max-width: 900px; margin: 0 auto; }
+.lobby-title { display: flex; align-items: center; gap: 12px; text-align: left; }
+.logo-mark.sm { width: 44px; height: 44px; font-size: 23px; margin: 0; }
+.title.sm { font-size: clamp(21px, 4vw, 28px); margin: 0; }
+.subtitle.sm { font-size: 12.5px; margin: 2px 0 0; letter-spacing: .02em; }
+.lobby-who { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .lobby-who b { color: var(--ink); }
 .lobby-who .back-link { position: static; }
 
-.lobby-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 960px; margin: 6px auto 0; }
+.lobby-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 900px; margin: 4px auto 0; }
 .lobby-actions .btn { flex: 0 0 auto; }
 
 .theatre-list {
-  width: 100%; max-width: 960px; margin: 8px auto 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;
+  width: 100%; max-width: 900px; margin: 6px auto 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 13px;
 }
 .lobby-empty {
   grid-column: 1 / -1; text-align: center; color: var(--muted);
-  background: #fff; border: 1px dashed var(--line); border-radius: 16px; padding: 32px 22px; font-size: 15px;
+  background: #fff; border: 1px dashed var(--line); border-radius: 14px; padding: 26px 20px; font-size: 14px;
 }
 .theatre-list .theatre-card {
-  width: auto; display: flex; flex-direction: column; gap: 13px;
-  background: #fff; border: 1px solid var(--line); border-radius: 18px;
-  padding: 18px 20px; box-shadow: var(--shadow-sm);
+  width: auto; display: flex; flex-direction: column; gap: 11px;
+  background: #fff; border: 1px solid var(--line); border-radius: 15px;
+  padding: 14px 16px; box-shadow: var(--shadow-sm);
   transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 .theatre-list .theatre-card:hover { border-color: color-mix(in srgb, var(--blue) 40%, var(--line)); box-shadow: var(--shadow); transform: translateY(-2px); }
-.tc-top { display: flex; align-items: center; gap: 13px; }
-.tc-icon { font-size: 36px; line-height: 1; }
+.tc-top { display: flex; align-items: center; gap: 11px; }
+.tc-icon { font-size: 30px; line-height: 1; }
 .tc-id { display: flex; flex-direction: column; text-align: left; }
-.tc-id b { font-size: 19px; color: var(--ink); font-family: "Fraunces", serif; }
-.tc-id small { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
-.tc-seats { display: flex; flex-wrap: wrap; gap: 7px; }
+.tc-id b { font-size: 17px; color: var(--ink); font-family: "Fraunces", serif; }
+.tc-id small { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.tc-seats { display: flex; flex-wrap: wrap; gap: 6px; }
 .seat-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px 5px 5px;
-  font-size: 13px; font-weight: 700; color: var(--ink); background: #f6f9ff; max-width: 100%;
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px 4px 4px;
+  font-size: 12px; font-weight: 700; color: var(--ink); background: #f6f9ff; max-width: 100%;
 }
-.seat-chip .sc-ic { width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 999px; background: color-mix(in srgb, var(--tok) 22%, #fff); font-size: 13px; }
+.seat-chip .sc-ic { width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 999px; background: color-mix(in srgb, var(--tok) 22%, #fff); font-size: 12px; }
 .seat-chip .sc-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .seat-chip.ai { color: var(--muted); }
 .seat-chip.open { border-style: dashed; color: var(--muted); opacity: .85; }
@@ -734,13 +717,13 @@ button { font-family: inherit; cursor: pointer; }
 .kind-badge.peacekeeping { color: #2f5bd0; background: rgba(47, 107, 255, .12); border-color: rgba(47, 107, 255, .4); }
 
 .theatre-story {
-  width: min(560px, 92vw); margin: 0 auto 6px;
-  background: #fff; border: 1px solid var(--line); border-radius: 16px;
-  padding: 16px 18px; box-shadow: var(--shadow-sm); text-align: left;
+  width: min(500px, 92vw); margin: 0 auto 6px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 13px 15px; box-shadow: var(--shadow-sm); text-align: left;
 }
-.theatre-story .ts-head { display: flex; align-items: center; gap: 12px; }
-.theatre-story .ts-icon { font-size: 30px; line-height: 1; }
+.theatre-story .ts-head { display: flex; align-items: center; gap: 11px; }
+.theatre-story .ts-icon { font-size: 26px; line-height: 1; }
 .theatre-story .ts-id { display: flex; flex-direction: column; gap: 4px; }
-.theatre-story .ts-id b { font-size: 17px; color: var(--ink); font-family: "Fraunces", serif; }
+.theatre-story .ts-id b { font-size: 16px; color: var(--ink); font-family: "Fraunces", serif; }
 .theatre-story .ts-id .kind-badge { margin-left: 0; align-self: flex-start; }
-.theatre-story .ts-body { margin: 11px 0 0; color: var(--muted); font-size: 14px; line-height: 1.62; }
+.theatre-story .ts-body { margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.52; }
