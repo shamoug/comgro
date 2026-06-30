@@ -8,6 +8,20 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  MORE DEVELOPMENT AND PEACEKEEPING THEATRES (web-researched). The
+REM              theatre roster was almost all Humanitarian, so 21 new fictional
+REM              composite scenarios were added and tagged with an explicit type:
+REM              11 Development (a reform capital with an anti-corruption court, a
+REM              first credible election, digital ID rollout, a youth-jobs coast,
+REM              public-finance reform, climate-adaptation finance, decentralisation,
+REM              a first census, a court backlog, off-grid energy, a social safety
+REM              net) and 10 Peacekeeping (a buffer/blue line, DDR of ex-combatants,
+REM              a monitored ceasefire, a returnee corridor through mined ground, a
+REM              stabilised town, mine clearance, reconciliation, civilian-protection
+REM              patrols, a power-sharing transitional capital, herder-farmer
+REM              mediation). Grounded in UNDP priorities and UN DPO mandate tasks.
+REM              The mix is now 48 Humanitarian / 20 Development / 16 Peacekeeping.
+REM              English only, no em or en dashes. content.js v22.
 REM  2026-06-29  OPPONENTS WALK, THEY DO NOT TELEPORT. A watched player's token now
 REM              steps square by square along the board path (like your own does),
 REM              instead of gliding straight to the final square in one hop. A big

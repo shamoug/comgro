@@ -534,6 +534,33 @@
     { icon: "📡", name: "The Silent Counties", blurb: "A rural belt where weak data and weaker signal hide outbreaks until they are already wide.", tags: ["data", "health", "digital", "info"] },
     { icon: "🏝️", name: "The Stormwall Keys", blurb: "Tourist islands one bad season from ruin, where reefs that once shielded them are dying.", tags: ["storm", "climate", "funding", "community"] },
     { icon: "🌽", name: "The Lean Granary", blurb: "A breadbasket gone brittle, where back-to-back failed harvests turn surplus into shortage.", tags: ["drought", "supply", "funding", "foresight"] },
+    // ---- DEVELOPMENT theatres (web-researched 2026-06-29, UNDP priorities:
+    // governance, anti-corruption, elections, digital public infrastructure,
+    // jobs, social protection, climate finance, statistics, decentralisation) ----
+    { icon: "🏛️", name: "The Reform Capital", type: "development", blurb: "A young democracy rebuilding trust, where a new anti-corruption court and an open-budget portal are tested by every contract.", tags: ["governance", "funding", "data", "info"] },
+    { icon: "🗳️", name: "The Ballot Highlands", type: "development", blurb: "Mountain districts heading to their first credible election, where voter rolls, logistics and rumour all decide whether the result holds.", tags: ["governance", "info", "access", "community"] },
+    { icon: "📶", name: "The Connected Plains", type: "development", blurb: "A nation rolling out digital ID and mobile payments to reach citizens the paper state never could.", tags: ["digital", "data", "governance", "funding"] },
+    { icon: "💡", name: "The Jobless Coast", type: "development", blurb: "A coastal economy with a youth bulge and no work, betting on skills, small grants and green industry to keep a generation home.", tags: ["youth", "funding", "community", "climate"] },
+    { icon: "🏦", name: "The Leaking Treasury", type: "development", blurb: "A resource-rich state where the budget vanishes between the capital and the clinic, and public-finance reform is the whole fight.", tags: ["governance", "funding", "data", "community"] },
+    { icon: "🌱", name: "The Adaptation Delta", type: "development", blurb: "A farming delta courting climate finance to raise embankments and seed-banks before the next flood, if the money and the data line up.", tags: ["climate", "funding", "foresight", "data"] },
+    { icon: "🏘️", name: "The Devolving Province", type: "development", blurb: "Power and budgets handed down to new district councils that have never run a service, racing to deliver before patience runs out.", tags: ["governance", "community", "funding", "youth"] },
+    { icon: "📊", name: "The Uncounted Republic", type: "development", blurb: "A country governing half-blind, where a first real census and a statistics law decide who gets a school and who is left off the map.", tags: ["data", "governance", "digital", "community"] },
+    { icon: "⚖️", name: "The Justice Backlog", type: "development", blurb: "A reforming state where courts buried in cases and a thin legal-aid net keep ordinary disputes from ever being settled.", tags: ["governance", "community", "info", "access"] },
+    { icon: "🔆", name: "The Off-Grid Frontier", type: "development", blurb: "Scattered towns waiting on mini-grids and solar, where energy access decides whether a clinic opens or stays dark.", tags: ["digital", "access", "funding", "health"] },
+    { icon: "🤝", name: "The Safety-Net States", type: "development", blurb: "A reforming union building its first cash-transfer and social registry, so a bad harvest no longer means destitution.", tags: ["funding", "data", "community", "governance"] },
+    // ---- PEACEKEEPING theatres (web-researched 2026-06-29, UN DPO mandate
+    // tasks: protection of civilians, DDR, security-sector reform, rule of law,
+    // mine action, ceasefire monitoring, returnees, inclusive political process) ----
+    { icon: "🛡️", name: "The Blue Line Hills", type: "peacekeeping", blurb: "A buffer zone between two armies where a thin peacekeeping line and daily liaison keep a fragile truce from breaking.", tags: ["governance", "access", "community", "info"] },
+    { icon: "🕊️", name: "The Disarmament Basin", type: "peacekeeping", blurb: "A river basin where thousands of ex-combatants are trading rifles for a stipend and a trade, if the reintegration money arrives.", tags: ["community", "funding", "youth", "displacement"] },
+    { icon: "🚩", name: "The Buffer Province", type: "peacekeeping", blurb: "A contested province under a monitored ceasefire, where every checkpoint crossed and patrol blocked is negotiated by the hour.", tags: ["access", "governance", "displacement", "info"] },
+    { icon: "🧭", name: "The Returnee Corridor", type: "peacekeeping", blurb: "A cleared route home for the displaced, mapped through fields still salted with mines and old front lines.", tags: ["displacement", "access", "community", "health"] },
+    { icon: "🏚️", name: "The Stabilised Town", type: "peacekeeping", blurb: "A town pulled back from the brink, where rebuilt police and courts must earn trust faster than spoilers can break it.", tags: ["governance", "community", "access", "info"] },
+    { icon: "⛓️", name: "The Demining Flats", type: "peacekeeping", blurb: "Floodplain villages where mine-action teams clear field after field so farmers and aid can finally move.", tags: ["access", "community", "health", "displacement"] },
+    { icon: "🤲", name: "The Reconciliation Highlands", type: "peacekeeping", blurb: "Highland communities easing apart after years of conflict, where local peace committees and returning families test a brittle calm.", tags: ["community", "displacement", "governance", "info"] },
+    { icon: "🛂", name: "The Monitored Frontier", type: "peacekeeping", blurb: "A tense border under observer patrols, where protecting civilians means being between the gunmen and the village before dark.", tags: ["displacement", "access", "community", "foresight"] },
+    { icon: "🏯", name: "The Transitional Capital", type: "peacekeeping", blurb: "A capital under a power-sharing deal, where standing up an inclusive government is as fragile as the ceasefire that allowed it.", tags: ["governance", "community", "info", "funding"] },
+    { icon: "🌾", name: "The Contested Grazing Lands", type: "peacekeeping", blurb: "Pastoral lands where herder-farmer clashes and armed raids are mediated patrol by patrol and well by well.", tags: ["community", "access", "displacement", "foresight"] },
   ];
 
   /* ----------------------------------------------------------------------
