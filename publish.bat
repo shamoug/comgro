@@ -8,6 +8,17 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  COMPACT AGAIN. The previous visibility pass overshot: fonts and
+REM              dimensions got too big and started forcing scrollbars. Dialed it
+REM              all back to compact. The floating cards shrink (icon 90->54, title
+REM              37->23, body text down a couple of px, width 640->420) and the
+REM              wide-screen card-upscaling block is removed entirely; standings,
+REM              the die, the deal cards and the lobby cards/header are all trimmed
+REM              to compact sizes. The cards still cap at the viewport height and
+REM              scroll inside themselves ONLY when the screen genuinely cannot fit
+REM              them, so on any normal screen there is no scrollbar at all (the
+REM              longest theatre-story card now fits without scrolling). CSS only,
+REM              styles.css v31.
 REM  2026-06-29  JOIN RULES, TAP THE THEATRE NAME, AND A CLEAN EXIT. (1) Only AI
 REM              seats can be taken over now: a seat a human holds (even one who
 REM              stepped away) stays theirs until the host hands it back to the AI,
