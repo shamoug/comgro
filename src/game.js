@@ -408,7 +408,7 @@
   function teardownBoard() {
     if (resizeObs) { try { resizeObs.disconnect(); } catch (e) {} resizeObs = null; }
     if (relayoutHandler) { window.removeEventListener("resize", relayoutHandler); relayoutHandler = null; }
-    clearRemoteCard();
+    clearRemoteCard(); cancelAllWalks();
     boardBox = null; overlaySvg = null;
   }
 
@@ -1543,8 +1543,10 @@
 
   // Take whatever turn is now ours to take. Called after entering a game and
   // after every applied remote update. Does nothing on a seat we do not drive.
+  // It does NOT rebuild the tokens (that would snap a token mid-walk); syncTokens
+  // owns the token positions while watching a remote turn.
   function maybeAct() {
-    setTurnTag(); renderTokens(); renderStandings();
+    setTurnTag(); renderStandings();
     if (S.over || S.busy) return;
     if (!iControl()) return;
     const p = S.players[S.current];
@@ -1565,12 +1567,17 @@
     const wasOver = S.over;
     const prev = S.players.map((p) => p.pos);
     deserialize(game);
-    syncTokens(prev);                                  // glide tokens to the new squares
-    renderStandings();
     const show = game.show;
-    if (show && (show.beat || 0) > (S.net.shownBeat || 0)) {
-      S.net.shownBeat = show.beat;
-      if (show.by !== myId()) presentRemote(show);     // play the beat (skip our own echo)
+    const newBeat = !!(show && (show.beat || 0) > (S.net.shownBeat || 0) && show.by !== myId());
+    if (show && (show.beat || 0) > (S.net.shownBeat || 0)) S.net.shownBeat = show.beat;
+    // Animate every token to its new square. The mover (the seat the beat is
+    // about) walks square by square; we learn how long that takes so the card
+    // can wait for the walk to finish before it covers the board.
+    const walkMs = syncTokens(prev, show ? show.seat : -1);
+    renderStandings();
+    if (newBeat) {
+      if (show.t === "roll") presentRemote(show);                              // the die, at once
+      else setTimeout(() => { if (boardBox) presentRemote(show); }, walkMs);   // the card, after the walk
     } else if (game.lastEvent && game.lastWriter !== myId()) {
       toast(game.lastEvent, "muted");
     }
@@ -1578,18 +1585,54 @@
     maybeAct();
   }
 
-  // Move every token to its current square without rebuilding the layer, so the
-  // CSS transition animates the hop. Rebuild only if the seating changed.
-  function syncTokens(prev) {
+  // Watching a remote turn, a token walks one square at a time (so the motion
+  // reads like a real move). Animate every token to its new square: the mover
+  // steps along the board path; a big jump (a ladder or hole slide) glides
+  // straight there. Returns how long the mover's walk takes.
+  const STEP_MS = 170;
+  let obsGen = 0;
+  const obsWalk = {};   // seat index -> { gen, timer } of a walk in progress
+  function cancelWalk(i) { if (obsWalk[i] && obsWalk[i].timer) clearTimeout(obsWalk[i].timer); obsWalk[i] = null; }
+  function cancelAllWalks() { Object.keys(obsWalk).forEach((k) => cancelWalk(k)); }
+
+  function syncTokens(prev, moverSeat) {
     const layer = $("#tokens");
-    if (!layer) return;
-    if (layer.children.length !== S.players.length) { renderTokens(); return; }
+    if (!layer) return 0;
+    if (layer.children.length !== S.players.length) { renderTokens(); return 0; }
+    let moverMs = 0;
     S.players.forEach((p, i) => {
       const t = $("#tok" + i);
       if (!t) return;
       t.classList.toggle("active", i === S.current && !S.over);
-      if (!prev || prev[i] !== p.pos) { t.classList.add("remote-move"); moveTokenTo(i, p.pos); }
+      const from = prev ? prev[i] : p.pos;
+      if (from === p.pos) return;
+      let ms;
+      if (Math.abs(p.pos - from) <= 6) { ms = stepToken(i, from, p.pos); }        // a roll / hop: walk it
+      else { cancelWalk(i); t.classList.add("remote-move"); moveTokenTo(i, p.pos); ms = 520; }  // a slide: glide
+      if (i === moverSeat) moverMs = ms;
     });
+    return moverMs;
+  }
+
+  // Step a token from one square to the next along the board, returning the total
+  // walk duration. A later walk for the same seat cancels this one.
+  function stepToken(i, from, to) {
+    cancelWalk(i);
+    const t = $("#tok" + i);
+    if (t) t.classList.remove("remote-move");   // use the short per-step transition
+    const dir = to >= from ? 1 : -1;
+    const gen = ++obsGen;
+    obsWalk[i] = { gen, timer: null };
+    let cur = from;
+    const stepOnce = () => {
+      if (!obsWalk[i] || obsWalk[i].gen !== gen || !boardBox) return;
+      cur += dir;
+      moveTokenTo(i, cur);
+      if (cur === to) { obsWalk[i] = null; return; }
+      obsWalk[i].timer = setTimeout(stepOnce, STEP_MS);
+    };
+    obsWalk[i].timer = setTimeout(stepOnce, 20);
+    return Math.abs(to - from) * STEP_MS + 140;
   }
 
   // Present a beat broadcast by the acting player: a roll (flash the die) or a
