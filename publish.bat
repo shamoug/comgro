@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-06-29  WATCHERS SEE THE WHOLE TURN (movement + the actual card). Other
+REM              players' turns are no longer a silent snap to the final square.
+REM              The acting browser now broadcasts each beat of its turn in the
+REM              shared state, tagged with a rising beat number: the die roll and
+REM              whatever card it drew (ladder, hole, trophy, diamond, surprise,
+REM              field note), with the real card content and the Quintet nudge. On
+REM              every other browser the player's token GLIDES between squares (so
+REM              the move is visible) and a read-only "watch" card of what they drew
+REM              pops up ("watching <name>"), clearing itself after a few seconds or
+REM              on a click. A late joiner does not replay the beat in progress.
+REM              Possible now that the transport is MQTT (no write throttling), so a
+REM              turn can write several beats. game.js v46, styles.css v32.
 REM  2026-06-29  COMPACT AGAIN. The previous visibility pass overshot: fonts and
 REM              dimensions got too big and started forcing scrollbars. Dialed it
 REM              all back to compact. The floating cards shrink (icon 90->54, title

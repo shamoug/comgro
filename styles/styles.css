@@ -727,3 +727,13 @@ button { font-family: inherit; cursor: pointer; }
 .theatre-story .ts-id b { font-size: 16px; color: var(--ink); font-family: "Fraunces", serif; }
 .theatre-story .ts-id .kind-badge { margin-left: 0; align-self: flex-start; }
 .theatre-story .ts-body { margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.52; }
+
+/* =========================================================================
+ * WATCHING ANOTHER PLAYER. When it is a remote player's turn, the rest of the
+ * table sees their move (the token glides) and a read-only "watch" card of
+ * whatever they drew, which clears itself after a few seconds.
+ * ========================================================================= */
+.overlay-card.watch { background: rgba(14, 26, 48, .30); cursor: pointer; }
+.ec-watch { margin-top: 11px; font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+/* a remote player's token glides between squares so the move reads clearly */
+.token.remote-move { transition: left .5s cubic-bezier(.4,0,.3,1), top .5s cubic-bezier(.4,0,.3,1); }
