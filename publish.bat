@@ -8,6 +8,23 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-01  SCENARIO -> TITLE -> CARD -> QUINTET CHAIN TIGHTENED, plus a batch
+REM              of web-verified facts. The draw now reads the theatre's KIND
+REM              (humanitarian / development / peacekeeping): cards written for a
+REM              specific kind surface only in that posting, while generic (no-kind)
+REM              cards remain the fallback in every scenario, so a peace theatre
+REM              draws peace cards and a development theatre draws development cards.
+REM              Job-title and theatre tags now weight the draw more strongly (role
+REM              +3, theatre +2), with a never-empty pool fallback. Fixed the chain
+REM              so innovation-tagged cards actually move the Innovation capability
+REM              (added the innovation self-map to QUINTET_BY_TAG). Added 12
+REM              peacekeeping and 12 development cards (holes + ladders) and ~25 new
+REM              generic holes / ladders / field-note facts, each checked against UN,
+REM              OCHA, UNHCR, WHO, ILO, World Bank, IPC, CERF, FAO and UN DPO sources
+REM              (e.g. CERF's six-minute 2024 Nepal release, 122M+ displaced, 850M
+REM              without legal identity, 14.3M zero-dose children, corruption ~5% of
+REM              GDP, mine casualties, 25% localization target). English only, no em
+REM              or en dashes. content.js v23, game.js v48.
 REM  2026-06-29  MORE DEVELOPMENT AND PEACEKEEPING THEATRES (web-researched). The
 REM              theatre roster was almost all Humanitarian, so 21 new fictional
 REM              composite scenarios were added and tagged with an explicit type:

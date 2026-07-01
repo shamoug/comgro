@@ -135,16 +135,26 @@
   // posted to (theatre tags). So every card a player draws relates to them.
   function weightedDraw(cards, p) {
     const roleTags = (p && p.tags) || [];
-    const theatreTags = (S.theatre && S.theatre.tags) || [];
+    const theatre = S.theatre || {};
+    const theatreTags = theatre.tags || [];
+    // The scenario's kind (humanitarian / development / peacekeeping) gates the
+    // deck: a card written for a specific kind only appears in that kind of
+    // posting, so a peace theatre draws peace cards and a development theatre
+    // draws development cards. Cards with no kind are the generic, cross-cutting
+    // fallback and travel to every scenario, so the chain never dead-ends.
+    const tKind = (CG.theatreKind && CG.theatreKind(theatre)) || "humanitarian";
     const pool = [];
     cards.forEach((c) => {
+      if (c.kind && c.kind !== tKind) return;           // off-kind special: not here
       let w = 1;
       if (c.tag && c.tag !== "any") {
-        if (roleTags.indexOf(c.tag) >= 0) w += 3;       // job title / affiliation
-        if (theatreTags.indexOf(c.tag) >= 0) w += 1;    // scenario
+        if (roleTags.indexOf(c.tag) >= 0) w += 3;       // job title / affiliation dictates cards
+        if (theatreTags.indexOf(c.tag) >= 0) w += 2;    // scenario tags dictate cards
       }
+      if (c.kind === tKind) w += 2;                     // on-kind special: favour it in its posting
       for (let i = 0; i < w; i++) pool.push(c);
     });
+    if (!pool.length) cards.forEach((c) => pool.push(c)); // ultimate fallback: never leave the pool empty
     let pick = pool[Math.floor(Math.random() * pool.length)], tries = 0;
     while (pick === lastDrawn.get(cards) && tries++ < 5) pick = pool[Math.floor(Math.random() * pool.length)];
     lastDrawn.set(cards, pick);

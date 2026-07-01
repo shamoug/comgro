@@ -109,6 +109,10 @@
   CG.QUINTET_BY_TAG = {
     // Data: evidence, assessments, registration, statistics, imagery.
     data: "data",
+    // Innovation: bold ideas tested then scaled (self-map, so any card that
+    // themes on innovation nudges the Innovation capability even without an
+    // explicit "quint").
+    innovation: "innovation",
     // Digital: connectivity, telecoms, digital ID, online services, platforms.
     digital: "digital",
     // Strategic Foresight: reading and preparing for the next shock.
@@ -872,6 +876,31 @@
     { icon: "🛂", title: "Surveillance Fears Rise", tag: "community", quint: "innovation", why: "Communities suspect your digital ID is watching them, not serving them, and enrolment falters.", fact: "Researchers have questioned whether UNHCR digital identity systems deliver targeted aid or enhanced surveillance, a tension that can erode refugees' willingness to register." },
     { icon: "💀", title: "The Funding Cliff", tag: "funding", quint: "innovation", why: "Seed money runs out before your innovation finds a sustaining budget, and the project quietly dies.", fact: "Elrha identifies restrictive humanitarian financial instruments and insufficient funding as key reasons innovations cannot bridge from pilot to scale, even when they work." },
     { icon: "🪙", title: "Hype Outruns Evidence", tag: "innovation", quint: "innovation", why: "Excitement over a buzzy new technology races ahead of proof it actually helps people in the field.", fact: "Critics of humanitarian blockchain note that early projects often lacked strong anonymization or zero-knowledge protections and overstated benefits, with transparency about data governance frequently missing." },
+    // ---- SCENARIO-SPECIFIC + VERIFIED setbacks (web-researched 2026-07-01).
+    // kind: "development" / "peacekeeping" cards surface only in that kind of
+    // posting (see weightedDraw); the rest carry no kind and travel to every
+    // scenario as the generic fallback. Each fact is checked against UN, OCHA,
+    // UNHCR, WHO, ILO, World Bank, IPC, CERF, FAO and UN DPO sources.
+    // peacekeeping setbacks
+    { icon: "🔥", title: "Spoilers Break the Ceasefire", tag: "governance", kind: "peacekeeping", why: "An armed faction that profited from the war restarts the fighting, and the truce your mission was guarding buckles overnight.", fact: "Peace operations are authorised by the Security Council and run by the Department of Peace Operations, but a ceasefire holds only while the parties still want it to." },
+    { icon: "⛔", title: "A Patrol Is Turned Back", tag: "access", kind: "peacekeeping", why: "A checkpoint refuses your convoy, and the village you were protecting spends another night unreached.", fact: "For protecting civilians, studies find the troop-to-population ratio in an area, and how perpetrators are confronted, matters more than the sheer number of peacekeepers." },
+    { icon: "💣", title: "Mined Fields Halt the Return", tag: "access", kind: "peacekeeping", why: "Returnees reach their old fields to find them salted with explosives, and everything stops until the ground is cleared.", fact: "In 2024 landmines and explosive remnants of war killed or injured nearly 6,300 people, the most since 2020, and about nine in ten were civilians, almost half of them children." },
+    { icon: "🧨", title: "Reintegration Money Runs Dry", tag: "funding", kind: "peacekeeping", why: "Ex-combatants hand in their weapons, but the promised trade and stipend never arrive, and idle fighters drift back to the gun.", fact: "In disarmament, demobilization and reintegration, reintegration is the long community-level part: a social, economic and political process with an open time-frame that stalls without sustained funding." },
+    { icon: "📣", title: "Disinformation Targets the Mission", tag: "info", kind: "peacekeeping", why: "A rumour campaign paints the peacekeepers as the enemy, and crowds that once welcomed patrols now block them.", fact: "Mis- and disinformation against peace operations can endanger both civilians and personnel, which is why missions invest in strategic communications and community engagement." },
+    { icon: "⚖️", title: "Election Tensions Boil Over", tag: "governance", kind: "peacekeeping", why: "A contested vote reopens old divisions, and the fragile calm your mission held gives way to clashes in the street.", fact: "Credible elections are a starting point for accountability, but a disputed result in a fragile state can reignite the very conflict a mission was sent to freeze." },
+    // development setbacks
+    { icon: "🕳️", title: "The Budget Leaks Away", tag: "governance", kind: "development", why: "Money voted for clinics and schools vanishes between the treasury and the district, and the service never opens.", fact: "The global cost of corruption is estimated at about 2.6 trillion dollars, roughly five percent of world GDP, and UNDP notes the sums lost far exceed official development aid." },
+    { icon: "💼", title: "A Bribe Blocks the Permit", tag: "governance", kind: "development", why: "A routine approval stalls until an envelope changes hands, and the honest applicant simply gives up.", fact: "Roughly one in five people worldwide report having to pay a bribe to access a public service." },
+    { icon: "📉", title: "The Safety Net Has Holes", tag: "funding", kind: "development", why: "A bad harvest tips families into destitution because the social registry never reached them.", fact: "For the first time more than half the world, 52.4 percent, has at least one social protection benefit, but 47.6 percent, about 3.8 billion people, still have none." },
+    { icon: "🪪", title: "The Undocumented Are Left Out", tag: "digital", kind: "development", why: "A new digital ID rollout speeds services for some and quietly locks out everyone without papers.", fact: "About 850 million people cannot prove their legal identity, and more than half are children whose births were never registered." },
+    { icon: "📊", title: "The Census Slips Again", tag: "data", kind: "development", why: "The count that decides where schools and clinics go is delayed once more, and planners keep steering half-blind.", fact: "Without current population data, budgets and services are allocated on guesswork, which is why a credible census and a statistics law are core development priorities." },
+    { icon: "🧑‍🎓", title: "A Generation Without Work", tag: "youth", kind: "development", why: "A youth bulge meets an economy with no jobs, and frustration spills from the classroom to the street.", fact: "Decent work and skills for young people sit at the centre of development mandates, because large idle youth cohorts strain both economies and social peace." },
+    // generic setbacks (verified, every scenario)
+    { icon: "🦠", title: "Cholera Deaths Climb", tag: "health", why: "Crowding and broken water systems push a treatable disease past the clinics, and people die who should not.", fact: "In 2024 cholera was reported in 60 countries, up from 45 in 2023, and deaths rose about 50 percent to more than 6,000, though prompt rehydration can cut the fatality rate below one percent." },
+    { icon: "🤒", title: "Measles Finds the Unvaccinated", tag: "health", why: "Coverage slipped, and one imported case becomes an outbreak among children who were never reached.", fact: "First-dose measles coverage was 84 percent in 2024, short of the 95 percent needed to stop outbreaks, and 60 countries saw large or disruptive measles outbreaks that year." },
+    { icon: "🌫️", title: "The Warning Never Comes", tag: "foresight", why: "A hazard the forecasters saw hits communities that had no way to hear it in time.", fact: "As of 2024 about one-third of the world's population was still not covered by any early warning system." },
+    { icon: "🚶", title: "Displacement Hits a Decade High", tag: "displacement", why: "New fighting piles onto old, and the caseload your team plans for keeps climbing past every projection.", fact: "By 2025 more than 122 million people were forcibly displaced worldwide, a decade high, and about six in ten never cross a border: they are internally displaced." },
+    { icon: "🧒", title: "Zero-Dose Children Slip Through", tag: "youth", why: "In the hardest places, children reach their first birthday having never seen a single vaccine.", fact: "In 2024 some 14.3 million children were zero-dose, receiving no routine vaccination at all, up from 12.9 million in 2019." },
   ];
 
   /* ----------------------------------------------------------------------
@@ -1113,6 +1142,31 @@
     { icon: "🧮", title: "An Algorithm Feeds More", tag: "supply", quint: "innovation", why: "Optimization software redesigns your food baskets, stretching the same budget across more people.", fact: "WFP's Optimus tool calculates the most cost-effective food baskets and distribution plans, and has shown the same budget can serve up to 20 percent more people." },
     { icon: "💳", title: "A Global Identity Anchors Aid", tag: "digital", quint: "innovation", why: "Biometric registration gives stateless families a verifiable identity, unlocking services they were denied.", fact: "UNHCR's biometric database held fingerprints and iris scans of 15.7 million individuals by the end of 2023, up from 8.8 million in 2019, with its system used in 93 countries." },
     { icon: "🏛️", title: "UN 2.0 Backs Innovation", tag: "any", quint: "innovation", why: "A new policy mandate puts bold experimentation at the centre of how your team works.", fact: "In September 2023 the UN Secretary-General issued the UN 2.0 policy brief, placing innovation among the five capabilities of the Quintet of Change alongside data, digital, behavioural science and strategic foresight." },
+    // ---- SCENARIO-SPECIFIC + VERIFIED wins (web-researched 2026-07-01).
+    // Same rule as the hole deck: development / peacekeeping cards surface only
+    // in that kind of posting; the rest carry no kind and travel everywhere.
+    // Facts checked against UN, OCHA, UNHCR, WHO, ILO, World Bank, IPC, CERF,
+    // FAO and UN DPO sources.
+    // peacekeeping wins
+    { icon: "🕊️", title: "The Ceasefire Holds Another Month", tag: "governance", kind: "peacekeeping", why: "Daily liaison and patient monitoring keep both sides to the line, and the calm your mission guards lasts a little longer.", fact: "Eleven UN peace operations run today on a budget of about 5.6 billion dollars, with uniformed personnel from over 110 countries." },
+    { icon: "🌾", title: "Cleared Fields Reopen", tag: "access", kind: "peacekeeping", why: "Mine-action teams sweep the ground field by field, and farmers and aid finally move where no one dared walk.", fact: "Since the late 1990s more than 55 million stockpiled landmines have been destroyed and over 30 countries have become mine-free." },
+    { icon: "🤝", title: "Ex-Combatants Choose the Trade", tag: "community", kind: "peacekeeping", why: "Reintegration delivers a real livelihood, and fighters trade the rifle for a workshop and a wage.", fact: "The goal of disarmament, demobilization and reintegration is the sustained social and economic reintegration of ex-combatants into peaceful community life." },
+    { icon: "🧑‍🤝‍🧑", title: "A Local Peace Committee Mediates", tag: "community", kind: "peacekeeping", why: "Neighbours who stopped speaking sit at one table, and a dispute that would have drawn guns is settled with words.", fact: "Community-level peace committees and local mediation are cornerstones of consolidating a fragile calm from the bottom up." },
+    { icon: "👮", title: "The Police Earn Trust Back", tag: "governance", kind: "peacekeeping", why: "Mentored, vetted officers return to the streets as a service rather than a threat, and people report crime again.", fact: "Rebuilding accountable national police and the rule of law is core to how peace operations help a state stand on its own." },
+    { icon: "🛡️", title: "A Patrol Reaches the Village in Time", tag: "displacement", kind: "peacekeeping", why: "Peacekeepers position between the gunmen and the homes before dark, and the night passes without an attack.", fact: "Direct physical protection of civilians turns on being present in the right place: analysts stress the troop-to-population ratio in an area over raw numbers." },
+    // development wins
+    { icon: "⚖️", title: "The Anti-Corruption Court Delivers", tag: "governance", kind: "development", why: "A stolen contract is unwound in open court, and citizens see, for once, that the powerful can lose.", fact: "Some 190 states have ratified the UN Convention against Corruption, the framework UNDP supports countries to put into practice." },
+    { icon: "🧾", title: "The Budget Goes Public", tag: "data", kind: "development", why: "An open-budget portal lets any citizen trace the money, and leakage drops because everyone is watching.", fact: "Transparency and open public-finance data are among the strongest tools there are for rebuilding trust between a state and its people." },
+    { icon: "🗳️", title: "A First Credible Election Holds", tag: "governance", kind: "development", why: "Clean rolls, sound logistics and calm messaging carry the vote, and the result is one people will accept.", fact: "Free and transparent elections are an effective starting point for political accountability and oversight." },
+    { icon: "🤲", title: "The Cash Transfer Reaches Families", tag: "funding", kind: "development", why: "A new social registry pays households directly before a shock tips them over, and a bad season no longer means ruin.", fact: "The world crossed a milestone as 52.4 percent of people gained at least one social protection benefit, though nearly half remain uncovered." },
+    { icon: "📇", title: "Legal Identity for the Invisible", tag: "digital", kind: "development", why: "A registration drive gives undocumented families a verifiable identity, unlocking banking, health and school.", fact: "Since 2015 the World Bank's ID4D and G2Px work has supported more than 60 countries to improve IDs, benefiting an estimated 550 million people." },
+    { icon: "🔆", title: "A Mini-Grid Lights the Clinic", tag: "digital", kind: "development", why: "Solar power reaches an off-grid town, and the clinic keeps its lights, its cold chain and its night shifts.", fact: "Energy access decides whether a rural clinic opens or stays dark, which is why off-grid solar and mini-grids are development priorities." },
+    // generic wins (verified, every scenario)
+    { icon: "⚡", title: "CERF Fires in Six Minutes", tag: "foresight", why: "A forecast crosses its trigger and pre-arranged money releases almost at once, so families can act before the water rises.", fact: "In September 2024 CERF released 3.4 million dollars to Nepal within six minutes of a flood-forecast trigger, reaching over 130,000 people." },
+    { icon: "🛡️", title: "Early Action Pays Off Sevenfold", tag: "foresight", why: "The plan fires ahead of the shock, and every dollar spent early saves many more a late response would have cost.", fact: "FAO finds every 1 dollar invested in anticipatory action can return up to 7 dollars in avoided losses, yet it remains a tiny share of aid." },
+    { icon: "💉", title: "A Cholera Campaign Beats the Curve", tag: "health", why: "A fast single-dose vaccination round buys time while your teams fix the water behind it.", fact: "A record 40 million oral cholera vaccine doses were approved for emergency single-dose campaigns across 16 countries in 2024." },
+    { icon: "🪜", title: "A Quarter Reaches Local Hands", tag: "community", why: "Funding flows straight to the national responders who were there first, not filtered through three intermediaries.", fact: "The Grand Bargain target is at least 25 percent of humanitarian funding to local and national actors as directly as possible; in the 2024 cycle 15 aid organisations reported meeting it." },
+    { icon: "🍲", title: "School Meals Hold the Line", tag: "youth", why: "A hot meal keeps children in class through the lean season, and enrolment holds when it should have collapsed.", fact: "WFP is the largest humanitarian implementer of school-meal programmes and reached 124 million people across more than 120 countries in 2024." },
   ];
 
   /* ----------------------------------------------------------------------
@@ -2275,6 +2329,22 @@
     "The Peacebuilding Commission keeps the world's attention on countries after the headlines fade.",
     "Recovery is not rebuilding the past but building something more resilient than before.",
     "Every crisis is also a window to build back fairer, greener, and stronger.",
+    // ---- verified fun facts (web-researched 2026-07-01) ----
+    "In 2024 the World Food Programme reached 124 million people across more than 120 countries.",
+    "By 2025 more than 122 million people were forcibly displaced, a decade high, and about six in ten never crossed a border.",
+    "In 2024 CERF released funds to Nepal within six minutes of a flood forecast crossing its trigger.",
+    "Cholera is both preventable and treatable: prompt rehydration can cut its fatality rate below one percent.",
+    "About 850 million people cannot prove their legal identity, and over half are unregistered children.",
+    "In 2024 roughly 14.3 million children received no routine vaccine at all.",
+    "FAO finds every dollar spent on anticipatory action can return up to seven in avoided losses.",
+    "The WFP-managed UN Humanitarian Air Service flies to more than 300 destinations.",
+    "As of 2024 about one-third of the world was still not covered by any early warning system.",
+    "The global cost of corruption is estimated at around five percent of world GDP.",
+    "More than half the world now has at least one social protection benefit, and nearly half still has none.",
+    "Famine is a technical threshold: a fifth of the population starving, a third of children wasted, two deaths per ten thousand each day.",
+    "Eleven UN peace operations run today, with personnel drawn from over 110 countries.",
+    "In 2024 landmines killed or wounded nearly 6,300 people, and nine in ten were civilians.",
+    "A record 40 million oral cholera vaccine doses were cleared for emergency campaigns in 2024.",
   ];
 
   /* ----------------------------------------------------------------------
