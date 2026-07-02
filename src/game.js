@@ -274,51 +274,43 @@
   }
 
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
-  let chatDock = null;   // the collapsible chat pane (the players list is always shown)
+  let chatUnread = false;   // an unseen message arrived while the chat window was closed
   let decksReady = false;
 
   // =======================================================================
-  // THE CHAT DOCK
-  // The chat pane lives as a small blue dot in the top-right corner and only opens
-  // when something happens: it flashes open for two seconds when a message arrives,
-  // opens while you hover its dot or body, and a click on the dot pins it open
-  // until you click again. (The players list, by contrast, is simply shown while
-  // no token is moving, so it has no dot.)
+  // TABLE CHAT
+  // A round chat button sits in the top bar (before the music toggle). Pressing it
+  // opens a proper chat window centred on the screen; pressing again (or the X, the
+  // backdrop, or Escape) closes it. A message that arrives while the window is
+  // closed lights a small red notification dot on the button, cleared on open.
   // =======================================================================
-  function createDock(pane, dot) {
-    const st = { pinned: false, hover: false, focus: false, flash: false, timer: null };
-    function render() {
-      const open = st.pinned || st.hover || st.focus || st.flash;
-      pane.classList.toggle("open", open);
-      dot.classList.toggle("pinned", st.pinned);
-    }
-    function flash(ms) {
-      if (st.pinned) return;                       // already staying open
-      st.flash = true;
-      dot.classList.remove("ping"); void dot.offsetWidth; dot.classList.add("ping");
-      render();
-      clearTimeout(st.timer);
-      st.timer = setTimeout(() => { st.flash = false; render(); }, ms || 2000);
-    }
-    const enter = () => { st.hover = true; render(); };
-    const leave = () => { st.hover = false; render(); };
-    pane.addEventListener("mouseenter", enter);
-    pane.addEventListener("mouseleave", leave);
-    dot.addEventListener("mouseenter", enter);
-    dot.addEventListener("mouseleave", leave);
-    pane.addEventListener("focusin", () => { st.focus = true; render(); });
-    pane.addEventListener("focusout", () => { st.focus = false; render(); });
-    dot.addEventListener("click", (e) => {
-      e.stopPropagation();
-      st.pinned = !st.pinned;
-      if (!st.pinned) { st.flash = false; clearTimeout(st.timer); }
-      render();
-    });
-    render();
-    return { flash, render, state: st };
+  function updateChatBadge() {
+    const badge = $("#chatBadge");
+    if (badge) badge.classList.toggle("on", chatUnread);
+  }
+  function openChat() {
+    const modal = $("#chatModal");
+    if (!modal) return;
+    modal.classList.add("open");
+    chatUnread = false; updateChatBadge();
+    const log = $("#chatLog"); if (log) log.scrollTop = log.scrollHeight;
+    const input = $("#chatInput"); if (input) setTimeout(() => { try { input.focus(); } catch (e) {} }, 30);
+  }
+  function closeChat() {
+    const modal = $("#chatModal");
+    if (modal) modal.classList.remove("open");
+  }
+  function toggleChat() {
+    const modal = $("#chatModal");
+    if (!modal) return;
+    if (modal.classList.contains("open")) closeChat(); else openChat();
+  }
+  function chatIsOpen() {
+    const modal = $("#chatModal");
+    return !!(modal && modal.classList.contains("open"));
   }
 
-  // ---- table chat --------------------------------------------------------
+  // ---- table chat rendering ----------------------------------------------
   // Render one received message. We render on RECEIPT only (including the echo of
   // our own message the broker sends back), so ordering is whatever the table
   // sees and there are never duplicates.
@@ -345,7 +337,11 @@
   function onChatMessage(m) {
     if (!m || !m.text) return;
     renderChatMessage(m);
-    if (chatDock) chatDock.flash();      // a new message pops the chat open for a beat
+    if (chatIsOpen()) {
+      const log = $("#chatLog"); if (log) log.scrollTop = log.scrollHeight;
+    } else if (m.from !== myId()) {
+      chatUnread = true; updateChatBadge();   // notify: a new message while the window was closed
+    }
   }
   function sendChat() {
     if (!S.net.online || !CG.Net || !S.net.gameId) return;
@@ -504,7 +500,7 @@
     if (relayoutHandler) { window.removeEventListener("resize", relayoutHandler); relayoutHandler = null; }
     if (CG.Net && CG.Net.stopChat) CG.Net.stopChat();
     clearRemoteCard(); cancelAllWalks();
-    chatDock = null;
+    chatUnread = false;
     boardBox = null; overlaySvg = null;
   }
 
@@ -526,6 +522,15 @@
     // Icon-only controls (the .icons class strips text sizing/padding so each is
     // a clean round icon button). A title on every one explains what it does.
     const ctrls = el("div", "hud-ctrls icons");
+    // Table chat (online only): a round chat button before the music toggle, with a
+    // red notification dot when a message arrives while the window is closed.
+    if (S.net.online) {
+      const chatBtn = el("button", "chip-toggle chat-toggle", `💬<span class="chat-badge" id="chatBadge"></span>`);
+      chatBtn.id = "chatToggle"; chatBtn.type = "button"; chatBtn.title = "Table chat";
+      chatBtn.setAttribute("aria-label", "Table chat");
+      chatBtn.onclick = () => toggleChat();
+      ctrls.appendChild(chatBtn);
+    }
     const music = toggle("🎵", S.settings.music, (on) => { S.settings.music = on; CG.Audio.setMuted(!on); });
     music.title = "Music"; ctrls.appendChild(music);
     const voice = toggle("🗣️", S.settings.voice, (on) => { S.settings.voice = on; CG.Narrate.setEnabled(on); });
@@ -551,23 +556,32 @@
     const standings = el("aside", "standings"); standings.id = "standings";
     wrap.appendChild(standings);
 
-    // Table chat lives on the right, opposite the players list, only when online.
-    // It docks to a blue dot in the top-right corner.
+    // Table chat (online only): a proper chat window, centred on the screen, opened
+    // from the top-bar chat button. A dimmed backdrop, an X, and Escape all close it.
     if (S.net.online) {
-      const chat = el("aside", "chatbox"); chat.id = "chatbox";
-      chat.innerHTML =
-        `<div class="chat-head"><span class="ch-ic">💬</span>Table chat</div>` +
-        `<div class="chat-log" id="chatLog"></div>`;
+      const modal = el("div", "chat-modal"); modal.id = "chatModal";
+      const backdrop = el("div", "chat-modal-backdrop");
+      backdrop.onclick = () => closeChat();
+      const win = el("div", "chat-window");
+      const head = el("div", "chat-head");
+      head.innerHTML = `<span class="ch-ic">💬</span><span class="ch-title">Table chat</span>`;
+      const closeBtn = el("button", "chat-close", "✕");
+      closeBtn.type = "button"; closeBtn.title = "Close"; closeBtn.setAttribute("aria-label", "Close chat");
+      closeBtn.onclick = () => closeChat();
+      head.appendChild(closeBtn);
+      win.appendChild(head);
+      win.appendChild(el("div", "chat-log", "")).id = "chatLog";
       const form = el("form", "chat-form"); form.id = "chatForm";
       form.innerHTML =
         `<input class="chat-input" id="chatInput" type="text" maxlength="200" autocomplete="off" placeholder="Message the table" />` +
         `<button class="chat-send" type="submit" title="Send">➤</button>`;
       form.addEventListener("submit", (e) => { e.preventDefault(); sendChat(); });
-      chat.appendChild(form);
-      wrap.appendChild(chat);
-      const cDot = el("button", "dock-dot chat-dot"); cDot.id = "chatDot";
-      cDot.type = "button"; cDot.title = "Table chat"; cDot.setAttribute("aria-label", "Show chat");
-      wrap.appendChild(cDot);
+      const input = form.querySelector("#chatInput");
+      input.addEventListener("keydown", (e) => { if (e.key === "Escape") closeChat(); });
+      win.appendChild(form);
+      modal.appendChild(backdrop);
+      modal.appendChild(win);
+      wrap.appendChild(modal);
     }
 
     const stage = el("div", "board-stage");
@@ -614,9 +628,6 @@
     wrap.appendChild(toasts);
 
     root.appendChild(wrap);
-
-    // Wire the chat dock now the corner exists (the players list is always shown).
-    chatDock = S.net.online ? createDock($("#chatbox"), $("#chatDot")) : null;
 
     // Draw immediately (reading clientWidth forces a synchronous layout, so this
     // works even in a hidden tab where rAF/ResizeObserver may not fire), then
@@ -880,25 +891,22 @@
       t.style.top = c.y + "%";
       t.innerHTML =
         `<span class="tok-face" style="font-size:${size * 0.5}px">${p.role.icon}</span>` +
-        `<span class="tok-name">${esc(p.name)}</span>` +
-        `<span class="tok-dot" title="${esc(p.name)}"></span>`;
+        `<span class="tok-name">${esc(p.name)}</span>`;
       if (CG.Hover) CG.Hover.bind(t, () => playerInfo(p));
       wireNameReveal(t);
       layer.appendChild(t);
     });
   }
 
-  // A token calls out its player's name for a moment whenever it settles, then
-  // tucks the name away behind a small red dot in its top-left corner, so the
-  // board stays clean. Hovering the token (the dot is the hint) brings the name
-  // back; leaving hides it again. This is the "show for 2 seconds after every
-  // move, then a hover button" behaviour.
+  // A token calls out its player's name for a couple of seconds whenever it
+  // settles, then hides it so the board stays clean. Hovering the token brings the
+  // name back; leaving hides it again.
   function wireNameReveal(t) {
     t.classList.add("naming");
-    const tuck = () => { t.classList.remove("naming"); t.classList.add("dotted"); };
+    const tuck = () => t.classList.remove("naming");
     let timer = setTimeout(tuck, 2000);
-    t.addEventListener("mouseenter", () => { clearTimeout(timer); t.classList.remove("dotted"); t.classList.add("naming"); });
-    t.addEventListener("mouseleave", () => { clearTimeout(timer); tuck(); });
+    t.addEventListener("mouseenter", () => { clearTimeout(timer); t.classList.add("naming"); });
+    t.addEventListener("mouseleave", tuck);
   }
 
   function moveTokenTo(i, n) {
