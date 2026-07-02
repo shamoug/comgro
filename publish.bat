@@ -8,6 +8,16 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-02  PLAYERS LIST REVERTS TO ALWAYS-ON; CHAT KEEPS ITS DOT AND GETS A
+REM              VISUAL GLOW-UP. Undid the red-dot treatment on the players list: it
+REM              is simply shown again while no token is moving (and tucks away only
+REM              during a move, as before), with no dot and no flash / hover / pin
+REM              logic. The chat keeps its blue top-right dot and the same behaviour
+REM              (flash open on a new message, hover to peek, click to pin). The chat
+REM              box itself was redesigned: a frosted, rounded panel with a soft
+REM              header, colour-coded avatars and sender names on other people's
+REM              messages, blue gradient bubbles for your own, a pill input and a
+REM              circular send button. game.js v51, styles.css v35.
 REM  2026-07-02  FLOATING TABLE CHAT, AND BOTH SIDE PANES NOW DOCK TO A CORNER DOT.
 REM              (1) Online games gain a floating chat box on the right, opposite the
 REM              players list. Messages travel on their own live (non-retained) MQTT
