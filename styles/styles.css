@@ -886,6 +886,9 @@ button { font-family: inherit; cursor: pointer; }
 .td-stat.lives { color: var(--red); }
 .td-stat.funds { color: var(--green); }
 .td-stat.wave { color: var(--ink); }
+.td-stat.rate { font-size: 12.5px; padding: 6px 10px; }
+.td-stat.rate.pos { color: var(--green); }
+.td-stat.rate.neg { color: var(--red); }
 .td-h-right { display: flex; gap: 6px; }
 .td-ic-btn { width: 40px; height: 36px; border-radius: 10px; border: 1px solid var(--line);
   background: #fff; font-size: 14px; font-weight: 800; color: var(--ink); box-shadow: var(--shadow-sm); }
@@ -912,7 +915,10 @@ button { font-family: inherit; cursor: pointer; }
 .td-shopitem:disabled { opacity: .45; cursor: not-allowed; }
 .tsi-ic { font-size: 24px; line-height: 1.1; }
 .tsi-nm { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.15; }
-.tsi-cost { font-size: 11.5px; font-weight: 800; color: var(--green); }
+.tsi-cost { font-size: 11.5px; font-weight: 800; color: var(--ink); }
+.tsi-run { font-size: 10.5px; font-weight: 700; }
+.tsi-run.pos { color: var(--green); }
+.tsi-run.neg { color: var(--red); }
 
 .td-wavectrl { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .td-hint { font-size: 11.5px; font-weight: 700; color: var(--muted); }
@@ -929,6 +935,8 @@ button { font-family: inherit; cursor: pointer; }
 .tdi-stats { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .tdi-stats span { color: var(--muted); font-weight: 600; }
 .tdi-stats b { color: var(--ink); font-weight: 800; }
+.tdi-stats b.pos { color: var(--green); }
+.tdi-stats b.neg { color: var(--red); }
 .tdi-acts { display: flex; gap: 8px; margin-left: auto; }
 .btn.sm { padding: 8px 14px; font-size: 13px; }
 
