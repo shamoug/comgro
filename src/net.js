@@ -28,6 +28,7 @@
   const PREFIX = "commonground/v1";
   const lobbyTopic = (id) => PREFIX + "/lobby/" + id;
   const gameTopic = (id) => PREFIX + "/game/" + id;
+  const chatTopic = (id) => PREFIX + "/chat/" + id;   // table chat, live (not retained)
   const IDLE_MS = 10 * 60 * 1000;   // games idle longer than this are removed
   const POLL_MS = 2500;             // retained legacy value (kept for callers)
 
@@ -48,9 +49,17 @@
   const lobbyMap = {};   // id -> summary (from retained lobby messages)
   const gameCache = {};  // id -> last full game state seen
   let activePoll = { id: null, cb: null };
+  let chatSub = { id: null, cb: null };   // live table-chat subscription
 
   function onMessage(topic, buf) {
     const payload = buf ? buf.toString() : "";
+    if (topic.indexOf(PREFIX + "/chat/") === 0) {
+      if (!payload) return;
+      const id = topic.slice((PREFIX + "/chat/").length);
+      let m = null; try { m = JSON.parse(payload); } catch (e) { return; }
+      if (chatSub.id === id && chatSub.cb) chatSub.cb(m);
+      return;
+    }
     if (topic.indexOf(PREFIX + "/lobby/") === 0) {
       const id = topic.slice((PREFIX + "/lobby/").length);
       if (!payload) delete lobbyMap[id];
@@ -192,6 +201,27 @@
     if (client && id) { try { client.unsubscribe(gameTopic(id)); } catch (e) {} }
   }
 
+  // ---- table chat --------------------------------------------------------
+  // Messages travel on their own per-game topic, published live (NOT retained),
+  // so every browser currently in the theatre receives each message in real time
+  // while nothing lingers on the broker for late joiners. Chat is intentionally
+  // separate from the game state, so a message never collides with a turn write.
+  function onChat(id, cb) {
+    chatSub = { id: id, cb: cb };
+    connect().then(() => { client.subscribe(chatTopic(id)); }).catch(() => {});
+  }
+  function stopChat() {
+    const id = chatSub.id;
+    chatSub = { id: null, cb: null };
+    if (client && id) { try { client.unsubscribe(chatTopic(id)); } catch (e) {} }
+  }
+  function sendChat(id, msg) {
+    return connect().then(() => new Promise((res) => {
+      try { client.publish(chatTopic(id), JSON.stringify(msg), { retain: false, qos: 0 }, () => res()); }
+      catch (e) { res(); }
+    })).catch(() => {});
+  }
+
   CG.Net = {
     clientId,
     IDLE_MS, POLL_MS,
@@ -201,6 +231,7 @@
     listTheatres, createGame, getGame, putGame,
     upsertSummary, dropSummary, summaryOf,
     poll, stopPoll,
+    onChat, stopChat, sendChat,
     connect,
   };
 })();
