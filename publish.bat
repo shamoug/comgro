@@ -8,6 +8,31 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-02  SECOND GAME: HOLD THE LINE (A TOWER DEFENCE). Common Ground now has
+REM              two games, chosen from a new home screen (platform.js): The Long Road
+REM              (the existing Snakes and Ladders, solo or multiplayer) and Hold the
+REM              Line, a brand new solo tower defence. In Hold the Line, waves of named
+REM              crises (the same CG.SNAKE_CARDS as The Long Road, so floods, cholera,
+REM              a cyclone, a new frontline, a stuck appeal, and the rest) march down a
+REM              road toward the community you protect. You spend Funding to place five
+REM              UN partner archetypes along the road: Health Response (WHO/UNICEF,
+REM              fast, strong against disease), Logistics Cluster (WFP, slows and hits
+REM              a whole cluster), Protection and Peace (UNHCR/DPO, long reach, heavy
+REM              hits, strong against conflict), a Coordination Hub (OCHA/RCO, no
+REM              attack, Delivering as One, buffs nearby partners) and Recovery and
+REM              Resilience (UNDP, light attack and earns Funding). Towers upgrade and
+REM              sell; crises have tag-based speed and toughness and take bonus damage
+REM              from the partner suited to them; every fourth wave is led by a major
+REM              crisis (a boss). The chosen theatre's own hazards bias each wave. Hold
+REM              the line through every wave to deliver the mandate; let the community
+REM              be overrun and the response regroups. Between waves, a real field fact
+REM              is shown and read aloud. Reuses the shell: synth music and narration
+REM              (CG.Audio / CG.Narrate), the theatres and crisis decks in content.js,
+REM              and the overlay-card / title-screen looks. The field is one canvas;
+REM              the HUD, shop and cards are DOM on top. Solo for now (the MQTT lobby
+REM              stays Long-Road only). English only, no em or en dashes. NEW src/td.js
+REM              v1; platform.js v13 (the game chooser); styles.css v38 (home + tower
+REM              defence styles); index.html loads td.js.
 REM  2026-07-02  CHAT MOVES TO A TOP-BAR BUTTON + CENTRED CHAT WINDOW; PAWN DOTS GONE.
 REM              (1) The chat is no longer a corner dot: a round chat button (a chat
 REM              icon) now sits in the top bar, before the music toggle. A small red

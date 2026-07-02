@@ -1,0 +1,1 @@
+Open index.html directly, or run start.sh/start.bat and visit http://localhost:8000. This is a static vanilla HTML/CSS/JS build. Multiplayer is scaffolded and gracefully falls back to solo if MQTT is unavailable.

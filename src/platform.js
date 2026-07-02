@@ -1,10 +1,9 @@
 /* =========================================================================
  * COMMON GROUND, platform.js
- * The launcher. Boots the page straight into the game. Common Ground is now a
- * single game, The Long Road (CG.SnakesGame), which registers itself and
- * exposes a show() method; the launcher just mounts it. The in-game Quit button
- * calls back here to return to the game's own title screen. If more games are
- * added later, this is where a chooser would live again.
+ * The launcher and game chooser. Common Ground now has two games: The Long Road
+ * (CG.SnakesGame, a cinematic Snakes & Ladders played solo or in a multiplayer
+ * Crisis Theatre) and Hold the Line (CG.TowerDefense, a solo tower defence).
+ * show() draws the chooser; each game's in-game Quit button calls back here.
  * ========================================================================= */
 (function () {
   const CG = (window.CG = window.CG || {});
@@ -15,13 +14,52 @@
     return e;
   }
 
-  // Boot into the multiplayer lobby (name yourself, see the open Crisis
-  // Theatres, join one). The lobby offers a "Solo vs AI" path into the classic
-  // single-browser game. If the lobby module is missing, fall back to solo.
+  // The chooser: two cards, one per game. The Long Road opens into the
+  // multiplayer lobby (name yourself, see the open Crisis Theatres, join one);
+  // Hold the Line opens its own solo title. If a game module is missing, its
+  // card is simply hidden so the page still works.
   function show() {
     if (CG.Narrate) CG.Narrate.stop();
-    if (CG.Lobby) CG.Lobby.show();
-    else if (CG.SnakesGame) CG.SnakesGame.show();
+    const root = document.getElementById("app");
+    if (!root) return;
+    root.innerHTML = "";
+    const wrap = el("div", "screen title-screen home-screen");
+    wrap.appendChild(el("div", "title-glow"));
+    wrap.appendChild(el("div", "logo-mark", "◆"));
+    wrap.appendChild(el("h1", "title", "Common Ground"));
+    wrap.appendChild(el("p", "subtitle", "Two ways to play"));
+    wrap.appendChild(el("p", "tagline",
+      "A pair of games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
+
+    const row = el("div", "home-row");
+
+    if (CG.Lobby || CG.SnakesGame) {
+      const a = gameCard("◆", "The Long Road",
+        "A cinematic race of Ladders and Holes. Roll the dice, ride the lucky breaks, survive the crises, and reach a finished mandate. Solo or multiplayer.",
+        "Enter ▸", () => { if (CG.Lobby) CG.Lobby.show(); else CG.SnakesGame.show(); });
+      row.appendChild(a);
+    }
+    if (CG.TowerDefense) {
+      const b = gameCard("🛡️", "Hold the Line",
+        "A tower defence. Waves of crises march on the community you protect. Place UN partners along the road and hold the line through every wave. Solo.",
+        "Enter ▸", () => CG.TowerDefense.show());
+      row.appendChild(b);
+    }
+    wrap.appendChild(row);
+    root.appendChild(wrap);
+  }
+
+  function gameCard(icon, title, body, cta, onGo) {
+    const c = el("div", "home-card");
+    c.innerHTML =
+      `<div class="hc-icon">${icon}</div>` +
+      `<div class="hc-title">${title}</div>` +
+      `<div class="hc-body">${body}</div>`;
+    const go = el("button", "btn btn-primary", cta);
+    go.onclick = () => { if (CG.Audio) CG.Audio.sfx.pick(); onGo(); };
+    c.appendChild(go);
+    c.onclick = (e) => { if (e.target === go) return; if (CG.Audio) CG.Audio.sfx.click(); onGo(); };
+    return c;
   }
 
   // Tap outside a floating card to dismiss it. Clicking the dim backdrop runs

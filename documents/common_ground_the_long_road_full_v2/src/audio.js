@@ -1,0 +1,8 @@
+(function(){
+window.CG=window.CG||{}; let ctx, master, osc=[], enabled=false;
+function init(){ if(ctx) return; ctx=new (window.AudioContext||window.webkitAudioContext)(); master=ctx.createGain(); master.gain.value=.05; master.connect(ctx.destination); }
+function tone(freq,dur,type='sine',gain=.08){ if(!enabled) return; init(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type;o.frequency.value=freq;g.gain.value=gain;o.connect(g);g.connect(master);o.start();g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);o.stop(ctx.currentTime+dur); }
+function music(on){ enabled=on; init(); osc.forEach(o=>{try{o.stop()}catch(e){}}); osc=[]; if(!on) return; [55,82.4,110].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;g.gain.value=.025/(i+1);o.connect(g);g.connect(master);o.start();osc.push(o);}); }
+function setProgress(p){ if(!enabled||!ctx) return; osc.forEach((o,i)=>o.frequency.setTargetAtTime([55,65,73,82][Math.min(3,Math.floor(p*4))]*(i+1),ctx.currentTime,.2)); }
+const sfx={roll:()=>tone(120,.08,'square'), step:()=>tone(220,.04), ladder:()=>{tone(440,.2);setTimeout(()=>tone(660,.25),120)}, hole:()=>tone(90,.35,'sawtooth'), gem:()=>tone(880,.25), win:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.18),i*100)), bad:()=>tone(70,.45,'triangle'), click:()=>tone(330,.05)};
+window.CG.Audio={music,setProgress,sfx,isOn:()=>enabled};})();
