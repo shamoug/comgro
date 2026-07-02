@@ -216,40 +216,53 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 17px; line-height: 1; border-radius: 50%;
 }
 
-/* the players list is a collapsible pane: hidden behind a red dot, opens on a
-   settled move / hover / pin (see .dock-dot) */
-.standings { position: absolute; top: 86px; left: 16px; z-index: 16; display: flex; flex-direction: column; gap: 7px; width: 224px; max-height: calc(100dvh - 180px); overflow-y: auto;
-  opacity: 0; transform: translateX(-14px); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
-.standings.open { opacity: 1; transform: none; pointer-events: auto; }
+/* the players list: always shown, tucked away only while a token travels */
+.standings { position: absolute; top: 54px; left: 16px; z-index: 15; display: flex; flex-direction: column; gap: 7px; width: 224px; transition: opacity .35s ease, transform .35s ease; }
 
-/* the corner dots that show / pin each pane */
-.dock-dot { position: absolute; z-index: 18; width: 15px; height: 15px; padding: 0; border-radius: 50%; border: 2px solid #fff; cursor: pointer;
+/* the chat corner dot */
+.dock-dot { position: absolute; z-index: 18; width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 2px solid #fff; cursor: pointer;
   box-shadow: 0 2px 7px rgba(10,20,40,.5); transition: transform .15s ease, box-shadow .15s ease; }
 .dock-dot:hover { transform: scale(1.2); }
-.dock-dot.pinned { box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 2px 8px rgba(10,20,40,.55); }
+.dock-dot.pinned { box-shadow: 0 0 0 3px rgba(255,255,255,.6), 0 3px 10px rgba(47,107,255,.5); }
 .dock-dot.ping { animation: dotping .6s ease; }
-@keyframes dotping { 0% { transform: scale(1); } 30% { transform: scale(1.55); } 100% { transform: scale(1); } }
-.players-dot { top: 60px; left: 16px; background: #ff3b3b; }
-.chat-dot { top: 60px; right: 16px; background: #2f6bff; }
+@keyframes dotping { 0% { transform: scale(1); } 30% { transform: scale(1.6); } 100% { transform: scale(1); } }
+.chat-dot { top: 66px; right: 18px; background: radial-gradient(circle at 34% 30%, #6f9bff, #2f6bff); box-shadow: 0 3px 9px rgba(47,107,255,.6); }
 
-/* table chat, opposite the players list */
-.chatbox { position: absolute; top: 86px; right: 16px; z-index: 16; width: 264px; max-height: calc(100dvh - 200px); display: flex; flex-direction: column;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
-  opacity: 0; transform: translateX(14px); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+/* ---- table chat -------------------------------------------------------- */
+.chatbox { position: absolute; top: 92px; right: 16px; z-index: 16; width: 292px; max-height: calc(100dvh - 150px); display: flex; flex-direction: column;
+  background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(244,249,255,.95));
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(47,107,255,.22); border-radius: 18px;
+  box-shadow: 0 26px 54px -16px rgba(28,58,110,.42), 0 3px 10px rgba(28,58,110,.14); overflow: hidden;
+  opacity: 0; transform: translateY(-8px) scale(.98); transform-origin: top right; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
 .chatbox.open { opacity: 1; transform: none; pointer-events: auto; }
-.chat-head { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800; padding: 10px 13px 6px; }
-.chat-log { flex: 1 1 auto; overflow-y: auto; padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 7px; min-height: 90px; max-height: 44vh; }
-.chat-log:empty::before { content: "No messages yet. Say hello to the table."; color: var(--muted); font-size: 12px; line-height: 1.4; }
-.chat-msg { display: flex; flex-direction: column; align-items: flex-start; max-width: 92%; }
-.chat-msg.mine { align-self: flex-end; align-items: flex-end; }
-.cm-who { font-size: 9.5px; font-weight: 800; letter-spacing: .04em; color: var(--muted); margin: 0 2px 1px; }
-.cm-text { background: #eef3fb; border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; font-size: 13px; line-height: 1.4; color: var(--ink); word-break: break-word; }
-.chat-msg.mine .cm-text { background: var(--blue); border-color: var(--blue); color: #fff; }
-.chat-form { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); }
-.chat-input { flex: 1 1 auto; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; background: #fff; color: var(--ink); }
-.chat-input:focus { outline: none; border-color: var(--blue); }
-.chat-send { flex: none; width: 38px; border: none; border-radius: 10px; background: var(--blue); color: #fff; font-size: 15px; cursor: pointer; transition: filter .15s ease; }
-.chat-send:hover { filter: brightness(1.08); }
+.chat-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: .02em; color: var(--ink);
+  padding: 12px 15px 10px; border-bottom: 1px solid rgba(47,107,255,.14); background: linear-gradient(180deg, rgba(47,107,255,.10), transparent); }
+.chat-head .ch-ic { font-size: 15px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(47,107,255,.35)); }
+.chat-log { flex: 1 1 auto; overflow-y: auto; padding: 12px 13px; display: flex; flex-direction: column; gap: 11px; min-height: 96px; max-height: 46vh; }
+.chat-log::-webkit-scrollbar { width: 7px; }
+.chat-log::-webkit-scrollbar-thumb { background: rgba(47,107,255,.26); border-radius: 10px; }
+.chat-log::-webkit-scrollbar-track { background: transparent; }
+.chat-log:empty::before { content: "No messages yet. Say hello to the table."; color: var(--muted); font-size: 12px; line-height: 1.5; padding: 4px 2px; }
+/* a message: colour-coded avatar + a soft bubble */
+.chat-msg { display: flex; align-items: flex-end; gap: 8px; max-width: 100%; animation: cmIn .22s ease both; }
+.chat-msg.mine { flex-direction: row-reverse; align-self: flex-end; }
+@keyframes cmIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.cm-av { flex: none; width: 27px; height: 27px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;
+  background: radial-gradient(circle at 34% 28%, #fff, color-mix(in srgb, var(--cm) 70%, #fff)); border: 2px solid var(--cm); box-shadow: 0 2px 5px rgba(10,20,40,.22); }
+.cm-bubble { display: flex; flex-direction: column; min-width: 0; max-width: 80%; }
+.chat-msg.mine .cm-bubble { align-items: flex-end; }
+.cm-who { font-size: 10px; font-weight: 800; letter-spacing: .02em; color: var(--cm); margin: 0 0 2px 3px; }
+.cm-text { background: #fff; border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 7px 11px; font-size: 13px; line-height: 1.45; color: var(--ink); box-shadow: 0 2px 7px rgba(20,50,90,.07); word-break: break-word; }
+.chat-msg.mine .cm-text { color: #fff; border: none; border-radius: 14px 4px 14px 14px; background: linear-gradient(135deg, #4b83ff, #2f6bff); box-shadow: 0 4px 12px rgba(47,107,255,.34); }
+.chat-form { display: flex; gap: 8px; padding: 10px 11px; border-top: 1px solid rgba(47,107,255,.14); background: rgba(255,255,255,.55); }
+.chat-input { flex: 1 1 auto; min-width: 0; border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; font-size: 13px; background: #fff; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease; }
+.chat-input::placeholder { color: #9fb0c4; }
+.chat-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,107,255,.16); }
+.chat-send { flex: none; width: 40px; height: 40px; border: none; border-radius: 50%; background: linear-gradient(135deg, #4b83ff, #2f6bff); color: #fff; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(47,107,255,.42); transition: transform .12s ease, box-shadow .12s ease; }
+.chat-send:hover { transform: translateY(-1px); box-shadow: 0 7px 16px rgba(47,107,255,.52); }
+.chat-send:active { transform: translateY(0); }
 .scard {
   display: flex; align-items: center; gap: 9px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
@@ -440,8 +453,8 @@ button { font-family: inherit; cursor: pointer; }
   transition: opacity .35s ease, transform .35s ease;
 }
 
-/* focus mode: while a token travels, get the dice dock out of the way. The side
-   panes govern their own visibility now (they sit collapsed as dots mid-move). */
+/* focus mode: while a token travels, get the panels out of the way */
+.board-screen.moving .standings { opacity: 0; transform: translateX(-18px); pointer-events: none; }
 .board-screen.moving .dice-dock { opacity: 0; transform: translate(-50%, 26px); pointer-events: none; }
 .board-screen.moving .board-credit { opacity: 0; }
 .turn-tag { font-size: 14px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 122px; }
@@ -582,23 +595,23 @@ button { font-family: inherit; cursor: pointer; }
   .brand { font-size: 13px; }
   .brand span, .brand b { display: none; }   /* leave just the ◆ to free room for the tappable theatre name */
   .theatre-chip { display: inline-block; font-size: 12px; padding: 6px 12px; max-width: 50vw; }
-  /* players list is a collapsible column pane dropping from the top-left dot */
-  .standings { top: calc(58px + env(safe-area-inset-top)); left: 8px; right: auto; width: min(74vw, 236px); max-height: calc(100dvh - 150px); flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; gap: 6px; }
-  .scard { flex: 0 0 auto; min-width: 0; padding: 5px 9px 5px 6px; gap: 6px; }
+  /* compact standings as a centred row of avatar + position chips */
+  .standings { top: calc(46px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .scard { flex: 0 1 auto; min-width: 0; padding: 5px 9px 5px 6px; gap: 6px; }
   .scard.active { transform: none; }
+  .sinfo { display: none; }
   .savatar { width: 26px; height: 26px; font-size: 14px; }
   .spos { font-size: 16px; }
-  .players-dot, .chat-dot { top: calc(52px + env(safe-area-inset-top)); }
-  .players-dot { left: 10px; }
-  .chat-dot { right: 10px; }
-  .chatbox { top: calc(58px + env(safe-area-inset-top)); right: 8px; width: min(78vw, 264px); max-height: calc(100dvh - 150px); }
+  /* the chat dot and pane sit clear of the standings row, in the top-right */
+  .chat-dot { top: calc(52px + env(safe-area-inset-top)); right: 10px; }
+  .chatbox { top: calc(80px + env(safe-area-inset-top)); right: 8px; width: min(82vw, 288px); max-height: calc(100dvh - 150px); }
   /* the Quintet meter drops to its own line below the standings chips */
   .quint-panel { flex-basis: 100%; padding: 5px 8px; }
   .quint-label { display: none; }
   .quint-row { gap: 5px; max-width: 340px; margin: 0 auto; }
   .qchip { flex-direction: row; justify-content: center; gap: 4px; padding: 3px 6px; }
   .qchip .q-ic { font-size: 13px; }
-  .board-stage { padding: calc(72px + env(safe-area-inset-top)) 8px calc(90px + env(safe-area-inset-bottom)); }
+  .board-stage { padding: calc(128px + env(safe-area-inset-top)) 8px calc(90px + env(safe-area-inset-bottom)); }
   .die { width: 46px; height: 46px; }
   .dice-dock { gap: 10px; padding: 10px 14px; bottom: calc(14px + env(safe-area-inset-bottom)); max-width: calc(100vw - 16px); }
   .turn-tag { min-width: 0; font-size: 12px; }

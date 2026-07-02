@@ -274,17 +274,16 @@
   }
 
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
-  let playersDock = null, chatDock = null;   // the two collapsible side panes
+  let chatDock = null;   // the collapsible chat pane (the players list is always shown)
   let decksReady = false;
 
   // =======================================================================
-  // COLLAPSIBLE SIDE PANES (players list, table chat)
-  // A pane lives as a small coloured dot in a screen corner and only opens when
-  // something happens. It flashes open for two seconds when triggered (a move
-  // settles for the players list, a message arrives for the chat), opens while
-  // you hover its dot or its body, and a click on the dot pins it open until you
-  // click again. The very same controller drives both panes: red dot top-left for
-  // players, blue dot top-right for chat.
+  // THE CHAT DOCK
+  // The chat pane lives as a small blue dot in the top-right corner and only opens
+  // when something happens: it flashes open for two seconds when a message arrives,
+  // opens while you hover its dot or body, and a click on the dot pins it open
+  // until you click again. (The players list, by contrast, is simply shown while
+  // no token is moving, so it has no dot.)
   // =======================================================================
   function createDock(pane, dot) {
     const st = { pinned: false, hover: false, focus: false, flash: false, timer: null };
@@ -319,8 +318,6 @@
     return { flash, render, state: st };
   }
 
-  function flashPlayers() { if (playersDock) playersDock.flash(); }
-
   // ---- table chat --------------------------------------------------------
   // Render one received message. We render on RECEIPT only (including the echo of
   // our own message the broker sends back), so ordering is whatever the table
@@ -329,10 +326,18 @@
     const log = $("#chatLog");
     if (!log || !m || !m.text) return;
     const mine = m.from === myId();
+    const color = m.color || (mine ? "#2f6bff" : "#7c4dff");
+    const icon = m.icon || "◆";
     const row = el("div", "chat-msg" + (mine ? " mine" : ""));
+    row.style.setProperty("--cm", color);
+    // Others get a colour-coded avatar and a name label; my own messages sit as a
+    // clean right-aligned bubble (no avatar, no "You" label needed).
     row.innerHTML =
-      `<span class="cm-who">${esc(mine ? "You" : (m.name || "Player"))}</span>` +
-      `<span class="cm-text">${esc(m.text)}</span>`;
+      (mine ? "" : `<span class="cm-av">${esc(icon)}</span>`) +
+      `<span class="cm-bubble">` +
+        (mine ? "" : `<span class="cm-who">${esc(m.name || "Player")}</span>`) +
+        `<span class="cm-text">${esc(m.text)}</span>` +
+      `</span>`;
     log.appendChild(row);
     while (log.children.length > 80) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
@@ -351,7 +356,9 @@
     input.value = "";
     const mine = S.players.find((p) => !p.isAI && p.ownerId === myId());
     const name = (mine && mine.name) || (CG.Net.getName && CG.Net.getName()) || "Player";
-    CG.Net.sendChat(S.net.gameId, { from: myId(), name, text, at: CG.Net.now() });
+    const color = mine ? mine.color : null;
+    const icon = mine ? mine.role.icon : null;
+    CG.Net.sendChat(S.net.gameId, { from: myId(), name, text, color, icon, at: CG.Net.now() });
   }
 
   // =======================================================================
@@ -497,7 +504,7 @@
     if (relayoutHandler) { window.removeEventListener("resize", relayoutHandler); relayoutHandler = null; }
     if (CG.Net && CG.Net.stopChat) CG.Net.stopChat();
     clearRemoteCard(); cancelAllWalks();
-    playersDock = null; chatDock = null;
+    chatDock = null;
     boardBox = null; overlaySvg = null;
   }
 
@@ -543,17 +550,13 @@
 
     const standings = el("aside", "standings"); standings.id = "standings";
     wrap.appendChild(standings);
-    // The players list docks to a red dot in the top-left corner.
-    const pDot = el("button", "dock-dot players-dot"); pDot.id = "playersDot";
-    pDot.type = "button"; pDot.title = "Players"; pDot.setAttribute("aria-label", "Show players");
-    wrap.appendChild(pDot);
 
     // Table chat lives on the right, opposite the players list, only when online.
     // It docks to a blue dot in the top-right corner.
     if (S.net.online) {
       const chat = el("aside", "chatbox"); chat.id = "chatbox";
       chat.innerHTML =
-        `<div class="chat-head">Table chat</div>` +
+        `<div class="chat-head"><span class="ch-ic">💬</span>Table chat</div>` +
         `<div class="chat-log" id="chatLog"></div>`;
       const form = el("form", "chat-form"); form.id = "chatForm";
       form.innerHTML =
@@ -612,8 +615,7 @@
 
     root.appendChild(wrap);
 
-    // Wire the collapsible panes now the corners exist.
-    playersDock = createDock($("#standings"), $("#playersDot"));
+    // Wire the chat dock now the corner exists (the players list is always shown).
     chatDock = S.net.online ? createDock($("#chatbox"), $("#chatDot")) : null;
 
     // Draw immediately (reading clientWidth forces a synchronous layout, so this
@@ -884,7 +886,6 @@
       wireNameReveal(t);
       layer.appendChild(t);
     });
-    flashPlayers();   // a settled board pops the players list open for a beat
   }
 
   // A token calls out its player's name for a moment whenever it settles, then
@@ -1750,7 +1751,7 @@
       if (from === p.pos) return;
       let ms;
       if (Math.abs(p.pos - from) <= 6) { ms = stepToken(i, from, p.pos); }        // a roll / hop: walk it
-      else { cancelWalk(i); t.classList.add("remote-move"); moveTokenTo(i, p.pos); ms = 520; setTimeout(flashPlayers, ms); }  // a slide: glide
+      else { cancelWalk(i); t.classList.add("remote-move"); moveTokenTo(i, p.pos); ms = 520; }  // a slide: glide
       if (i === moverSeat) moverMs = ms;
     });
     return moverMs;
@@ -1770,7 +1771,7 @@
       if (!obsWalk[i] || obsWalk[i].gen !== gen || !boardBox) return;
       cur += dir;
       moveTokenTo(i, cur);
-      if (cur === to) { obsWalk[i] = null; flashPlayers(); return; }   // a watched move settled
+      if (cur === to) { obsWalk[i] = null; return; }
       obsWalk[i].timer = setTimeout(stepOnce, STEP_MS);
     };
     obsWalk[i].timer = setTimeout(stepOnce, 20);
