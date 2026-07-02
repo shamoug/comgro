@@ -277,6 +277,11 @@
   let chatUnread = false;   // an unseen message arrived while the chat window was closed
   let decksReady = false;
 
+  // Clean line icons (blue theme) used by the chat window, instead of raw emoji.
+  const ICON_CHAT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>`;
+  const ICON_CLOSE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
+  const ICON_SEND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
+
   // =======================================================================
   // TABLE CHAT
   // A round chat button sits in the top bar (before the music toggle). Pressing it
@@ -564,8 +569,8 @@
       backdrop.onclick = () => closeChat();
       const win = el("div", "chat-window");
       const head = el("div", "chat-head");
-      head.innerHTML = `<span class="ch-ic">💬</span><span class="ch-title">Table chat</span>`;
-      const closeBtn = el("button", "chat-close", "✕");
+      head.innerHTML = `<span class="ch-ic">${ICON_CHAT}</span><span class="ch-title">Table chat</span>`;
+      const closeBtn = el("button", "chat-close", ICON_CLOSE);
       closeBtn.type = "button"; closeBtn.title = "Close"; closeBtn.setAttribute("aria-label", "Close chat");
       closeBtn.onclick = () => closeChat();
       head.appendChild(closeBtn);
@@ -574,7 +579,7 @@
       const form = el("form", "chat-form"); form.id = "chatForm";
       form.innerHTML =
         `<input class="chat-input" id="chatInput" type="text" maxlength="200" autocomplete="off" placeholder="Message the table" />` +
-        `<button class="chat-send" type="submit" title="Send">➤</button>`;
+        `<button class="chat-send" type="submit" title="Send" aria-label="Send">${ICON_SEND}</button>`;
       form.addEventListener("submit", (e) => { e.preventDefault(); sendChat(); });
       const input = form.querySelector("#chatInput");
       input.addEventListener("keydown", (e) => { if (e.key === "Escape") closeChat(); });

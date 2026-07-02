@@ -238,19 +238,26 @@ button { font-family: inherit; cursor: pointer; }
 @keyframes chatPop { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
 .chat-head { display: flex; align-items: center; gap: 10px; flex: none;
   padding: 14px 16px; border-bottom: 1px solid rgba(47,107,255,.14); background: linear-gradient(180deg, rgba(47,107,255,.10), transparent); }
-.chat-head .ch-ic { font-size: 19px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(47,107,255,.35)); }
+/* clean line icons that match the app's blue theme, not raw emoji glyphs */
+.chat-head .ch-ic { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; color: #fff;
+  background: linear-gradient(135deg, #4b83ff, #2f6bff); box-shadow: 0 3px 8px rgba(47,107,255,.4); }
+.chat-head .ch-ic svg { width: 18px; height: 18px; }
 .chat-head .ch-title { font-size: 15.5px; font-weight: 800; letter-spacing: .01em; color: var(--ink); }
 .chat-close { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--muted);
-  font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+.chat-close svg { width: 15px; height: 15px; }
 .chat-close:hover { background: #ffe9e9; color: #e5564b; border-color: #f2b3b3; }
 .chat-log { flex: 1 1 auto; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 13px; }
 .chat-log::-webkit-scrollbar { width: 8px; }
 .chat-log::-webkit-scrollbar-thumb { background: rgba(47,107,255,.26); border-radius: 10px; }
 .chat-log::-webkit-scrollbar-track { background: transparent; }
 .chat-log:empty::before { content: "No messages yet. Say hello to the table."; color: var(--muted); font-size: 13px; line-height: 1.5; margin: auto; text-align: center; }
-/* a message: colour-coded avatar + a soft bubble that wraps on whole words */
-.chat-msg { display: flex; align-items: flex-end; gap: 9px; max-width: 100%; animation: cmIn .22s ease both; }
-.chat-msg.mine { flex-direction: row-reverse; align-self: flex-end; }
+/* a message: colour-coded avatar + a soft bubble that wraps on whole words.
+   The row is full width and the bubble is pushed to its side, so the bubble's
+   max-width resolves against a stable width and the text never collapses to the
+   widest single word (which caused stray mid-phrase line breaks). */
+.chat-msg { display: flex; align-items: flex-end; gap: 9px; width: 100%; animation: cmIn .22s ease both; }
+.chat-msg.mine { flex-direction: row-reverse; }
 @keyframes cmIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .cm-av { flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px;
   background: radial-gradient(circle at 34% 28%, #fff, color-mix(in srgb, var(--cm) 70%, #fff)); border: 2px solid var(--cm); box-shadow: 0 2px 5px rgba(10,20,40,.22); }
@@ -264,8 +271,9 @@ button { font-family: inherit; cursor: pointer; }
 .chat-input { flex: 1 1 auto; min-width: 0; border: 1px solid var(--line); border-radius: 999px; padding: 11px 16px; font-size: 14px; background: #fff; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease; }
 .chat-input::placeholder { color: #9fb0c4; }
 .chat-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,107,255,.16); }
-.chat-send { flex: none; width: 44px; height: 44px; border: none; border-radius: 50%; background: linear-gradient(135deg, #4b83ff, #2f6bff); color: #fff; font-size: 16px; cursor: pointer;
+.chat-send { flex: none; width: 44px; height: 44px; border: none; border-radius: 50%; background: linear-gradient(135deg, #4b83ff, #2f6bff); color: #fff; cursor: pointer;
   display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(47,107,255,.42); transition: transform .12s ease, box-shadow .12s ease; }
+.chat-send svg { width: 19px; height: 19px; }
 .chat-send:hover { transform: translateY(-1px); box-shadow: 0 7px 16px rgba(47,107,255,.52); }
 .chat-send:active { transform: translateY(0); }
 .scard {
@@ -813,3 +821,131 @@ button { font-family: inherit; cursor: pointer; }
 .ec-watch { margin-top: 11px; font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
 /* a remote player's token glides between squares so the move reads clearly */
 .token.remote-move { transition: left .5s cubic-bezier(.4,0,.3,1), top .5s cubic-bezier(.4,0,.3,1); }
+
+/* =========================================================================
+ * GAME CHOOSER (home)  +  HOLD THE LINE (tower defence)
+ * Appended for the second game. Reuses the title-screen palette and buttons.
+ * ========================================================================= */
+
+/* ---- home chooser ----------------------------------------------------- */
+.home-row {
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  margin-top: 26px; width: 100%; max-width: 760px;
+}
+.home-card {
+  flex: 1 1 300px; max-width: 360px; cursor: pointer;
+  background: var(--panel-solid); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 26px 22px; text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform .15s ease, box-shadow .18s ease, border-color .18s ease;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.home-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--blue); }
+.hc-icon { font-size: 46px; line-height: 1; }
+.hc-title { font-family: "Fraunces", Georgia, serif; font-weight: 800; font-size: 24px; color: var(--ink); }
+.hc-body { color: var(--muted); font-size: 14px; line-height: 1.55; }
+.home-card .btn { margin-top: 8px; }
+
+/* ---- posting select --------------------------------------------------- */
+.td-theatre-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 18px; width: 100%; max-width: 820px; }
+.td-tcard {
+  flex: 1 1 220px; max-width: 260px; cursor: pointer; text-align: left;
+  background: var(--panel-solid); border: 2px solid var(--line);
+  border-radius: 14px; padding: 16px; box-shadow: var(--shadow-sm);
+  transition: transform .14s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.td-tcard:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.td-tcard.on { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,107,255,.18), var(--shadow-sm); }
+.tdt-icon { font-size: 34px; }
+.tdt-name { font-family: "Fraunces", Georgia, serif; font-weight: 800; font-size: 18px; margin-top: 4px; }
+.tdt-kind { display: inline-block; margin: 6px 0; }
+.tdt-blurb { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.tdt-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.tdt-tags span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); background: #eef3fb; border-radius: 999px; padding: 3px 8px; }
+
+/* ---- the stage: full-viewport canvas with HUD + bar overlays ---------- */
+.td-stage { position: relative; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden;
+  background: var(--bg); }
+.td-canvas { position: absolute; inset: 0; display: block; }
+
+.td-hud {
+  position: absolute; top: 0; left: 0; right: 0; height: 56px; z-index: 5;
+  display: flex; align-items: center; gap: 12px; padding: 0 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,255,255,.72) 70%, transparent);
+  pointer-events: none;
+}
+.td-hud > * { pointer-events: auto; }
+.td-h-left { flex: 1 1 auto; min-width: 0; }
+.td-theatre { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; font-size: 15px;
+  color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.td-theatre .tdh-ic { font-size: 20px; }
+.td-h-stats { display: flex; gap: 8px; }
+.td-stat { font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-sm); white-space: nowrap; }
+.td-stat.lives { color: var(--red); }
+.td-stat.funds { color: var(--green); }
+.td-stat.wave { color: var(--ink); }
+.td-h-right { display: flex; gap: 6px; }
+.td-ic-btn { width: 40px; height: 36px; border-radius: 10px; border: 1px solid var(--line);
+  background: #fff; font-size: 14px; font-weight: 800; color: var(--ink); box-shadow: var(--shadow-sm); }
+.td-ic-btn.on { background: #dce8ff; border-color: var(--blue); color: #1f56d6; }
+.td-ic-btn.danger { color: var(--red); }
+#td-speed { width: auto; padding: 0 12px; }
+
+/* ---- bottom bar: shop / inspector + wave control ---------------------- */
+.td-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: flex-end; gap: 12px; padding: 10px 14px 14px;
+  background: linear-gradient(0deg, rgba(255,255,255,.95), rgba(255,255,255,.72) 60%, transparent);
+  flex-wrap: wrap;
+}
+.td-shop { display: flex; gap: 8px; flex: 1 1 auto; flex-wrap: wrap; }
+.td-shopitem {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 108px; padding: 8px 6px; border-radius: 12px; border: 2px solid var(--line);
+  background: #fff; box-shadow: var(--shadow-sm); color: var(--ink);
+  transition: transform .12s ease, border-color .14s ease, box-shadow .14s ease;
+}
+.td-shopitem:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--c); }
+.td-shopitem.on { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent), var(--shadow-sm); }
+.td-shopitem:disabled { opacity: .45; cursor: not-allowed; }
+.tsi-ic { font-size: 24px; line-height: 1.1; }
+.tsi-nm { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.15; }
+.tsi-cost { font-size: 11.5px; font-weight: 800; color: var(--green); }
+
+.td-wavectrl { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.td-hint { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+
+.td-inspect {
+  flex: 1 1 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 16px; box-shadow: var(--shadow-sm);
+}
+.tdi-id { display: flex; align-items: center; gap: 10px; }
+.tdi-ic { font-size: 28px; width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 10px; background: color-mix(in srgb, var(--c) 14%, #fff); border: 2px solid var(--c); }
+.tdi-id b { font-size: 15px; } .tdi-id small { display: block; color: var(--muted); font-size: 11.5px; }
+.tdi-stats { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.tdi-stats span { color: var(--muted); font-weight: 600; }
+.tdi-stats b { color: var(--ink); font-weight: 800; }
+.tdi-acts { display: flex; gap: 8px; margin-left: auto; }
+.btn.sm { padding: 8px 14px; font-size: 13px; }
+
+/* ---- toasts ----------------------------------------------------------- */
+.td-toast {
+  position: absolute; top: 66px; left: 50%; transform: translate(-50%, -8px);
+  z-index: 6; background: rgba(20,36,60,.92); color: #fff; font-weight: 700; font-size: 13.5px;
+  padding: 9px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0;
+  transition: opacity .25s ease, transform .25s ease; pointer-events: none; white-space: nowrap;
+}
+.td-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.td-toast.bad { background: rgba(160,40,34,.94); }
+.td-toast.good { background: rgba(30,120,60,.94); }
+
+@media (max-width: 560px) {
+  .td-shopitem { width: 88px; }
+  .tsi-nm { font-size: 10px; }
+  .td-theatre { max-width: 34vw; font-size: 13px; }
+  .td-stat { font-size: 12.5px; padding: 5px 9px; }
+}

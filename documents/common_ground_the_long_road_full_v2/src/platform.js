@@ -1,0 +1,1 @@
+(function(){window.CG=window.CG||{};window.addEventListener('DOMContentLoaded',()=>{const app=document.getElementById('app'); window.CG.Setup.render(app, window.CG.Game.start);});})();
