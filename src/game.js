@@ -312,7 +312,6 @@
 
     wrap.appendChild(el("p", "credit",
       "Music and narration are generated live in your browser. No downloads, no accounts. Headphones recommended."));
-    wrap.appendChild(el("p", "byline", "Designed by <b>Digital Solutions Lab</b>"));
     root.appendChild(wrap);
   }
 
@@ -507,7 +506,6 @@
 
     const toasts = el("div", "toast-area"); toasts.id = "toasts";
     wrap.appendChild(toasts);
-    wrap.appendChild(el("div", "board-credit", "Designed by <b>Digital Solutions Lab</b>"));
 
     root.appendChild(wrap);
 
@@ -704,6 +702,15 @@
         `<span class="sinfo"><b>${p.name}</b><small>${p.role.name}</small>${loot ? `<span class="sloot">${loot}</span>` : ""}</span>` +
         `<span class="spos">${posCell}</span>`;
       if (CG.Hover) CG.Hover.bind(card, () => playerInfo(p));
+      // The theatre's creator (the host) can hand any live human seat to the
+      // field at any moment: idle players become AI, and their character re-opens
+      // for a newcomer to take over.
+      if (S.net.online && S.net.hostId === myId() && !p.isAI && !p.finished) {
+        const toAI = el("button", "seat-to-ai", "🤖");
+        toAI.title = "Replace " + p.name + " with AI (frees the seat)";
+        toAI.onclick = (e) => { e.stopPropagation(); hostReplaceWithAI(i); };
+        card.appendChild(toAI);
+      }
       box.appendChild(card);
     });
     // One shared Quintet meter for the whole table: it tallies the progress
@@ -762,10 +769,27 @@
       t.style.width = size + "px"; t.style.height = size + "px";
       t.style.left = `calc(${c.x}% + ${spread}px)`;
       t.style.top = c.y + "%";
-      t.innerHTML = `<span class="tok-face" style="font-size:${size * 0.5}px">${p.role.icon}</span>`;
+      t.innerHTML =
+        `<span class="tok-face" style="font-size:${size * 0.5}px">${p.role.icon}</span>` +
+        `<span class="tok-name">${esc(p.name)}</span>` +
+        `<span class="tok-dot" title="${esc(p.name)}"></span>`;
       if (CG.Hover) CG.Hover.bind(t, () => playerInfo(p));
+      wireNameReveal(t);
       layer.appendChild(t);
     });
+  }
+
+  // A token calls out its player's name for a moment whenever it settles, then
+  // tucks the name away behind a small red dot in its top-left corner, so the
+  // board stays clean. Hovering the token (the dot is the hint) brings the name
+  // back; leaving hides it again. This is the "show for 2 seconds after every
+  // move, then a hover button" behaviour.
+  function wireNameReveal(t) {
+    t.classList.add("naming");
+    const tuck = () => { t.classList.remove("naming"); t.classList.add("dotted"); };
+    let timer = setTimeout(tuck, 2000);
+    t.addEventListener("mouseenter", () => { clearTimeout(timer); t.classList.remove("dotted"); t.classList.add("naming"); });
+    t.addEventListener("mouseleave", () => { clearTimeout(timer); tuck(); });
   }
 
   function moveTokenTo(i, n) {
@@ -1720,6 +1744,20 @@
       pushState(`${cur.name}'s seat is now run by the field`, { summary: true })
         .then(() => maybeAct());
     }
+  }
+
+  // The host hands a live human seat to the field on demand: the player becomes
+  // an AI the host drives, and, being an AI seat again, it re-opens in the lobby
+  // for a newcomer to take over their character. Works on any seat, any turn.
+  function hostReplaceWithAI(i) {
+    if (!S.net.online || S.net.hostId !== myId()) return;   // host only
+    const p = S.players[i];
+    if (!p || p.isAI || p.finished) return;
+    p.isAI = true;
+    p.ownerId = null;
+    renderStandings(); setTurnTag();
+    toast(`${p.name}'s seat is now run by the field`, "muted");
+    pushState(`${p.name}'s seat is now run by the field`, { summary: true }).then(() => maybeAct());
   }
 
   function handleGameGone() {
