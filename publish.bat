@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-02  CHAT MOVES TO A TOP-BAR BUTTON + CENTRED CHAT WINDOW; PAWN DOTS GONE.
+REM              (1) The chat is no longer a corner dot: a round chat button (a chat
+REM              icon) now sits in the top bar, before the music toggle. A small red
+REM              notification dot lights on it when a message arrives while the chat
+REM              is closed, and clears when you open it. (2) Pressing the button opens
+REM              a proper chat window centred on the screen over a dimmed backdrop,
+REM              closed by the X, the backdrop, or Escape. The window is larger and
+REM              cleaner, with colour-coded avatars and names for others, blue bubbles
+REM              for you, and messages that wrap on whole words (no more mid-word
+REM              breaks). (3) Removed the little red dots from the player pawns; a
+REM              token still shows its name for a couple of seconds after it settles
+REM              and on hover, just without the dot. game.js v52, styles.css v36.
 REM  2026-07-02  PLAYERS LIST REVERTS TO ALWAYS-ON; CHAT KEEPS ITS DOT AND GETS A
 REM              VISUAL GLOW-UP. Undid the red-dot treatment on the players list: it
 REM              is simply shown again while no token is moving (and tucks away only
