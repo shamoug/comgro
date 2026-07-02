@@ -8,6 +8,21 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-02  FLOATING TABLE CHAT, AND BOTH SIDE PANES NOW DOCK TO A CORNER DOT.
+REM              (1) Online games gain a floating chat box on the right, opposite the
+REM              players list. Messages travel on their own live (non-retained) MQTT
+REM              topic, separate from the game state, so a message never collides
+REM              with a turn write; every browser in the theatre sees each message in
+REM              real time. (2) The players list and the chat now share one
+REM              "collapsible pane" behaviour: each lives as a small coloured dot in a
+REM              screen corner (red top-left for players, blue top-right for chat) and
+REM              only opens when triggered, for two seconds, then tucks away again.
+REM              The players list flashes open when a move settles; the chat flashes
+REM              open when a message arrives. Either pane also opens while you hover
+REM              its dot or body, and a click on the dot pins it open until you click
+REM              again. Chat shows only online; the players dot works solo and online.
+REM              net.js v6 (onChat / stopChat / sendChat), game.js v50 (createDock,
+REM              chat), styles.css v34.
 REM  2026-07-02  NAME TAGS THAT TUCK AWAY, HOST CAN HAND ANY SEAT TO THE AI, AND THE
 REM              designer byline is removed. (1) A token now flashes its player's
 REM              name for two seconds whenever it settles (after every move), then

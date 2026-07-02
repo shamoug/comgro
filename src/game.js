@@ -274,7 +274,85 @@
   }
 
   let boardBox = null, overlaySvg = null, resizeObs = null, relayoutHandler = null;
+  let playersDock = null, chatDock = null;   // the two collapsible side panes
   let decksReady = false;
+
+  // =======================================================================
+  // COLLAPSIBLE SIDE PANES (players list, table chat)
+  // A pane lives as a small coloured dot in a screen corner and only opens when
+  // something happens. It flashes open for two seconds when triggered (a move
+  // settles for the players list, a message arrives for the chat), opens while
+  // you hover its dot or its body, and a click on the dot pins it open until you
+  // click again. The very same controller drives both panes: red dot top-left for
+  // players, blue dot top-right for chat.
+  // =======================================================================
+  function createDock(pane, dot) {
+    const st = { pinned: false, hover: false, focus: false, flash: false, timer: null };
+    function render() {
+      const open = st.pinned || st.hover || st.focus || st.flash;
+      pane.classList.toggle("open", open);
+      dot.classList.toggle("pinned", st.pinned);
+    }
+    function flash(ms) {
+      if (st.pinned) return;                       // already staying open
+      st.flash = true;
+      dot.classList.remove("ping"); void dot.offsetWidth; dot.classList.add("ping");
+      render();
+      clearTimeout(st.timer);
+      st.timer = setTimeout(() => { st.flash = false; render(); }, ms || 2000);
+    }
+    const enter = () => { st.hover = true; render(); };
+    const leave = () => { st.hover = false; render(); };
+    pane.addEventListener("mouseenter", enter);
+    pane.addEventListener("mouseleave", leave);
+    dot.addEventListener("mouseenter", enter);
+    dot.addEventListener("mouseleave", leave);
+    pane.addEventListener("focusin", () => { st.focus = true; render(); });
+    pane.addEventListener("focusout", () => { st.focus = false; render(); });
+    dot.addEventListener("click", (e) => {
+      e.stopPropagation();
+      st.pinned = !st.pinned;
+      if (!st.pinned) { st.flash = false; clearTimeout(st.timer); }
+      render();
+    });
+    render();
+    return { flash, render, state: st };
+  }
+
+  function flashPlayers() { if (playersDock) playersDock.flash(); }
+
+  // ---- table chat --------------------------------------------------------
+  // Render one received message. We render on RECEIPT only (including the echo of
+  // our own message the broker sends back), so ordering is whatever the table
+  // sees and there are never duplicates.
+  function renderChatMessage(m) {
+    const log = $("#chatLog");
+    if (!log || !m || !m.text) return;
+    const mine = m.from === myId();
+    const row = el("div", "chat-msg" + (mine ? " mine" : ""));
+    row.innerHTML =
+      `<span class="cm-who">${esc(mine ? "You" : (m.name || "Player"))}</span>` +
+      `<span class="cm-text">${esc(m.text)}</span>`;
+    log.appendChild(row);
+    while (log.children.length > 80) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+  function onChatMessage(m) {
+    if (!m || !m.text) return;
+    renderChatMessage(m);
+    if (chatDock) chatDock.flash();      // a new message pops the chat open for a beat
+  }
+  function sendChat() {
+    if (!S.net.online || !CG.Net || !S.net.gameId) return;
+    const input = $("#chatInput");
+    if (!input) return;
+    const text = String(input.value || "").replace(/\s+/g, " ").trim().slice(0, 200);
+    if (!text) return;
+    input.value = "";
+    const mine = S.players.find((p) => !p.isAI && p.ownerId === myId());
+    const name = (mine && mine.name) || (CG.Net.getName && CG.Net.getName()) || "Player";
+    CG.Net.sendChat(S.net.gameId, { from: myId(), name, text, at: CG.Net.now() });
+  }
 
   // =======================================================================
   // SCREENS
@@ -417,7 +495,9 @@
   function teardownBoard() {
     if (resizeObs) { try { resizeObs.disconnect(); } catch (e) {} resizeObs = null; }
     if (relayoutHandler) { window.removeEventListener("resize", relayoutHandler); relayoutHandler = null; }
+    if (CG.Net && CG.Net.stopChat) CG.Net.stopChat();
     clearRemoteCard(); cancelAllWalks();
+    playersDock = null; chatDock = null;
     boardBox = null; overlaySvg = null;
   }
 
@@ -463,6 +543,29 @@
 
     const standings = el("aside", "standings"); standings.id = "standings";
     wrap.appendChild(standings);
+    // The players list docks to a red dot in the top-left corner.
+    const pDot = el("button", "dock-dot players-dot"); pDot.id = "playersDot";
+    pDot.type = "button"; pDot.title = "Players"; pDot.setAttribute("aria-label", "Show players");
+    wrap.appendChild(pDot);
+
+    // Table chat lives on the right, opposite the players list, only when online.
+    // It docks to a blue dot in the top-right corner.
+    if (S.net.online) {
+      const chat = el("aside", "chatbox"); chat.id = "chatbox";
+      chat.innerHTML =
+        `<div class="chat-head">Table chat</div>` +
+        `<div class="chat-log" id="chatLog"></div>`;
+      const form = el("form", "chat-form"); form.id = "chatForm";
+      form.innerHTML =
+        `<input class="chat-input" id="chatInput" type="text" maxlength="200" autocomplete="off" placeholder="Message the table" />` +
+        `<button class="chat-send" type="submit" title="Send">➤</button>`;
+      form.addEventListener("submit", (e) => { e.preventDefault(); sendChat(); });
+      chat.appendChild(form);
+      wrap.appendChild(chat);
+      const cDot = el("button", "dock-dot chat-dot"); cDot.id = "chatDot";
+      cDot.type = "button"; cDot.title = "Table chat"; cDot.setAttribute("aria-label", "Show chat");
+      wrap.appendChild(cDot);
+    }
 
     const stage = el("div", "board-stage");
     boardBox = el("div", "board-box"); boardBox.id = "boardBox";
@@ -508,6 +611,10 @@
     wrap.appendChild(toasts);
 
     root.appendChild(wrap);
+
+    // Wire the collapsible panes now the corners exist.
+    playersDock = createDock($("#standings"), $("#playersDot"));
+    chatDock = S.net.online ? createDock($("#chatbox"), $("#chatDot")) : null;
 
     // Draw immediately (reading clientWidth forces a synchronous layout, so this
     // works even in a hidden tab where rAF/ResizeObserver may not fire), then
@@ -777,6 +884,7 @@
       wireNameReveal(t);
       layer.appendChild(t);
     });
+    flashPlayers();   // a settled board pops the players list open for a beat
   }
 
   // A token calls out its player's name for a moment whenever it settles, then
@@ -1642,7 +1750,7 @@
       if (from === p.pos) return;
       let ms;
       if (Math.abs(p.pos - from) <= 6) { ms = stepToken(i, from, p.pos); }        // a roll / hop: walk it
-      else { cancelWalk(i); t.classList.add("remote-move"); moveTokenTo(i, p.pos); ms = 520; }  // a slide: glide
+      else { cancelWalk(i); t.classList.add("remote-move"); moveTokenTo(i, p.pos); ms = 520; setTimeout(flashPlayers, ms); }  // a slide: glide
       if (i === moverSeat) moverMs = ms;
     });
     return moverMs;
@@ -1662,7 +1770,7 @@
       if (!obsWalk[i] || obsWalk[i].gen !== gen || !boardBox) return;
       cur += dir;
       moveTokenTo(i, cur);
-      if (cur === to) { obsWalk[i] = null; return; }
+      if (cur === to) { obsWalk[i] = null; flashPlayers(); return; }   // a watched move settled
       obsWalk[i].timer = setTimeout(stepOnce, STEP_MS);
     };
     obsWalk[i].timer = setTimeout(stepOnce, 20);
@@ -1840,6 +1948,7 @@
     lastProgressAt = CG.Net.now();
     renderBoard();
     startSync();
+    if (CG.Net.onChat) CG.Net.onChat(S.net.gameId, onChatMessage);
     maybeAct();
     if (opts && opts.intro) showTheatreIntro("Enter the theatre ▸");
   }
