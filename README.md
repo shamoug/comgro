@@ -112,10 +112,6 @@ text.
 
 ---
 
-## Credits
-
-Designed by **Digital Solutions Lab**.
-
 ## License
 
 See `LICENSE`.

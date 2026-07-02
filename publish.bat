@@ -8,6 +8,21 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-02  NAME TAGS THAT TUCK AWAY, HOST CAN HAND ANY SEAT TO THE AI, AND THE
+REM              designer byline is removed. (1) A token now flashes its player's
+REM              name for two seconds whenever it settles (after every move), then
+REM              tucks the name behind a small red dot in its top-left corner so the
+REM              board stays clean; hovering the token (the dot is the hint) brings
+REM              the name back, and leaving hides it again. (2) The theatre's creator
+REM              (the host) now sees a small robot button on every live human seat in
+REM              the standings and can hand that seat to the field at any moment: the
+REM              player becomes an AI the host drives, and, being an AI seat again,
+REM              their character re-opens in the lobby for a newcomer to take over. So
+REM              players who have wandered off can be replaced, and latecomers can
+REM              assume an existing character. (3) Removed the "Designed by Digital
+REM              Solutions Lab" byline from the title, board, lobby login and lobby
+REM              list screens and from the README. game.js v49, lobby.js v4,
+REM              styles.css v33.
 REM  2026-07-01  SCENARIO -> TITLE -> CARD -> QUINTET CHAIN TIGHTENED, plus a batch
 REM              of web-verified facts. The draw now reads the theatre's KIND
 REM              (humanitarian / development / peacekeeping): cards written for a

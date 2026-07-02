@@ -235,6 +235,15 @@ button { font-family: inherit; cursor: pointer; }
 .sinfo small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sloot { font-size: 12px; margin-top: 2px; display: flex; gap: 6px; }
 .spos { margin-left: auto; font-family: "Space Grotesk", sans-serif; font-weight: 800; font-size: 18px; color: var(--tok); }
+/* host-only: hand a human seat to the field (replace the player with AI) */
+.seat-to-ai {
+  flex: none; margin-left: 8px; width: 24px; height: 24px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: rgba(255,255,255,.05);
+  color: var(--muted); font-size: 12px; line-height: 1; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
+}
+.seat-to-ai:hover { background: rgba(255,59,59,.16); border-color: #ff6b6b; color: #ffdede; transform: translateY(-1px); }
 
 /* UN 2.0 Quintet of Change meter (the human player's five capabilities) */
 .quint-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; box-shadow: var(--shadow-sm); }
@@ -357,6 +366,31 @@ button { font-family: inherit; cursor: pointer; }
   border: 2px solid #fff;
   box-shadow: 0 4px 10px rgba(20,40,70,.4), 0 0 0 1.5px var(--tok);
 }
+/* the name a token flashes when it settles, then tucks behind the red dot */
+.token .tok-name {
+  position: absolute; bottom: 100%; left: 50%;
+  margin-bottom: 3px;
+  background: rgba(12,20,34,.94); color: #eaf2ff;
+  font-size: 11px; font-weight: 700; letter-spacing: .1px; white-space: nowrap;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--tok);
+  box-shadow: 0 4px 10px rgba(10,20,40,.45);
+  opacity: 0; transform: translate(-50%, 4px); pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 2;
+}
+.token.naming .tok-name { opacity: 1; transform: translate(-50%, 0); }
+/* the small red dot in the top-left corner: the hover hint once the name tucks */
+.token .tok-dot {
+  position: absolute; top: -1px; left: -1px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #ff3b3b; border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(10,20,40,.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s ease;
+  z-index: 3;
+}
+.token.dotted .tok-dot { opacity: 1; }
 .token.active { z-index: 11; animation: bob 1.1s ease-in-out infinite; }
 .token.active .tok-face { box-shadow: 0 0 0 3px rgba(255,255,255,.7), 0 6px 14px rgba(20,40,70,.45), 0 0 18px -2px var(--tok); }
 @keyframes bob { 50% { transform: translateY(-16%); } }

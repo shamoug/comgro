@@ -68,7 +68,6 @@
     solo.onclick = () => { if (CG.Audio) CG.Audio.sfx.click(); CG.SnakesGame.show(); };
     wrap.appendChild(solo);
 
-    wrap.appendChild(el("p", "byline", "Designed by <b>Digital Solutions Lab</b>"));
     root.appendChild(wrap);
     setTimeout(() => { try { input.focus(); } catch (e) {} }, 50);
   }
@@ -105,7 +104,6 @@
     listBox.innerHTML = `<div class="lobby-empty">Looking for open theatres…</div>`;
     wrap.appendChild(listBox);
 
-    wrap.appendChild(el("p", "board-credit", "Designed by <b>Digital Solutions Lab</b>"));
     root.appendChild(wrap);
 
     // Live list: prune-and-load now, then keep it fresh on a gentle timer.
