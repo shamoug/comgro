@@ -8,6 +8,27 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-02  HOLD THE LINE v2: DYNAMIC ROADS, MANY COMMUNITIES, LIVE ECONOMY.
+REM              A big pass on the new tower defence. (1) DYNAMIC MAP: the road
+REM              network is now drawn fresh for every game (like The Long Road's board),
+REM              a source on the left and meandering roads to the right. (2) ONE TO
+REM              THREE COMMUNITIES: each game now protects a random 1 to 3 communities,
+REM              each at the end of its own road; crises split across the roads and a
+REM              leak at any community costs Resilience (Overstretched can face three).
+REM              (3) TAP A CRISIS: click any crisis on the road to freeze the field and
+REM              read what it is, its real field fact and all. (4) RUNNING COST: every
+REM              partner now costs Funding per second from the moment it is placed, not
+REM              only to install; the top bar shows a live net rate (green up, red down).
+REM              (5) POOLED FUND SECTOR: a new build, the Pooled Fund (OCHA / donors),
+REM              generates income and pays the running cost of the partners near it
+REM              first, adding any surplus to the treasury; unfunded partners draw from
+REM              the treasury and go offline (greyed, no fire, no cost) if it runs dry.
+REM              (6) MONEY FLOWS SHOWN: animated green beads run from each Pooled Fund
+REM              to the partners it pays, every item shows its own +/- per second, and
+REM              kills pop their reward, so money to and from each item is visible.
+REM              Scenario, threats and map are all dynamic per game. Balance holds: a
+REM              full 12-wave run stays winnable and solvent. td.js v2, styles.css v39,
+REM              index.html bumps the versions.
 REM  2026-07-02  SECOND GAME: HOLD THE LINE (A TOWER DEFENCE). Common Ground now has
 REM              two games, chosen from a new home screen (platform.js): The Long Road
 REM              (the existing Snakes and Ladders, solo or multiplayer) and Hold the
