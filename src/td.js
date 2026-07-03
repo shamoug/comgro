@@ -211,53 +211,29 @@
   let cell = 40, ox = 0, oy = 0, boardW = 0, boardH = 0;
 
   // =======================================================================
-  // MAP GENERATION  (fresh every game; branching trunk)
+  // MAP GENERATION  (fresh every game)
   // =======================================================================
-  // Work in (primary p, secondary s) space so the same generator serves both a
-  // left-to-right and a top-to-bottom board, then map to grid (c,r).
-  function toCR(p, s) { return S.axis === "h" ? [p, s] : [s, p]; }
-
-  function genMap(diff) {
-    const P = S.axis === "h" ? COLS : ROWS;   // road length
-    const W = S.axis === "h" ? ROWS : COLS;   // road spread
-    const [cmin, cmax] = diff.comm;
-    const nComm = randInt(cmin, cmax);
-    const sr = clamp(Math.round(W / 2) + randInt(-1, 1), 1, W - 2);   // source lane, centred
-    const forkP = 2 + randInt(0, 1);
-
-    // community lanes: split the width into equal bands and put one community
-    // near the centre of each, so the branches fan out and use the whole space.
-    const lanes = [];
-    const lo = 1, hi = W - 2, span = hi - lo;
-    const band = span / nComm;
-    const jit = Math.max(0, Math.floor(band / 2) - 1);
-    for (let i = 0; i < nComm; i++) {
-      let s = Math.round(lo + band * (i + 0.5)) + (jit ? randInt(-jit, jit) : 0);
-      s = clamp(s, lo, hi);
-      if (i > 0 && s <= lanes[i - 1] + 1) s = clamp(lanes[i - 1] + 2, lo, hi);
-      lanes.push(s);
+  // The crisis source and every community sit OUTSIDE the board, each on a
+  // different edge (top / right / bottom / left). Roads enter from the source's
+  // edge, meet at a central hub, then branch out to each community's edge, so
+  // the branches fan away from one another and the whole space is used.
+  function edgePos(edge) {
+    return (edge === "L" || edge === "R") ? randInt(1, ROWS - 2) : randInt(1, COLS - 2);
+  }
+  function edgeInfo(edge, pos) {
+    switch (edge) {
+      case "L": return { cell: [0, pos], ext: [-1, pos], horiz: true };
+      case "R": return { cell: [COLS - 1, pos], ext: [COLS, pos], horiz: true };
+      case "T": return { cell: [pos, 0], ext: [pos, -1], horiz: false };
+      default:  return { cell: [pos, ROWS - 1], ext: [pos, ROWS], horiz: false };
     }
-
-    const taken = [];
-    const paths = [], communities = [];
-    lanes.forEach((cs, i) => {
-      const turnP = Math.min(forkP + i, P - 3);
-      const ps = [[0, sr]];
-      pushRun(ps, 0, sr, turnP, sr);        // shared trunk, then along the source lane
-      pushRun(ps, turnP, sr, turnP, cs);    // peel off toward this community's lane
-      pushRun(ps, turnP, cs, P - 1, cs);    // straight run to the community
-      const cells = ps.map(([p, s]) => toCR(p, s));
-      paths.push(cells);
-      const endCell = cells[cells.length - 1];
-      const prof = genCommunity(S.theatre, taken);
-      communities.push(Object.assign({ c: endCell[0], r: endCell[1] }, prof));
-    });
-
-    const srcCell = toCR(0, sr);
-    const source = Object.assign({ c: srcCell[0], r: srcCell[1] }, genSource(S.theatre));
-    const pathSet = new Set();
-    paths.forEach((p) => p.forEach(([c, r]) => pathSet.add(c + "," + r)));
-    return { source, communities, paths, pathSet, nComm };
+  }
+  // an adjacent-cell path from a to b with a single right-angle bend
+  function routeL(a, b, vFirst) {
+    const cells = [[a[0], a[1]]];
+    if (vFirst) { pushRun(cells, a[0], a[1], a[0], b[1]); pushRun(cells, a[0], b[1], b[0], b[1]); }
+    else { pushRun(cells, a[0], a[1], b[0], a[1]); pushRun(cells, b[0], a[1], b[0], b[1]); }
+    return cells;
   }
   function pushRun(cells, c0, r0, c1, r1) {
     let c = c0, r = r0;
@@ -265,6 +241,35 @@
     while (c !== c1) { c += dc; cells.push([c, r]); }
     const dr = Math.sign(r1 - r0);
     while (r !== r1) { r += dr; cells.push([c, r]); }
+  }
+
+  function genMap(diff) {
+    const edges = ["L", "R", "T", "B"];
+    for (let i = edges.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [edges[i], edges[j]] = [edges[j], edges[i]]; }
+    const [cmin, cmax] = diff.comm;
+    const nComm = Math.min(3, randInt(cmin, cmax));   // at most three: one edge each, plus the source
+    const sourceEdge = edges[0];
+    const commEdges = edges.slice(1, 1 + nComm);
+    const hub = [clamp(Math.round(COLS / 2) + randInt(-1, 1), 2, COLS - 3), clamp(Math.round(ROWS / 2) + randInt(-1, 1), 1, ROWS - 2)];
+
+    // trunk: from the source edge in to the hub (leave the edge perpendicular)
+    const sI = edgeInfo(sourceEdge, edgePos(sourceEdge));
+    const trunk = [sI.ext].concat(routeL(sI.cell, hub, !sI.horiz));
+
+    const taken = [];
+    const paths = [], communities = [];
+    commEdges.forEach((edge) => {
+      const eI = edgeInfo(edge, edgePos(edge));
+      const branch = routeL(hub, eI.cell, eI.horiz);          // reach the edge perpendicular
+      const cells = trunk.concat(branch.slice(1)).concat([eI.ext]);
+      paths.push(cells);
+      communities.push(Object.assign({ c: eI.ext[0], r: eI.ext[1], edge }, genCommunity(S.theatre, taken)));
+    });
+
+    const source = Object.assign({ c: sI.ext[0], r: sI.ext[1], edge: sourceEdge }, genSource(S.theatre));
+    const pathSet = new Set();
+    paths.forEach((p) => p.forEach(([c, r]) => pathSet.add(c + "," + r)));
+    return { source, communities, paths, pathSet, nComm, hub };
   }
 
   const buildable = (c, r) => c >= 0 && c < COLS && r >= 0 && r < ROWS && !S.map.pathSet.has(c + "," + r);
@@ -456,7 +461,10 @@
     const compact = w < 560;
     const padTop = compact ? 54 : 64, padBot = compact ? 116 : 96, padX = 10;
     const availW = w - padX * 2, availH = h - padTop - padBot;
-    cell = Math.max(20, Math.floor(Math.min(availW / COLS, availH / ROWS)));
+    // reserve ~1.5 cells of margin on every side so the source and communities,
+    // which sit one cell outside the board, and their labels have room.
+    const M = 3;
+    cell = Math.max(18, Math.floor(Math.min(availW / (COLS + M), availH / (ROWS + M))));
     boardW = cell * COLS; boardH = cell * ROWS;
     ox = Math.round((w - boardW) / 2);
     oy = Math.round(padTop + (availH - boardH) / 2);
@@ -530,10 +538,17 @@
     return null;
   }
 
+  // Two sectors of the SAME type may not sit within each other's radius, so the
+  // same kind of partner has to be spread out across the field.
+  function sameTypeConflict(type, c, r) {
+    const range = BUILDINGS[type].range;
+    return S.towers.some((t) => t.type === type && Math.hypot(t.c - c, t.r - r) <= range);
+  }
   function placeTower(c, r) {
     const def = BUILDINGS[S.selectedType];
     if (!def) return;
     if (S.funding < def.cost) { flash("Not enough funding"); CG.Audio && CG.Audio.sfx.wah(); return; }
+    if (sameTypeConflict(def.key, c, r)) { flash(`Two ${def.name} sectors cannot overlap`); CG.Audio && CG.Audio.sfx.wah(); return; }
     S.funding -= def.cost;
     const t = { type: def.key, c, r, x: cxOf(c), y: cyOf(r), lvl: 1, cool: 0, angle: -Math.PI / 2, spent: def.cost, funded: false, fundedBy: null, offline: false };
     S.towers.push(t);
@@ -874,8 +889,9 @@
     ctx.lineWidth = width; ctx.stroke();
   }
   function drawPaths() {
-    ctx.lineJoin = "round"; ctx.lineCap = "round";
-    // layered so overlapping branches read as one clean network
+    // butt caps so the road ends flush (no rounded stub); round joins keep the
+    // corners smooth. The ends tuck under the round source / community icons.
+    ctx.lineJoin = "round"; ctx.lineCap = "butt";
     ctx.strokeStyle = "rgba(90,70,40,0.18)"; S.map.paths.forEach((p) => strokePath(p, cell * 0.84)); // soft casing
     ctx.strokeStyle = "#b98f57"; S.map.paths.forEach((p) => strokePath(p, cell * 0.72));             // dark edge
     ctx.strokeStyle = "#e7d0a2"; S.map.paths.forEach((p) => strokePath(p, cell * 0.52));             // road body
@@ -884,40 +900,53 @@
     ctx.setLineDash([]);
   }
   function drawEndpoints() {
-    // source
     const src = S.map.source;
-    drawPad(src.c, src.r, src.icon, "#e5564b", "rgba(229,86,75,0.16)");
-    drawLabel(src.c, src.r, src.name, "#b23b34");
-    // communities
-    S.map.communities.forEach((cm, i) => {
-      drawPad(cm.c, cm.r, cm.icon, "#2f6bff", "rgba(47,107,255,0.16)");
-      drawLabel(cm.c, cm.r, cm.name, "#1f56d6");
+    drawPad(src.c, src.r, src.icon, "#e5564b", "#fbe4e1");
+    drawLabel(src.c, src.r, src.name, "#b23b34", src.edge);
+    S.map.communities.forEach((cm) => {
+      drawPad(cm.c, cm.r, cm.icon, "#2f6bff", "#e6efff");
+      drawLabel(cm.c, cm.r, cm.name, "#1f56d6", cm.edge);
     });
   }
+  // round icon: a filled circle with a coloured ring, the emoji, and an "i" hint
   function drawPad(c, r, emoji, ring, bg) {
-    const x = cxOf(c), y = cyOf(r), s = cell * 0.86;
-    ctx.fillStyle = bg; roundRect(x - s / 2, y - s / 2, s, s, 10); ctx.fill();
-    ctx.lineWidth = 2.5; ctx.strokeStyle = ring; roundRect(x - s / 2, y - s / 2, s, s, 10); ctx.stroke();
+    const x = cxOf(c), y = cyOf(r), rad = cell * 0.46;
+    ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = ring; ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.stroke();
     ctx.font = `${Math.round(cell * 0.5)}px serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(emoji, x, y + 1);
-    // little info hint
-    ctx.beginPath(); ctx.arc(x + s / 2 - 5, y - s / 2 + 5, 6, 0, Math.PI * 2);
-    ctx.fillStyle = ring; ctx.fill();
-    ctx.fillStyle = "#fff"; ctx.font = "700 9px Inter, sans-serif"; ctx.fillText("i", x + s / 2 - 5, y - s / 2 + 6);
+    const ix = x + rad * 0.72, iy = y - rad * 0.72;
+    ctx.beginPath(); ctx.arc(ix, iy, 6, 0, Math.PI * 2); ctx.fillStyle = ring; ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "700 9px Inter, sans-serif"; ctx.fillText("i", ix, iy + 0.5);
   }
-  function drawLabel(c, r, text, color) {
-    const x = cxOf(c), y = cyOf(r) + cell * 0.55;
+  function drawLabel(c, r, text, color, edge) {
+    const cx = cxOf(c);
+    // put the name on the outward side so it never sits over the board
+    let y = cyOf(r) + cell * 0.62;
+    if (edge === "T") y = cyOf(r) - cell * 0.62;
     ctx.font = "700 11px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const w = Math.min(ctx.measureText(text).width + 12, cell * 2.4);
-    ctx.fillStyle = "rgba(255,255,255,0.9)"; roundRect(x - w / 2, y - 8, w, 16, 8); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1; roundRect(x - w / 2, y - 8, w, 16, 8); ctx.stroke();
+    const boxW = Math.min(ctx.measureText(text).width + 12, cell * 3);
+    const scrW = cv.width / dpr;
+    const x = clamp(cx, boxW / 2 + 2, scrW - boxW / 2 - 2);
+    ctx.fillStyle = "rgba(255,255,255,0.92)"; roundRect(x - boxW / 2, y - 8, boxW, 16, 8); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1; roundRect(x - boxW / 2, y - 8, boxW, 16, 8); ctx.stroke();
     ctx.fillStyle = color; ctx.fillText(text, x, y + 1);
   }
   function drawBuildHints() {
+    // when a sector is picked, show the exclusion rings of same-type sectors
+    if (S.selectedType) {
+      const rng = BUILDINGS[S.selectedType].range * cell;
+      for (const o of S.towers) {
+        if (o.type !== S.selectedType) continue;
+        ctx.beginPath(); ctx.arc(o.x, o.y, rng, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(229,86,75,0.07)"; ctx.fill();
+        ctx.strokeStyle = "rgba(229,86,75,0.4)"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
     const hc = S.hoverCell;
     if (hc && S.selectedType) {
       const [c, r] = hc;
-      const ok = buildable(c, r) && !towerAt(c, r) && S.funding >= BUILDINGS[S.selectedType].cost;
+      const ok = buildable(c, r) && !towerAt(c, r) && S.funding >= BUILDINGS[S.selectedType].cost && !sameTypeConflict(S.selectedType, c, r);
       const x = ox + c * cell, y = oy + r * cell;
       ctx.fillStyle = ok ? "rgba(47,158,84,0.28)" : "rgba(229,86,75,0.28)";
       roundRect(x + 2, y + 2, cell - 4, cell - 4, 8); ctx.fill();
