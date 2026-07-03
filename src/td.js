@@ -396,7 +396,7 @@
     stop();
     S.theatre = theatre; S.diff = diff;
     pickGrid();
-    S.lives = diff.lives; S.funding = diff.funding; S.netRate = 0;
+    S.funding = diff.funding; S.netRate = 0;
     S.waveNo = 0; S.waves = buildWaves(theatre, diff);
     S.map = genMap(diff);
     S.enemies = []; S.towers = []; S.shots = []; S.floats = [];
@@ -425,7 +425,7 @@
       `<div class="td-h-left"><span class="td-theatre"><span class="tdh-ic">${S.theatre.icon}</span>${esc(S.theatre.name)}</span></div>` +
       `<div class="td-h-stats">` +
         `<span class="td-stat wave" id="td-wave">Wave 0 / ${S.diff.waves}</span>` +
-        `<span class="td-stat lives" id="td-lives">❤ ${S.lives}</span>` +
+        `<span class="td-stat lives" id="td-lives" title="A single crisis reaching any community loses the game">🏛️ ${S.map.communities.length} · no breach</span>` +
         `<span class="td-stat funds" id="td-funds">💰 ${Math.floor(S.funding)}</span>` +
         `<span class="td-stat rate" id="td-rate"></span>` +
       `</div>` +
@@ -652,7 +652,7 @@
     const f = document.getElementById("td-funds");
     const rt = document.getElementById("td-rate");
     if (w) w.textContent = `Wave ${S.waveNo} / ${S.diff.waves}`;
-    if (l) l.textContent = `❤ ${S.lives}`;
+    if (l) l.textContent = `🏛️ ${S.map.communities.length} · no breach`;
     if (f) f.textContent = `💰 ${Math.floor(S.funding)}`;
     if (rt) { const n = Math.round(S.netRate); rt.textContent = (n >= 0 ? "▲ +" : "▼ ") + n + "/s"; rt.className = "td-stat rate " + (n >= 0 ? "pos" : "neg"); }
   }
@@ -723,12 +723,10 @@
       const e = S.enemies[i];
       if (e.dead) { S.enemies.splice(i, 1); continue; }
       if (e.leaked) {
-        S.enemies.splice(i, 1);
-        const cost = e.boss ? 5 : 1; S.lives -= cost; S.leaked++;
+        S.enemies.splice(i, 1); S.leaked++;
+        // a single crisis reaching any community loses the game outright
         const cm = S.map.communities[e.commIdx];
-        floatText(cxOf(cm.c), cyOf(cm.r), "-" + cost + " ❤", "#e5564b");
-        CG.Audio && CG.Audio.sfx.wah(); updateHud();
-        if (S.lives <= 0) { S.lives = 0; return lose(); }
+        return lose({ cm, card: e.card });
       }
     }
     for (const t of S.towers) tickTower(t, dt);
@@ -1065,7 +1063,7 @@
     const kind = CG.theatreKindMeta ? CG.theatreKindMeta(S.theatre) : null;
     const story = CG.theatreStory ? CG.theatreStory(S.theatre) : S.theatre.blurb;
     const nc = S.map.communities.length;
-    const commLine = nc === 1 ? "One community depends on you." : `${nc} communities depend on you, each at the end of its own road.`;
+    const commLine = (nc === 1 ? "One community depends on you" : `${nc} communities depend on you, each at the end of its own road`) + ". Not one crisis may reach a community: a single breach loses the mandate.";
     openCard("note", "YOUR POSTING", S.theatre.icon, esc(S.theatre.name),
       (kind ? `${kind.icon} ${kind.label} · ${nc} communit${nc > 1 ? "ies" : "y"}` : ""),
       esc(story), "How to play",
@@ -1114,17 +1112,18 @@
     if (S.settings.music && CG.Audio) { CG.Audio.sfx.win(); CG.Audio.sfx.clap(); }
     const nc = S.map.communities.length;
     endCard("win", "🏛️", "The line holds",
-      `You held ${esc(S.theatre.name)} through every wave. ${S.killed} crises contained, ${nc} communit${nc > 1 ? "ies" : "y"} still standing, ${S.lives} resilience remaining. Mandate delivered.`,
+      `You held ${esc(S.theatre.name)} through every wave without a single crisis reaching a community. ${S.killed} contained, ${nc} communit${nc > 1 ? "ies" : "y"} untouched. Mandate delivered.`,
       "Mandate delivered");
     CG.Narrate && CG.Narrate.auto(`The line holds. You held ${S.theatre.name} through every wave. The mandate is delivered.`);
   }
-  function lose() {
+  function lose(breach) {
     S.phase = "over";
     if (S.settings.music && CG.Audio) { CG.Audio.sfx.lose(); CG.Audio.sfx.wah(); }
-    endCard("snake", "🌊", "The communities are overrun",
-      `${esc(S.theatre.name)} was overwhelmed at wave ${S.waveNo} of ${S.diff.waves}. ${S.killed} crises were held before the line broke. The response regroups to try again.`,
+    const where = breach ? `${esc(breach.card.title)} reached ${esc(breach.cm.name)}` : `${esc(S.theatre.name)} was overrun`;
+    endCard("snake", (breach && breach.card.icon) || "🌊", "A community is breached",
+      `${where} at wave ${S.waveNo} of ${S.diff.waves}. One crisis through the line loses the mandate: the response contained ${S.killed} before it, and regroups to try again.`,
       "The line breaks");
-    CG.Narrate && CG.Narrate.auto(`The communities are overrun. The line broke at wave ${S.waveNo}. The response will regroup and try again.`);
+    CG.Narrate && CG.Narrate.auto(`${breach ? breach.card.title + " reached " + breach.cm.name + "." : "A community is overrun."} One crisis through the line loses the mandate. The response will regroup and try again.`);
   }
   function endCard(kind, icon, title, body, band) {
     const over = el("div", "overlay-card show");

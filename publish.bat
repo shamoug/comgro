@@ -8,6 +8,15 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-03  HOLD THE LINE v5: ONE BREACH LOSES. The game no longer runs on a
+REM              Resilience pool. Now a single crisis reaching ANY community loses the
+REM              game outright: the line has to hold perfectly. The loss card names the
+REM              crisis and the community it broke through ("Diphtheria Returns to the
+REM              Camp reached Lower Faro"), the win card notes every community was left
+REM              untouched, the top-bar stat reads the number of communities with a
+REM              "no breach" note, and the intro spells out the rule. Verified: the
+REM              first crisis through loses immediately, while a fully covered run still
+REM              wins with zero breaches. td.js v5.
 REM  2026-07-03  HOLD THE LINE v4: OFF-BOARD PLACES ON EVERY EDGE, SECTOR SPACING.
 REM              (1) The crisis source and every community now sit OUTSIDE the board,
 REM              each on a DIFFERENT edge (top / right / bottom / left): no two
