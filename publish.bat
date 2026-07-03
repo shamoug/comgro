@@ -8,6 +8,19 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-03  HOLD THE LINE v7: SECTORS WEAR OUT AND MUST BE MAINTAINED. Every
+REM              sector now decays as it works. While a wave is on, a partner loses one
+REM              condition mark (the level dots) every 26 seconds, stepping down 3, 2, 1,
+REM              silently, shown by the dots emptying and, on the last mark, a pulsing
+REM              warning ring. When the last mark is gone the sector VANISHES and you are
+REM              told (a toast, the first sound in the whole cycle, "X has worn out and is
+REM              gone. Rebuild it."). Reinforcing (the old Upgrade button, now labelled
+REM              Reinforce) restores a mark and resets the clock, so you keep partners up
+REM              or rebuild when they go. Decay pauses between waves so setup is safe. The
+REM              inspector shows a Condition readout and the intro explains the wear.
+REM              Verified: no decay in prep; 3->2->1->vanish over ~78s of wave time with
+REM              the announcement; reinforce restores and resets; and a maintained run
+REM              stays winnable at every tier with zero breaches. td.js v7.
 REM  2026-07-03  HOLD THE LINE v6: SECTORS MATCH THE POSTING. The sectors you can
 REM              build are now chosen to fit the theatre's crisis types, instead of
 REM              always offering all eight. Each sector is mapped to the crises it is
