@@ -8,6 +8,25 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-03  HOLD THE LINE v4: OFF-BOARD PLACES ON EVERY EDGE, SECTOR SPACING.
+REM              (1) The crisis source and every community now sit OUTSIDE the board,
+REM              each on a DIFFERENT edge (top / right / bottom / left): no two
+REM              communities share a side, and the source takes its own edge. Roads
+REM              enter from the source edge, meet at a central hub and branch out to
+REM              each community's edge, so the branches fan away from one another and
+REM              use the whole space. (2) The source and communities are drawn as ROUND
+REM              icons (a circle with the place icon and an "i" hint), tappable as
+REM              before for their story. (3) Roads no longer end in a rounded stub: they
+REM              use flat (butt) end caps and tuck under the round icons, with smooth
+REM              rounded corners kept. (4) SECTOR SPACING: two sectors of the SAME type
+REM              can no longer sit within each other's radius, so the same partner must
+REM              be spread out; picking a sector shows the exclusion rings of its own
+REM              kind and blocks an overlapping placement. (5) the board reserves a
+REM              margin so the off-board icons and their name labels have room, on both
+REM              the wide and the tall (phone) layouts. Verified: endpoints land on
+REM              distinct edges outside the board every game, branches share a trunk,
+REM              same-type placement is blocked while different types and far same-type
+REM              are allowed, and a full run stays winnable at every tier. td.js v4.
 REM  2026-07-03  HOLD THE LINE v3: RICHER ROADS, MOBILE, NAMED PLACES, MORE SECTORS.
 REM              (1) MOBILE: the board now fits the device. On a tall phone the road
 REM              network flows top to bottom on a taller grid; on a wide screen it flows
