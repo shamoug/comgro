@@ -764,7 +764,12 @@
     }
     for (const t of S.towers) tickTower(t, dt);
     for (let i = S.shots.length - 1; i >= 0; i--) { if (stepShot(S.shots[i], dt)) S.shots.splice(i, 1); }
-    for (let i = S.floats.length - 1; i >= 0; i--) { const f = S.floats[i]; f.t += dt; if (!f.spark) f.y -= 22 * dt; if (f.t > 1.1) S.floats.splice(i, 1); }
+    for (let i = S.floats.length - 1; i >= 0; i--) {
+      const f = S.floats[i]; f.t += dt;
+      if (f.part) { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= 0.9; f.vy *= 0.9; }
+      else if (f.text) { f.y -= 22 * dt; }
+      if (f.t > (f.life || 1.1)) S.floats.splice(i, 1);
+    }
     if (S.phase === "wave" && !S.spawnQueue.length && !S.enemies.length) waveCleared();
   }
 
@@ -868,10 +873,11 @@
   }
   function fire(t, target, st) {
     const def = BUILDINGS[t.type];
-    S.shots.push({ x: t.x, y: t.y, target, color: def.color, dmg: st.dmg, splash: st.splash, slow: st.slow, bonus: def.bonus, speed: 12 * cell, life: 0 });
+    S.shots.push({ x: t.x, y: t.y, target, dmg: st.dmg, splash: st.splash, slow: st.slow, bonus: def.bonus, speed: 13 * cell, life: 0, trail: [] });
   }
   function stepShot(s, dt) {
     s.life += dt;
+    if (s.trail) { s.trail.push({ x: s.x, y: s.y }); if (s.trail.length > 6) s.trail.shift(); }
     const tgt = s.target;
     const tx = (tgt && !tgt.dead && !tgt.leaked) ? tgt.x : s.lastX;
     const ty = (tgt && !tgt.dead && !tgt.leaked) ? tgt.y : s.lastY;
@@ -897,14 +903,25 @@
     if (s.splash > 0) {
       const rad = s.splash * cell;
       for (const e of S.enemies) { if (e.dead || e.leaked) continue; if (Math.hypot(e.x - x, e.y - y) <= rad) { damage(e, s.dmg, s.bonus); if (s.slow > 0) { e.tempMul = 1 - s.slow; e.slowT = 1.3; } } }
-      spark(x, y, s.color, true);
+      explosion(x, y, true);
     } else {
       const e = s.target;
       if (e && !e.dead && !e.leaked) { damage(e, s.dmg, s.bonus); if (s.slow > 0) { e.tempMul = 1 - s.slow; e.slowT = 1.3; } }
-      spark(x, y, s.color, false);
+      explosion(x, y, false);
     }
   }
-  function spark(x, y, color, big) { S.floats.push({ x, y, t: 0, spark: true, color, big: !!big }); }
+  // a fiery burst on impact: a bright flash ring plus embers flung outward
+  function explosion(x, y, big) {
+    S.floats.push({ x, y, t: 0, boom: true, big: !!big, life: 0.42 });
+    const n = big ? 14 : 9;
+    const EMBER = ["#fff2b0", "#ffd24a", "#ff8a3d", "#ff4d3d", "#e5382b"];
+    for (let k = 0; k < n; k++) {
+      const a = (Math.PI * 2 * k) / n + Math.random() * 0.6;
+      const sp = (big ? 150 : 100) * (0.5 + Math.random());
+      S.floats.push({ x, y, t: 0, part: true, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        size: (big ? 3.6 : 2.6) * (0.7 + Math.random() * 0.6), color: EMBER[Math.floor(Math.random() * EMBER.length)], life: 0.45 + Math.random() * 0.3 });
+    }
+  }
   function floatText(x, y, text, color) { S.floats.push({ x, y, t: 0, text, color }); }
 
   // =======================================================================
@@ -1085,11 +1102,41 @@
       ctx.fillStyle = e.boss ? "#ef9f25" : "#2f9e54"; roundRect(bx, by, bw * clamp(e.hp / e.maxHp, 0, 1), bh, 2); ctx.fill();
     }
   }
-  function drawShots() { for (const s of S.shots) { ctx.beginPath(); ctx.arc(s.x, s.y, s.splash > 0 ? 5 : 3.5, 0, Math.PI * 2); ctx.fillStyle = s.color; ctx.fill(); } }
+  // glowing red bullet with a fading ember trail
+  function drawShots() {
+    for (const s of S.shots) {
+      const R = s.splash > 0 ? 5 : 3.6;
+      if (s.trail && s.trail.length > 1) {
+        for (let i = 0; i < s.trail.length; i++) {
+          const p = s.trail[i], a = (i + 1) / s.trail.length;
+          ctx.beginPath(); ctx.arc(p.x, p.y, R * 0.7 * a, 0, Math.PI * 2);
+          ctx.fillStyle = hexA("#ff4d3d", a * 0.35); ctx.fill();
+        }
+      }
+      ctx.beginPath(); ctx.arc(s.x, s.y, R * 2.2, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,70,45,0.16)"; ctx.fill();   // outer glow
+      ctx.beginPath(); ctx.arc(s.x, s.y, R * 1.35, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,90,55,0.5)"; ctx.fill();   // inner glow
+      ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, Math.PI * 2); ctx.fillStyle = "#ff3b30"; ctx.fill();                      // red core
+      ctx.beginPath(); ctx.arc(s.x, s.y, R * 0.45, 0, Math.PI * 2); ctx.fillStyle = "#fff3c0"; ctx.fill();               // hot centre
+    }
+  }
   function drawFloats() {
     for (const f of S.floats) {
-      if (f.spark) { const a = 1 - f.t / 1.1; ctx.beginPath(); ctx.arc(f.x, f.y, (f.big ? 16 : 9) * (0.4 + f.t * 2), 0, Math.PI * 2); ctx.strokeStyle = hexA(f.color, a * 0.7); ctx.lineWidth = 2; ctx.stroke(); }
-      else if (f.text) { const a = clamp(1 - f.t / 1.1, 0, 1); ctx.font = "700 13px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = hexA(f.color, a); ctx.fillText(f.text, f.x, f.y); }
+      if (f.boom) {
+        const p = f.t / f.life, a = clamp(1 - p, 0, 1);
+        const R = (f.big ? 24 : 15) * (0.3 + p * 1.2);
+        ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, Math.PI * 2);
+        ctx.strokeStyle = hexA("#ff5a3c", a * 0.85); ctx.lineWidth = (f.big ? 4 : 3) * a + 1; ctx.stroke();
+        ctx.beginPath(); ctx.arc(f.x, f.y, R * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = hexA("#ffd24a", a * 0.45); ctx.fill();
+      } else if (f.part) {
+        const a = clamp(1 - f.t / f.life, 0, 1);
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.size * (0.5 + a * 0.7), 0, Math.PI * 2);
+        ctx.fillStyle = hexA(f.color, a); ctx.fill();
+      } else if (f.text) {
+        const a = clamp(1 - f.t / 1.1, 0, 1);
+        ctx.font = "700 13px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = hexA(f.color, a); ctx.fillText(f.text, f.x, f.y);
+      }
     }
   }
   function roundRect(x, y, w, h, r) {
