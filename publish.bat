@@ -8,6 +8,20 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-03  HOLD THE LINE v6: SECTORS MATCH THE POSTING. The sectors you can
+REM              build are now chosen to fit the theatre's crisis types, instead of
+REM              always offering all eight. Each sector is mapped to the crises it is
+REM              made for (WASH to floods and outbreaks, Logistics to supply and access,
+REM              Risk Communication to rumour and governance, Protection to conflict and
+REM              displacement, Early Warning to sudden-onset hazards, Health to disease),
+REM              and a posting offers the ones its own hazards call for. There are always
+REM              at least THREE crisis-fighting sectors (topped up when a theatre's tags
+REM              match fewer, so the roster is always viable under the same-type spacing
+REM              rule), plus the universal Coordination Hub and Pooled Fund. The intro
+REM              lists the sectors this posting fields. Verified across all 84 theatres:
+REM              min 3 crisis sectors (5 total) with fund + coord always present, rosters
+REM              differ by theatre, the shop shows exactly the offered set, and a run
+REM              stays winnable using only the offered sectors. td.js v6.
 REM  2026-07-03  HOLD THE LINE v5: ONE BREACH LOSES. The game no longer runs on a
 REM              Resilience pool. Now a single crisis reaching ANY community loses the
 REM              game outright: the line has to hold perfectly. The loss card names the

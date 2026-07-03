@@ -91,6 +91,30 @@
   };
   const SHOP_ORDER = ["health", "wash", "logistics", "riskcomm", "protection", "coord", "foresight", "fund"];
 
+  // Which crisis tags make each sector relevant to a posting. Coordination and
+  // the Pooled Fund are universal (a UN response always needs coordination and
+  // money), so they are offered everywhere; the rest are offered only where the
+  // theatre's crises call for them. computeOffered() guarantees at least three.
+  const SECTOR_FOR = {
+    health: ["health"],
+    wash: ["health", "flood", "storm"],
+    logistics: ["supply", "access", "flood", "storm"],
+    riskcomm: ["info", "data", "governance", "behaviour", "digital"],
+    protection: ["displacement", "governance", "access"],
+    foresight: ["storm", "flood", "climate", "drought", "foresight"],
+  };
+  const SECTOR_UNIVERSAL = new Set(["coord", "fund"]);
+  // Offer the crisis-fighting sectors this theatre's tags call for, always at
+  // least three of them (topped up so there is enough variety to hold the line
+  // under the same-type spacing rule), plus the universal coordination + fund.
+  function computeOffered(theatre) {
+    const tags = new Set((theatre && theatre.tags) || []);
+    let crisis = Object.keys(SECTOR_FOR).filter((k) => (SECTOR_FOR[k] || []).some((t) => tags.has(t)));
+    const fallback = ["protection", "health", "logistics", "foresight", "wash", "riskcomm"];
+    for (let i = 0; crisis.length < 3 && i < fallback.length; i++) if (crisis.indexOf(fallback[i]) < 0) crisis.push(fallback[i]);
+    return SHOP_ORDER.filter((k) => crisis.indexOf(k) >= 0 || SECTOR_UNIVERSAL.has(k));   // keep shop order
+  }
+
   const DIFF = {
     steady:        { key: "steady",        label: "Steady",        lives: 24, funding: 380, hpMul: 0.82, waves: 10, comm: [1, 2] },
     testing:       { key: "testing",       label: "Testing",       lives: 20, funding: 340, hpMul: 1.0,  waves: 12, comm: [2, 2] },
@@ -200,7 +224,7 @@
     lives: 0, funding: 0, netRate: 0, waveNo: 0, waves: [],
     map: null,
     enemies: [], towers: [], shots: [], floats: [],
-    selectedType: null, selectedTower: null, hoverCell: null,
+    selectedType: null, selectedTower: null, hoverCell: null, offered: [],
     phase: "prep", spawnQueue: [], spawnTimer: 0,
     speed: 1, paused: false, frozen: false,
     running: false, raf: 0, lastT: 0, time: 0,
@@ -401,6 +425,7 @@
     S.map = genMap(diff);
     S.enemies = []; S.towers = []; S.shots = []; S.floats = [];
     S.selectedType = null; S.selectedTower = null; S.hoverCell = null;
+    S.offered = computeOffered(theatre);
     S.phase = "prep"; S.spawnQueue = []; S.spawnTimer = 0;
     S.speed = 1; S.paused = false; S.frozen = false; S.time = 0;
     S.killed = 0; S.leaked = 0;
@@ -622,7 +647,7 @@
       return;
     }
     const shop = el("div", "td-shop");
-    SHOP_ORDER.forEach((k) => {
+    (S.offered.length ? S.offered : SHOP_ORDER).forEach((k) => {
       const def = BUILDINGS[k];
       const b = el("button", "td-shopitem" + (S.selectedType === k ? " on" : ""));
       b.style.setProperty("--c", def.color);
@@ -1064,10 +1089,11 @@
     const story = CG.theatreStory ? CG.theatreStory(S.theatre) : S.theatre.blurb;
     const nc = S.map.communities.length;
     const commLine = (nc === 1 ? "One community depends on you" : `${nc} communities depend on you, each at the end of its own road`) + ". Not one crisis may reach a community: a single breach loses the mandate.";
+    const sectorNames = S.offered.map((k) => `${BUILDINGS[k].icon} ${BUILDINGS[k].name}`).join(", ");
     openCard("note", "YOUR POSTING", S.theatre.icon, esc(S.theatre.name),
       (kind ? `${kind.icon} ${kind.label} · ${nc} communit${nc > 1 ? "ies" : "y"}` : ""),
       esc(story), "How to play",
-      `${commLine} Spend Funding to place partner sectors along the roads. Every partner has a running cost, so place a Pooled Fund nearby to pay it. Tap the crisis source, any community, or any crisis on the road to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
+      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads; every partner has a running cost, so keep a Pooled Fund nearby to pay it. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
       `Your posting. ${S.theatre.name}. ${story}`, false);
   }
   function showSourceCard() {
@@ -1162,7 +1188,7 @@
     step: (dt, n) => { for (let i = 0; i < (n || 1); i++) update(dt || 1 / 60); },
     place: (type, c, r) => { S.selectedType = type; placeTower(c, r); return towerAt(c, r); },
     setAxis: (ax) => { S.axis = ax; if (ax === "h") { COLS = 16; ROWS = 9; } else { COLS = 11; ROWS = 16; } },
-    startWave, statsOf, economy, applyAuras, draw, resize, buildable, genMap, BUILDINGS,
+    startWave, statsOf, economy, applyAuras, draw, resize, buildable, genMap, computeOffered, BUILDINGS,
     dims: () => ({ COLS, ROWS, axis: S.axis }),
   };
 })();
