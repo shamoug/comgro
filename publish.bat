@@ -8,6 +8,26 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-03  HOLD THE LINE v3: RICHER ROADS, MOBILE, NAMED PLACES, MORE SECTORS.
+REM              (1) MOBILE: the board now fits the device. On a tall phone the road
+REM              network flows top to bottom on a taller grid; on a wide screen it flows
+REM              left to right as before. The HUD is compact and the sector shop scrolls
+REM              horizontally so all eight fit any width. (2) BETTER BRANCHING: roads
+REM              fork off a shared trunk and now fan out evenly across the whole width,
+REM              each branch peeling off at its own point so communities sit well apart
+REM              and the space is used. (3) NAMED, CLICKABLE PLACES: the crisis source
+REM              and every community are drawn as labelled pads with an icon and an info
+REM              hint. Tap the source to read the story of the crisis type massing there;
+REM              tap a community to see its name, what kind of place it is, its population
+REM              and a short history, all generated fresh per game. (4) THREE NEW SECTORS,
+REM              eight in all: WASH & Water (UNICEF, splashes a cluster, strong on water
+REM              crises), Risk Communication (WHO / UNESCO, long reach, counters rumour),
+REM              and Early Warning (WMO / anticipatory action, no attack, slows every
+REM              crisis in range). (5) road rendering redrawn with a soft casing, darker
+REM              edge, warm body and a dashed centre line, plus rounded named end pads.
+REM              Verified: valid branching both orientations, lanes fan out, endpoints
+REM              open their cards, new sectors work, and a full run stays winnable at
+REM              every tier. td.js v3, styles.css v40, index.html bumps the versions.
 REM  2026-07-02  HOLD THE LINE v2: DYNAMIC ROADS, MANY COMMUNITIES, LIVE ECONOMY.
 REM              A big pass on the new tower defence. (1) DYNAMIC MAP: the road
 REM              network is now drawn fresh for every game (like The Long Road's board),
