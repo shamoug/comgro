@@ -8,6 +8,15 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-03  HOLD THE LINE v8: GLOWING RED BULLETS + EXPLOSIONS. The shots a sector
+REM              fires at a crisis are now glowing red rounds (a white-hot centre, a red
+REM              core and a soft red halo) that leave a short fading ember trail as they
+REM              streak to the target, instead of the old flat dots. On impact they burst
+REM              into a fiery explosion: a bright expanding flash ring plus a scatter of
+REM              embers (more for the splashing Logistics hits) that fly out and fade.
+REM              Pure canvas, no images. Verified: bullets render glowing red (core
+REM              confirmed by pixel), carry a trail, and every hit throws a flash and
+REM              embers, with no render errors. td.js v8.
 REM  2026-07-03  HOLD THE LINE v7: SECTORS WEAR OUT AND MUST BE MAINTAINED. Every
 REM              sector now decays as it works. While a wave is on, a partner loses one
 REM              condition mark (the level dots) every 26 seconds, stepping down 3, 2, 1,
