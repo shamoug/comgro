@@ -121,6 +121,12 @@
     overstretched: { key: "overstretched", label: "Overstretched", lives: 16, funding: 300, hpMul: 1.28, waves: 14, comm: [2, 3] },
   };
 
+  // Sectors wear down as they work: while a wave is on, each partner loses one
+  // mark (level dot) every DECAY_SECONDS, silently, from 3 to 2 to 1; when it
+  // would drop below 1 it vanishes and you are told. Upgrading restores a mark
+  // and resets its clock, so you keep them up or rebuild when they go.
+  const DECAY_SECONDS = 26;
+
   const TAG_SPEED = {
     health: 1.5, info: 1.7, data: 1.6, displacement: 1.3, access: 1.2,
     flood: 1.1, storm: 1.45, drought: 1.0, climate: 1.15, supply: 1.2,
@@ -575,7 +581,7 @@
     if (S.funding < def.cost) { flash("Not enough funding"); CG.Audio && CG.Audio.sfx.wah(); return; }
     if (sameTypeConflict(def.key, c, r)) { flash(`Two ${def.name} sectors cannot overlap`); CG.Audio && CG.Audio.sfx.wah(); return; }
     S.funding -= def.cost;
-    const t = { type: def.key, c, r, x: cxOf(c), y: cyOf(r), lvl: 1, cool: 0, angle: -Math.PI / 2, spent: def.cost, funded: false, fundedBy: null, offline: false };
+    const t = { type: def.key, c, r, x: cxOf(c), y: cyOf(r), lvl: 1, decayT: DECAY_SECONDS, cool: 0, angle: -Math.PI / 2, spent: def.cost, funded: false, fundedBy: null, offline: false };
     S.towers.push(t);
     S.selectedTower = t; S.selectedType = null;
     CG.Audio && CG.Audio.sfx.pick();
@@ -604,7 +610,7 @@
     if (t.lvl >= 3) return;
     const cost = upgradeCost(t);
     if (S.funding < cost) { flash("Not enough funding"); CG.Audio && CG.Audio.sfx.wah(); return; }
-    S.funding -= cost; t.lvl++; t.spent += cost;
+    S.funding -= cost; t.lvl++; t.spent += cost; t.decayT = DECAY_SECONDS;
     CG.Audio && CG.Audio.sfx.pick(); updateHud(); renderBar();
   }
   function sellTower(t) {
@@ -631,12 +637,13 @@
       const middle = def.kind === "attack" ? `<span>Damage</span><b>${Math.round(st.dmg)}</b><span>Range</span><b>${st.range.toFixed(1)}</b>` :
         def.slowAura ? `<span>Slows</span><b>-${Math.round(def.slowAura * 100)}%</b>` :
         def.kind === "support" ? `<span>Aura</span><b>+30% dmg</b>` : ``;
+      const condition = `<span>Condition</span><b class="${t.lvl <= 1 ? "neg" : ""}">${"●".repeat(t.lvl)}${"○".repeat(3 - t.lvl)}</b>`;
       panel.innerHTML =
         `<div class="tdi-id"><span class="tdi-ic" style="--c:${def.color}">${def.icon}</span>` +
-          `<div><b>${def.name}</b><small>${def.aff} · level ${t.lvl}</small></div></div>` +
-        `<div class="tdi-stats">${middle}${money}</div>`;
+          `<div><b>${def.name}</b><small>${def.aff} · wears out over time</small></div></div>` +
+        `<div class="tdi-stats">${middle}${condition}${money}</div>`;
       const acts = el("div", "tdi-acts");
-      const up = el("button", "btn btn-primary sm", canUp ? `⬆ Upgrade · 💰${upgradeCost(t)}` : "Max level");
+      const up = el("button", "btn btn-primary sm", canUp ? `⬆ Reinforce · 💰${upgradeCost(t)}` : "Full condition");
       up.disabled = !canUp; up.onclick = () => upgradeTower(t);
       const sell = el("button", "btn btn-ghost sm", `Sell · 💰${Math.round(t.spent * 0.6)}`);
       sell.onclick = () => sellTower(t);
@@ -742,6 +749,7 @@
       if (S.spawnTimer <= 0) { spawnOne(S.spawnQueue.shift()); S.spawnTimer = S.curWave ? S.curWave.interval : 0.7; }
     }
     economy(dt);
+    decayTick(dt);
     applyAuras();
     for (const e of S.enemies) moveEnemy(e, dt);
     for (let i = S.enemies.length - 1; i >= 0; i--) {
@@ -782,6 +790,30 @@
     S.netRate = net;
     S.funding = Math.max(0, S.funding + net * dt);
     updateHud();
+  }
+
+  // Sectors wear down while a wave is on: lose a mark every DECAY_SECONDS, and
+  // vanish (with an announcement, the first sound in the whole cycle) when the
+  // last mark is gone. Silent while it is merely stepping down.
+  function decayTick(dt) {
+    if (S.phase !== "wave") return;
+    for (let i = S.towers.length - 1; i >= 0; i--) {
+      const t = S.towers[i];
+      t.decayT -= dt;
+      if (t.decayT > 0) continue;
+      t.lvl -= 1;
+      if (t.lvl < 1) {
+        const def = BUILDINGS[t.type];
+        S.towers.splice(i, 1);
+        if (S.selectedTower === t) { S.selectedTower = null; renderBar(); }
+        else renderBar();
+        floatText(t.x, t.y, "worn out", "#e5564b");
+        CG.Audio && CG.Audio.sfx.wah();
+        toast(`${def.icon} ${def.name} has worn out and is gone. Rebuild it.`, "bad");
+      } else {
+        t.decayT = DECAY_SECONDS;
+      }
+    }
   }
 
   // Early Warning slows crises in range (anticipatory action buys time).
@@ -1016,8 +1048,21 @@
       }
       ctx.font = `${Math.round(cell * 0.44)}px serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(def.icon, x, y + 1);
-      for (let i = 0; i < t.lvl; i++) { ctx.beginPath(); ctx.arc(x - s / 2 + 7 + i * 8, y + s / 2 - 6, 3, 0, Math.PI * 2); ctx.fillStyle = def.color; ctx.fill(); }
+      // condition marks: filled for the sector's current level, hollow for the
+      // marks it has lost (or not yet reached). They step down as it wears out.
+      for (let i = 0; i < 3; i++) {
+        const px = x - s / 2 + 7 + i * 8, py = y + s / 2 - 6;
+        ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2);
+        if (i < t.lvl) { ctx.fillStyle = def.color; ctx.fill(); }
+        else { ctx.strokeStyle = "rgba(120,120,120,0.55)"; ctx.lineWidth = 1; ctx.stroke(); }
+      }
       ctx.globalAlpha = 1;
+      // last mark left: a silent pulsing warning ring so you can shore it up
+      if (t.lvl <= 1) {
+        const pulse = 0.5 + 0.5 * Math.sin(S.time * 6);
+        ctx.beginPath(); ctx.arc(x, y, s * 0.66, 0, Math.PI * 2);
+        ctx.strokeStyle = hexA("#e5564b", 0.3 + 0.45 * pulse); ctx.lineWidth = 2; ctx.stroke();
+      }
       const st = statsOf(t);
       ctx.font = "700 11px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
       if (def.kind === "fund") { ctx.fillStyle = "#2f9e54"; ctx.fillText("+" + Math.round(st.income) + "/s", x, y + s / 2 + 2); }
@@ -1093,7 +1138,7 @@
     openCard("note", "YOUR POSTING", S.theatre.icon, esc(S.theatre.name),
       (kind ? `${kind.icon} ${kind.label} · ${nc} communit${nc > 1 ? "ies" : "y"}` : ""),
       esc(story), "How to play",
-      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads; every partner has a running cost, so keep a Pooled Fund nearby to pay it. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
+      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads; every partner has a running cost, so keep a Pooled Fund nearby to pay it. Sectors also wear down as they work, losing a mark over time and vanishing if it hits zero, so reinforce (upgrade) them or rebuild. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
       `Your posting. ${S.theatre.name}. ${story}`, false);
   }
   function showSourceCard() {
@@ -1188,7 +1233,7 @@
     step: (dt, n) => { for (let i = 0; i < (n || 1); i++) update(dt || 1 / 60); },
     place: (type, c, r) => { S.selectedType = type; placeTower(c, r); return towerAt(c, r); },
     setAxis: (ax) => { S.axis = ax; if (ax === "h") { COLS = 16; ROWS = 9; } else { COLS = 11; ROWS = 16; } },
-    startWave, statsOf, economy, applyAuras, draw, resize, buildable, genMap, computeOffered, BUILDINGS,
+    startWave, statsOf, economy, applyAuras, decayTick, upgradeTower, upgradeCost, draw, resize, buildable, genMap, computeOffered, BUILDINGS, DECAY_SECONDS,
     dims: () => ({ COLS, ROWS, axis: S.axis }),
   };
 })();
