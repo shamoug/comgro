@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-04  HOLD THE LINE v9: FITS THE PHONE, WHOLE BOARD VISIBLE. On a phone the
+REM              shop bar of sector cards is taller than the fixed space the board layout
+REM              was reserving for it, so the bar covered the lower part of the board and
+REM              players could not see everything. The board now measures the real height
+REM              of the HUD and the shop bar every layout and reserves exactly that, so the
+REM              full road network, the crisis source and every community always sit above
+REM              the cards, on any screen or orientation; the layout also re-fits whenever
+REM              the bar changes height (shop vs inspector). The sector cards themselves are
+REM              made more compact on small screens, and long community name labels that
+REM              used to run off the screen edge are now sized to stay fully on-screen.
+REM              Verified on a 375x812 phone: whole board and all endpoint labels visible
+REM              above the cards. td.js v9, styles.css v41.
 REM  2026-07-03  HOLD THE LINE v8: GLOWING RED BULLETS + EXPLOSIONS. The shots a sector
 REM              fires at a crisis are now glowing red rounds (a white-hot centre, a red
 REM              core and a soft red halo) that leave a short fading ember trail as they

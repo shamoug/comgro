@@ -490,8 +490,14 @@
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
     cv.style.width = w + "px"; cv.style.height = h + "px";
     const compact = w < 560;
-    const padTop = compact ? 54 : 64, padBot = compact ? 116 : 96, padX = 10;
-    const availW = w - padX * 2, availH = h - padTop - padBot;
+    // reserve the real height of the HUD and shop bar so the whole board stays
+    // visible above the bar, however tall the sector cards wrap on a phone.
+    const hudEl = cv.parentElement.querySelector(".td-hud");
+    const barEl = document.getElementById("td-bar");
+    const padTop = (hudEl && hudEl.offsetHeight ? hudEl.offsetHeight : (compact ? 54 : 64)) + 8;
+    const padBot = (barEl && barEl.offsetHeight ? barEl.offsetHeight : (compact ? 116 : 96)) + 8;
+    const padX = 10;
+    const availW = w - padX * 2, availH = Math.max(cell * 4, h - padTop - padBot);
     // reserve ~1.5 cells of margin on every side so the source and communities,
     // which sit one cell outside the board, and their labels have room.
     const M = 3;
@@ -626,6 +632,11 @@
   function renderBar() {
     const bar = document.getElementById("td-bar");
     if (!bar) return;
+    renderBarInner(bar);
+    // the bar's height drives how much room the board gets; relayout to it
+    if (cv) resize();
+  }
+  function renderBarInner(bar) {
     bar.innerHTML = "";
     if (S.selectedTower) {
       const t = S.selectedTower, st = statsOf(t), def = st.def;
@@ -997,8 +1008,10 @@
     let y = cyOf(r) + cell * 0.62;
     if (edge === "T") y = cyOf(r) - cell * 0.62;
     ctx.font = "700 11px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const boxW = Math.min(ctx.measureText(text).width + 12, cell * 3);
     const scrW = cv.width / dpr;
+    // fit the box to the full name, but never wider than the screen, so the
+    // label always stays fully on-screen even for long names on a narrow phone
+    const boxW = Math.min(ctx.measureText(text).width + 12, scrW - 8);
     const x = clamp(cx, boxW / 2 + 2, scrW - boxW / 2 - 2);
     ctx.fillStyle = "rgba(255,255,255,0.92)"; roundRect(x - boxW / 2, y - 8, boxW, 16, 8); ctx.fill();
     ctx.strokeStyle = color; ctx.lineWidth = 1; roundRect(x - boxW / 2, y - 8, boxW, 16, 8); ctx.stroke();
