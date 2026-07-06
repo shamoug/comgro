@@ -8,6 +8,29 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-06  HOLD THE LINE v10: NAMED WAVES, BRIEFINGS, BOARD EFFECT, RICHER
+REM              COMMUNITIES. (1) Every wave now carries a UNIQUE name matched to the
+REM              crisis leading it, drawn from the posting's own hazards: a flood delta
+REM              sends "The Rising Water" and "Floodtide", a conflict corridor sends "The
+REM              Closed Road" and "Blockade", and each fourth (major) wave gets a heavier
+REM              name ("The Great Outbreak", "Blockade Unleashed"). The leading crisis is
+REM              the one that appears most in the wave's mix, so the name matches what
+REM              actually marches, and no name repeats within a game (verified unique across
+REM              full 14-wave runs). (2) BOARD EFFECT ON WAVE CHANGE: when a wave lands, a
+REM              crisis-tinted vignette pulses in from the edges, a named banner ("WAVE N /
+REM              <name>") sweeps across the board with a moving sheen, and the crisis source
+REM              bursts (twice for a major wave), all in the lead crisis's colour. (3) A
+REM              BRIEFING CARD for every wave: before each wave a card names it, the crisis
+REM              leading it, roughly how many crises to expect, the sector best suited to
+REM              answer it, and a real field fact; it auto-shows after the intro and after
+REM              each wave held, is re-openable from a new "ⓘ Briefing" button, and the
+REM              wave name shows in the bar hint. (4) EACH WAVE THEME IS READ ALOUD (the
+REM              briefing narrates on open and the name + theme are spoken as the wave
+REM              lands). (5) RICHER COMMUNITIES: each community's story is now built from
+REM              three beats, how it began, how its people live, and what is at stake if the
+REM              line breaks, woven with a physical hazard from the posting, so every place
+REM              reads as its own town (verified: no placeholder leaks across 500+
+REM              communities). td.js v10, index.html bumps the version.
 REM  2026-07-04  HOLD THE LINE v9: FITS THE PHONE, WHOLE BOARD VISIBLE. On a phone the
 REM              shop bar of sector cards is taller than the fixed space the board layout
 REM              was reserving for it, so the bar covered the lower part of the board and
