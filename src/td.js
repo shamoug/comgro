@@ -150,6 +150,73 @@
     community: "frayed local trust", foresight: "sudden-onset hazards",
   };
 
+  // ---- WAVE THEMES -------------------------------------------------------
+  // Every wave carries a unique name matched to the crisis leading it, so a
+  // flood posting sends "The Rising Water" and "Floodtide", a conflict posting
+  // sends "The Closed Road" and "Blockade". A crisis tint sweeps the board when
+  // each wave lands, a briefing card previews what is coming, and the name and
+  // theme are read aloud. Names are drawn without repeats within a game.
+  const TAG_COLOR = {
+    flood: "#1f9fd6", drought: "#c98a2b", storm: "#2f6bff", climate: "#e0642f", health: "#11aecb",
+    displacement: "#7c4dff", access: "#8a6d3b", supply: "#ef9f25", governance: "#5a6b7a",
+    funding: "#2f9e54", info: "#e8439b", data: "#3f7bd8", digital: "#16a99a",
+    community: "#d98a2b", youth: "#e8439b", behaviour: "#7c4dff", foresight: "#16a99a",
+  };
+  const WAVE_NAMES = {
+    flood:        ["First Rains", "The Rising Water", "Blackwater", "The Breaking Bank", "Floodtide", "The Drowned Fields", "Highwater"],
+    drought:      ["The Long Dry", "Cracked Earth", "The Failing Wells", "Dustfall", "The Withering", "Emberground", "The Last Harvest"],
+    storm:        ["Gathering Wind", "The First Gust", "Landfall", "The Eyewall", "Stormsurge", "The Howling", "Broken Sky"],
+    climate:      ["The Shifting Season", "Off the Charts", "The Long Heat", "Unseasonal", "The New Normal", "Tipping Point", "Fever Sky"],
+    health:       ["First Cases", "The Outbreak", "Contagion", "The Fever Line", "Spillover", "Ward Overflow", "The Second Wave"],
+    displacement: ["The First Column", "Exodus", "The Long Walk", "Camps Rising", "Nowhere Left", "The Moving Ground", "The Crowded Road"],
+    access:       ["The Closed Road", "Checkpoint", "The Cut Route", "Blockade", "The Last Convoy", "Roads Denied", "The Locked Gate"],
+    supply:       ["The Empty Depot", "Broken Pipeline", "The Last Stockpile", "Runout", "The Dry Warehouse", "Cut Lines", "The Thin Reserve"],
+    governance:   ["The Widening Cracks", "Order Frays", "The Vacuum", "Rule Thins", "The Frayed State", "Paper Walls", "The Slipping Grip"],
+    funding:      ["The Stalled Appeal", "Coffers Low", "The Funding Cliff", "Pledges Withheld", "The Lean Budget", "Donors Retreat", "The Empty Tin"],
+    info:         ["The First Rumour", "Whisper Campaign", "The Viral Lie", "Panic Spreads", "The Rumour Tide", "Signal and Noise", "The Loud Silence"],
+    data:         ["Flying Blind", "The Data Gap", "Uncounted", "The Blind Spot", "Numbers Fail", "Off the Map", "The Dark Figure"],
+    digital:      ["The Signal Drops", "Blackout", "The Dark Network", "Offline", "The Broken Mast", "Dead Air", "The Last Bar"],
+    community:    ["Trust Frays", "The Divided Street", "Old Grievances", "The Fault Line", "Neighbours Apart", "The Broken Bond", "Frayed Threads"],
+    youth:        ["The Restless Generation", "No Work, No Wait", "The Youth Surge", "Impatience Rising", "The Idle Thousands", "Streets Astir", "The Waiting Young"],
+    behaviour:    ["Old Habits", "The Hard Sell", "Resistance", "The Refusal", "Changing Minds", "The Slow Turn", "Set Ways"],
+    foresight:    ["The Unseen Shock", "No Warning", "Out of the Blue", "Sudden Onset", "Blindside", "The Fast Hazard", "First Tremor"],
+  };
+  const TAG_NOUN = {
+    flood: "Flood", drought: "Drought", storm: "Storm", climate: "Heat", health: "Outbreak",
+    displacement: "Exodus", access: "Blockade", supply: "Shortage", governance: "Collapse",
+    funding: "Shortfall", info: "Rumour", data: "Blindspot", digital: "Blackout",
+    community: "Rift", youth: "Uprising", behaviour: "Refusal", foresight: "Shock",
+  };
+  const WAVE_MAJOR = ["The Great {N}", "{N} Unleashed", "The {N} Reckoning", "Peak {N}", "The Breaking {N}", "The {N} That Breaks"];
+  const WAVE_FALLBACK = ["The Gathering", "Second Front", "The Long Night", "Hard Ground", "The Reckoning", "Last Light", "The Breaking Point", "No Quarter"];
+  const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+
+  // pick a themed name for a wave that has not been used yet this game
+  function pickWaveName(lead, present, boss, used) {
+    const pool = [];
+    if (boss) {
+      const nouns = [lead].concat(present.filter((t) => t !== lead));
+      nouns.forEach((t) => { const n = TAG_NOUN[t]; if (n) WAVE_MAJOR.forEach((tpl) => pool.push(tpl.replace("{N}", n))); });
+    } else {
+      (WAVE_NAMES[lead] || []).forEach((n) => pool.push(n));
+      present.forEach((t) => { if (t !== lead) (WAVE_NAMES[t] || []).forEach((n) => pool.push(n)); });
+    }
+    WAVE_FALLBACK.forEach((n) => pool.push(n));
+    for (const n of pool) if (!used.has(n)) { used.add(n); return n; }
+    let base = pool[0] || "The Next Wave", i = 2, name = base;
+    while (used.has(name)) { name = base + " " + (ROMAN[i] || i); i++; }
+    used.add(name); return name;
+  }
+  // one spoken/printed sentence describing what a wave will throw at the team
+  function waveThemeText(wave) {
+    const lw = TAG_WORD[wave.lead] || "crises";
+    const sw = (wave.second && wave.second !== wave.lead) ? TAG_WORD[wave.second] : null;
+    const load = wave.boss
+      ? "A single major crisis leads it, slow but punishing."
+      : "Expect about " + wave.count + " crises down the roads.";
+    return "This wave runs on " + lw + (sw ? " and " + sw : "") + ". " + load;
+  }
+
   let CARDS_BY_TAG = null;
   function indexCards() {
     if (CARDS_BY_TAG) return;
@@ -174,15 +241,49 @@
     { label: "market town", icon: "🏙️", lo: 12000, hi: 95000 },
     { label: "city", icon: "🌆", lo: 130000, hi: 1400000 },
   ];
-  const HIST = [
-    "It grew up around a river crossing and has weathered {hazard} more than once.",
-    "Half its families arrived in the last decade, pushed from their homes by {hazard} further inland.",
-    "Its clinic and school serve a dozen smaller settlements scattered around it.",
-    "Once a quiet stop on the trade road, it now anchors the whole district.",
-    "Elders still tell of the year {hazard} nearly emptied the place, and of the return that followed.",
-    "The market here sets prices for the region, so when it closes the hunger spreads fast.",
-    "A young population, restless and connected, keeps the place looking forward.",
-    "It sits at the end of the line: when the road is cut, help arrives last.",
+  // A community's story is built in three beats: how it began, how its people
+  // live now, and what is at stake if the line breaks. Each is drawn fresh and
+  // woven with the posting's own hazard, so every place reads as its own town.
+  const C_ORIGIN = [
+    "It grew up around a river crossing that traders have used for longer than anyone can name.",
+    "Founded by families who came for water and stayed for the soil, it has outlasted every government since.",
+    "Half its households arrived within the last decade, pushed from homes further inland by {hazard}.",
+    "It began as a single mission clinic and a well, and swelled into a town once the roads reached it.",
+    "Once a seasonal herders' camp, it hardened year by year into a permanent settlement.",
+    "Old maps still mark it as a fort; the walls are long gone, but the market they once guarded remains.",
+    "It was three quiet hamlets until a hard decade drew them together behind one shared perimeter.",
+    "A railhead raised it in a single generation, and the trains still set the rhythm of its days.",
+  ];
+  const C_LIFE = [
+    "Its market sets the prices the whole district lives by, so a slow day here is felt for miles around.",
+    "A clinic and a secondary school draw people from a dozen smaller settlements scattered nearby.",
+    "The young outnumber the old, restless and online, forever pulling the place toward whatever comes next.",
+    "Fishing boats and cargo dhows still tie up along its front, though the catch thins with every season.",
+    "Its council of elders has settled disputes over land and water for longer than the state has existed.",
+    "Weavers, welders and phone-repair stalls crowd its lanes, where almost everything is mended rather than replaced.",
+    "Three faiths share its calendar of festivals, and the whole town turns out for each in turn.",
+    "Terraced fields and grain stores ring its edge, the harvest shared out by rules older than living memory.",
+  ];
+  const C_LANDMARK = [
+    "the old grain tower on the square", "a blue-domed clinic", "the stone bridge over the river",
+    "the great covered well", "the arched market arcade", "a hilltop shrine", "the long sea wall", "a lone radio mast",
+  ];
+  // The hazard woven into a community's story must read as something that could
+  // drive people from their homes, so it is drawn from physical shocks only
+  // (a non-physical tag like "patchy connectivity" would not fit the sentence).
+  const C_HAZARD = {
+    flood: "flooding", drought: "drought", storm: "the cyclones", climate: "a shifting climate",
+    health: "disease", access: "the fighting that closed the roads", supply: "hunger",
+    displacement: "the upheaval further inland",
+  };
+  const C_STAKES = [
+    "It sits at the very end of the line: when the road is cut, help reaches it last, if at all.",
+    "Elders still speak of the year {hazard} nearly emptied the place, and of the slow return that followed.",
+    "Everyone here keeps a plan for the next bad season, and no one is sure it will be enough.",
+    "One good harvest from steady and one shock from ruin, it lives closer to the edge than it looks.",
+    "What befalls it ripples outward, for the smaller settlements around take their cue from its fate.",
+    "If it falls, the families sheltering here have nowhere further to run.",
+    "Its people have rebuilt before, and say quietly that they would rather not have to again.",
   ];
 
   function fmtPop(n) {
@@ -204,9 +305,14 @@
     taken.push(name);
     const pop = Math.round(randInt(type.lo, type.hi) / 100) * 100;
     const tags = (theatre.tags || []);
-    const hz = tags.length ? (TAG_WORD[rand(tags)] || "hard seasons") : "hard seasons";
-    const hist = rand(HIST).replace("{hazard}", hz);
-    return { icon: type.icon, name, typeLabel: type.label, pop, hist };
+    const phys = tags.filter((t) => C_HAZARD[t]);
+    const hz = phys.length ? C_HAZARD[rand(phys)] : "hard seasons";
+    const origin = rand(C_ORIGIN).replace("{hazard}", hz);
+    const life = rand(C_LIFE);
+    const landmark = rand(C_LANDMARK);
+    const stakes = rand(C_STAKES).replace("{hazard}", hz);
+    const hist = `${origin} ${life} Its people gather at ${landmark}. ${stakes}`;
+    return { icon: type.icon, name, typeLabel: type.label, pop, hist, landmark };
   }
   function genSource(theatre) {
     const tags = (theatre.tags && theatre.tags.length) ? theatre.tags : ["health"];
@@ -231,7 +337,7 @@
     map: null,
     enemies: [], towers: [], shots: [], floats: [],
     selectedType: null, selectedTower: null, hoverCell: null, offered: [],
-    phase: "prep", spawnQueue: [], spawnTimer: 0,
+    phase: "prep", spawnQueue: [], spawnTimer: 0, waveFx: null,
     speed: 1, paused: false, frozen: false,
     running: false, raf: 0, lastT: 0, time: 0,
     killed: 0, leaked: 0,
@@ -404,6 +510,7 @@
     const base = (theatre.tags && theatre.tags.length) ? theatre.tags.slice() : ["health", "flood", "displacement"];
     const general = ["health", "displacement", "supply", "funding", "access", "governance", "info"];
     const waves = [];
+    const used = new Set();
     for (let w = 1; w <= diff.waves; w++) {
       const boss = w % 4 === 0;
       const mix = [];
@@ -412,7 +519,14 @@
       const count = boss ? 1 : Math.min(30, 5 + w * 2);
       const hp = Math.round((14 + w * w * 1.35 + w * 9) * diff.hpMul);
       const interval = Math.max(0.32, 1.05 - w * 0.05);
-      waves.push({ n: w, boss, mix, count, hp, interval });
+      // the crisis leading the wave is the one that appears most in its mix, so
+      // the wave's name and tint match what actually marches down the roads.
+      const freq = {}; mix.forEach((t) => { freq[t] = (freq[t] || 0) + 1; });
+      const present = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
+      const lead = present[0];
+      const second = present.find((t) => t !== lead) || null;
+      const name = pickWaveName(lead, present, boss, used);
+      waves.push({ n: w, boss, mix, count, hp, interval, name, lead, second });
     }
     return waves;
   }
@@ -432,7 +546,7 @@
     S.enemies = []; S.towers = []; S.shots = []; S.floats = [];
     S.selectedType = null; S.selectedTower = null; S.hoverCell = null;
     S.offered = computeOffered(theatre);
-    S.phase = "prep"; S.spawnQueue = []; S.spawnTimer = 0;
+    S.phase = "prep"; S.spawnQueue = []; S.spawnTimer = 0; S.waveFx = null;
     S.speed = 1; S.paused = false; S.frozen = false; S.time = 0;
     S.killed = 0; S.leaked = 0;
     if (S.settings.music && CG.Audio) CG.Audio.start();
@@ -680,9 +794,12 @@
     const ctrl = el("div", "td-wavectrl");
     if (S.phase === "prep" && S.waveNo < S.diff.waves) {
       const nextW = S.waves[S.waveNo];
+      ctrl.appendChild(el("div", "td-hint", (nextW && nextW.boss ? "⚠ Major crisis · " : "Next ▸ ") + (nextW ? esc(nextW.name) : "")));
+      const brief = el("button", "btn btn-ghost sm", "ⓘ Briefing");
+      brief.onclick = () => { CG.Audio && CG.Audio.sfx.click(); wavePreviewCard(S.waveNo); };
       const btn = el("button", "btn btn-roll", `Send wave ${S.waveNo + 1} ▸`);
       btn.onclick = () => startWave();
-      ctrl.appendChild(el("div", "td-hint", nextW && nextW.boss ? "⚠ A major crisis leads this wave" : "Place partners, then send the wave"));
+      ctrl.appendChild(brief);
       ctrl.appendChild(btn);
     } else if (S.phase === "wave") {
       ctrl.appendChild(el("div", "td-hint", "Wave in progress. Hold the line."));
@@ -716,8 +833,16 @@
     }
     S.spawnTimer = 0; S.curWave = wave;
     updateHud(); renderBar();
+    // board effect: a named banner sweeps the field, a crisis tint pulses in,
+    // and the source bursts as the wave forms and starts down the roads.
+    S.waveFx = { t: 0, dur: 2.6, name: wave.name, lead: wave.lead, boss: wave.boss, color: TAG_COLOR[wave.lead] || "#b23b34" };
+    const src = S.map.source;
+    explosion(cxOf(src.c), cyOf(src.r), true);
+    if (wave.boss) explosion(cxOf(src.c), cyOf(src.r), true);
     CG.Audio && (wave.boss ? CG.Audio.sfx.snake() : CG.Audio.sfx.note());
-    toast(wave.boss ? "A major crisis is bearing down" : `Wave ${S.waveNo} incoming`, wave.boss ? "bad" : "");
+    toast(`${wave.boss ? "⚠ Major crisis · " : ""}Wave ${S.waveNo}: ${wave.name}`, wave.boss ? "bad" : "");
+    // read the wave's name and theme aloud as it lands
+    CG.Narrate && CG.Narrate.auto(`Wave ${S.waveNo}. ${wave.name}. ${waveThemeText(wave)}`);
   }
   function spawnOne(spec) {
     const card = cardFor(spec.tag);
@@ -735,7 +860,9 @@
     updateHud();
     if (S.waveNo >= S.diff.waves) return win();
     renderBar();
-    if (S.waveNo % 2 === 0 || (S.curWave && S.curWave.boss)) betweenCard();
+    // brief the team on the wave that is coming next (S.waveNo is the count of
+    // waves held, which is the 0-based index of the next wave to send)
+    wavePreviewCard(S.waveNo);
   }
 
   // =======================================================================
@@ -748,6 +875,7 @@
       let dt = (now - S.lastT) / 1000; S.lastT = now;
       dt = Math.min(dt, 0.05);
       if (!S.paused && !S.frozen) { for (let i = 0; i < S.speed; i++) update(dt); }
+      if (S.waveFx && !S.paused) { S.waveFx.t += dt; if (S.waveFx.t > S.waveFx.dur) S.waveFx = null; }
       draw();
       S.raf = requestAnimationFrame(frame);
     };
@@ -954,6 +1082,37 @@
     drawEnemies();
     drawShots();
     drawFloats();
+    drawWaveFx();
+  }
+  // the wave-change effect: a crisis-tinted vignette pulses in from the edges
+  // and a named banner sweeps across the board, then both fade.
+  function drawWaveFx() {
+    const fx = S.waveFx; if (!fx) return;
+    const w = cv.width / dpr, h = cv.height / dpr;
+    const p = clamp(fx.t / fx.dur, 0, 1);
+    let a = p < 0.16 ? p / 0.16 : (p > 0.6 ? clamp((1 - p) / 0.4, 0, 1) : 1);
+    // crisis tint creeping in from the board edges
+    const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.18, w / 2, h / 2, Math.max(w, h) * 0.72);
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, hexA(fx.color, 0.24 * a));
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
+    // the banner
+    const bandH = Math.max(48, Math.min(96, h * 0.14));
+    const cy = oy + boardH * 0.42;
+    const slide = 1 - Math.pow(1 - clamp(p / 0.5, 0, 1), 3);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = hexA(fx.color, 0.92); ctx.fillRect(0, cy - bandH / 2, w, bandH);
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.fillRect(0, cy - bandH / 2, w, 2); ctx.fillRect(0, cy + bandH / 2 - 2, w, 2);
+    const sx = -0.3 * w + slide * 1.35 * w;
+    const sh = ctx.createLinearGradient(sx - 90, 0, sx + 90, 0);
+    sh.addColorStop(0, "rgba(255,255,255,0)"); sh.addColorStop(0.5, "rgba(255,255,255,0.35)"); sh.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = sh; ctx.fillRect(0, cy - bandH / 2, w, bandH);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "800 12px Inter, sans-serif";
+    ctx.fillText((fx.boss ? "MAJOR CRISIS · " : "") + "WAVE " + S.waveNo, w / 2, cy - bandH * 0.24);
+    ctx.fillStyle = "#fff"; ctx.font = "800 " + Math.round(bandH * 0.36) + "px Inter, sans-serif";
+    ctx.fillText(fx.name, w / 2, cy + bandH * 0.12);
+    ctx.restore();
   }
   function drawGround() {
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -1166,7 +1325,7 @@
   // =======================================================================
   // CARDS + TOASTS
   // =======================================================================
-  function openCard(kind, band, icon, title, sub, body, factLabel, factBody, spoken, freeze) {
+  function openCard(kind, band, icon, title, sub, body, factLabel, factBody, spoken, freeze, onClose, goLabel) {
     if (freeze) S.frozen = true;
     const over = el("div", "overlay-card");
     const c = el("div", `event-card ${kind}`);
@@ -1180,8 +1339,8 @@
     const actions = el("div", "ec-actions");
     const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
     speak.onclick = () => CG.Narrate && CG.Narrate.speak(spoken);
-    const go = el("button", "btn btn-primary", "Back to the line ▸");
-    const done = () => { CG.Narrate && CG.Narrate.stop(); if (freeze) S.frozen = false; over.classList.remove("show"); setTimeout(() => over.remove(), 250); };
+    const go = el("button", "btn btn-primary", goLabel || "Back to the line ▸");
+    const done = () => { CG.Narrate && CG.Narrate.stop(); if (freeze) S.frozen = false; over.classList.remove("show"); setTimeout(() => over.remove(), 250); if (onClose) onClose(); };
     go.onclick = done;
     actions.appendChild(speak); actions.appendChild(go);
     c.appendChild(actions); over.appendChild(c); app().appendChild(over);
@@ -1198,8 +1357,36 @@
     openCard("note", "YOUR POSTING", S.theatre.icon, esc(S.theatre.name),
       (kind ? `${kind.icon} ${kind.label} · ${nc} communit${nc > 1 ? "ies" : "y"}` : ""),
       esc(story), "How to play",
-      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads; every partner has a running cost, so keep a Pooled Fund nearby to pay it. Sectors also wear down as they work, losing a mark over time and vanishing if it hits zero, so reinforce (upgrade) them or rebuild. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
-      `Your posting. ${S.theatre.name}. ${story}`, false);
+      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads; every partner has a running cost, so keep a Pooled Fund nearby to pay it. Sectors also wear down as they work, losing a mark over time and vanishing if it hits zero, so reinforce (upgrade) them or rebuild. Each wave is named for the crisis leading it and previewed in a briefing before it comes. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
+      `Your posting. ${S.theatre.name}. ${story}`, false, () => wavePreviewCard(0));
+  }
+  // A briefing shown before each wave: names the wave, the crisis leading it,
+  // what to expect, and the sector best suited to answer it. Read aloud on open.
+  function counterSectorFor(lead) {
+    for (const k of S.offered) if ((BUILDINGS[k].bonus || []).indexOf(lead) >= 0) return BUILDINGS[k];
+    for (const k of S.offered) if ((SECTOR_FOR[k] || []).indexOf(lead) >= 0) return BUILDINGS[k];
+    return null;
+  }
+  function wavePreviewCard(idx) {
+    const wave = S.waves[idx];
+    if (!wave) return;
+    const boss = wave.boss;
+    const icon = TAG_EMOJI[wave.lead] || S.map.source.icon || "⚠️";
+    const lw = TAG_WORD[wave.lead] || "crises";
+    const sw = (wave.second && wave.second !== wave.lead) ? TAG_WORD[wave.second] : null;
+    const held = idx > 0 ? `Wave ${idx} held. ` : "";
+    const band = (boss ? "MAJOR CRISIS ▸ " : "NEXT ▸ ") + `WAVE ${wave.n} OF ${S.diff.waves}`;
+    const sub = cap(lw) + (sw ? " · " + sw : "");
+    const sec = counterSectorFor(wave.lead);
+    const hint = sec ? `${sec.icon} ${sec.name} is your strongest answer here.` : "Spread your sectors so every road is covered.";
+    const load = boss
+      ? "A single major crisis leads it: slow, but it soaks up fire and breaks the line if it lands."
+      : `About ${wave.count} crises will march the roads.`;
+    const body = `${esc(held)}The next wave, <b>${esc(wave.name)}</b>, runs on ${esc(lw)}${sw ? " and " + esc(sw) : ""}. ${load} ${esc(hint)}`;
+    const fc = cardFor(wave.lead);
+    const fact = fc && fc.fact ? esc(fc.fact) : null;
+    const spoken = `${held}Next wave. ${wave.name}. ${waveThemeText(wave)} ${sec ? sec.name + " is your strongest answer here." : ""}`;
+    openCard(boss ? "snake" : "note", band, icon, esc(wave.name), sub, body, fact ? "Field note" : null, fact, spoken, false, null, "Ready the line ▸");
   }
   function showSourceCard() {
     const src = S.map.source;
@@ -1210,7 +1397,7 @@
     openCard("trophy", "A COMMUNITY YOU PROTECT", cm.icon, esc(cm.name),
       `${cap(cm.typeLabel)} · about ${fmtPop(cm.pop)} people`,
       esc(cm.hist), "Why it matters",
-      "Every crisis that reaches it costs the whole response. This is what the line is for.",
+      "Not one crisis may reach it. A single breach here loses the mandate for the whole response, so this is what the line is for.",
       `${cm.name}. A ${cm.typeLabel} of about ${fmtPop(cm.pop)} people. ${cm.hist}`, true);
   }
   function showEnemyCard(e) {
@@ -1218,25 +1405,6 @@
     openCard("snake", "A CRISIS ON THE ROAD", card.icon, esc(card.title),
       `${e.boss ? "Major crisis" : "Crisis"} · ${esc(e.tag)}`,
       esc(card.why), "Side fact", esc(card.fact), `${card.title}. ${card.why}`, true);
-  }
-  function betweenCard() {
-    const wave = S.curWave;
-    const card = cardFor(wave && wave.mix ? rand(wave.mix) : "any");
-    const over = el("div", "overlay-card");
-    const c = el("div", "event-card snake");
-    c.innerHTML =
-      `<div class="ec-band">WAVE ${S.waveNo} HELD</div><div class="ec-icon">${card.icon}</div>` +
-      `<div class="ec-title">${esc(card.title)}</div><div class="ec-why">${esc(card.why)}</div>` +
-      `<div class="ec-fact"><span>Side fact</span>${esc(card.fact)}</div>`;
-    const actions = el("div", "ec-actions");
-    const speak = el("button", "btn btn-ghost", "🔊 Read aloud");
-    speak.onclick = () => CG.Narrate && CG.Narrate.speak(`${card.title}. ${card.why} ${card.fact}`);
-    const go = el("button", "btn btn-primary", "Ready the next wave ▸");
-    go.onclick = () => { CG.Narrate && CG.Narrate.stop(); over.classList.remove("show"); setTimeout(() => over.remove(), 250); };
-    actions.appendChild(speak); actions.appendChild(go);
-    c.appendChild(actions); over.appendChild(c); app().appendChild(over);
-    requestAnimationFrame(() => over.classList.add("show"));
-    CG.Narrate && CG.Narrate.auto(`Wave ${S.waveNo} held. ${card.title}. ${card.fact}`);
   }
   function win() {
     S.phase = "over";
