@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-06  PUBLISH SCRIPT HARDENED. This uploader now fixes, on every run and
+REM              before staging, the two things that had been silently blocking uploads:
+REM              (1) it sets "windows.appendAtomically false" so Git can write reliably
+REM              from inside a OneDrive-synced folder, and (2) it sets a commit name and
+REM              email if none is configured yet, so "git commit" can no longer fail with
+REM              "author identity unknown" and leave changes staged but never uploaded.
+REM              The only step that can still need you is the one-time GitHub login window
+REM              on the first push (complete it once and Windows remembers it).
 REM  2026-07-06  HOLD THE LINE v10: NAMED WAVES, BRIEFINGS, BOARD EFFECT, RICHER
 REM              COMMUNITIES. (1) Every wave now carries a UNIQUE name matched to the
 REM              crisis leading it, drawn from the posting's own hazards: a flood delta
@@ -615,6 +623,15 @@ git remote get-url origin >nul 2>nul
 if errorlevel 1 (
   git remote add origin https://github.com/shamoug/comgro.git
 )
+
+REM --- This folder is inside OneDrive, which can break Git's log writes.
+REM     This one setting makes commits reliable from a synced folder. ---
+git config windows.appendAtomically false >nul 2>nul
+
+REM --- Make sure Git knows who is committing (first run only). Without a
+REM     name and email set, "git commit" fails and nothing gets uploaded. ---
+git config user.email >nul 2>nul || git config user.email "shamoug@gmail.com"
+git config user.name  >nul 2>nul || git config user.name  "shamoug"
 
 REM --- Stage everything (the entire game: all files in this folder) ---
 git add -A
