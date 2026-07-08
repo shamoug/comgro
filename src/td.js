@@ -127,6 +127,10 @@
   // and resets its clock, so you keep them up or rebuild when they go.
   const DECAY_SECONDS = 26;
 
+  // How many road squares out from the crisis source form the no-build red zone
+  // (the crisis "sanctuary"). Both sides are blocked, so ~2x this many blocks.
+  const SANCTUARY_DEPTH = 5;
+
   const TAG_SPEED = {
     health: 1.5, info: 1.7, data: 1.6, displacement: 1.3, access: 1.2,
     flood: 1.1, storm: 1.45, drought: 1.0, climate: 1.15, supply: 1.2,
@@ -405,10 +409,24 @@
     const source = Object.assign({ c: sI.ext[0], r: sI.ext[1], edge: sourceEdge }, genSource(S.theatre));
     const pathSet = new Set();
     paths.forEach((p) => p.forEach(([c, r]) => pathSet.add(c + "," + r)));
-    return { source, communities, paths, pathSet, nComm, hub };
+
+    // RED ZONE (the crisis "sanctuary"): the crises get a protected corridor as
+    // they leave the source, where no defence may be built. It is the cells to
+    // either side of the first SANCTUARY_DEPTH road squares of the trunk, so a
+    // straight run gives ~10 no-build blocks (five on each side). Crises spawn
+    // and pick up speed here before the team can engage them.
+    const redZone = new Set();
+    const trunkInBoard = trunk.filter(([c, r]) => c >= 0 && c < COLS && r >= 0 && r < ROWS);
+    trunkInBoard.slice(0, SANCTUARY_DEPTH).forEach(([c, r]) => {
+      [[c - 1, r], [c + 1, r], [c, r - 1], [c, r + 1]].forEach(([nc, nr]) => {
+        if (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS && !pathSet.has(nc + "," + nr)) redZone.add(nc + "," + nr);
+      });
+    });
+    return { source, communities, paths, pathSet, redZone, nComm, hub };
   }
 
-  const buildable = (c, r) => c >= 0 && c < COLS && r >= 0 && r < ROWS && !S.map.pathSet.has(c + "," + r);
+  const inRedZone = (c, r) => S.map.redZone && S.map.redZone.has(c + "," + r);
+  const buildable = (c, r) => c >= 0 && c < COLS && r >= 0 && r < ROWS && !S.map.pathSet.has(c + "," + r) && !inRedZone(c, r);
   function towerAt(c, r) { return S.towers.find((t) => t.c === c && t.r === r) || null; }
 
   // =======================================================================
@@ -667,6 +685,7 @@
     const existing = towerAt(c, r);
     if (existing) { S.selectedTower = existing; S.selectedType = null; renderBar(); return; }
     if (S.selectedType && buildable(c, r)) return placeTower(c, r);
+    if (S.selectedType && inRedZone(c, r)) { flash("No defences in the crisis red zone"); CG.Audio && CG.Audio.sfx.wah(); return; }
     S.selectedTower = null; renderBar();
   }
   function enemyAt(px, py) {
@@ -1118,8 +1137,16 @@
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       if (S.map.pathSet.has(c + "," + r)) continue;
       const x = ox + c * cell, y = oy + r * cell;
-      ctx.fillStyle = ((c + r) % 2 === 0) ? "rgba(120,170,120,0.10)" : "rgba(120,170,120,0.05)";
-      ctx.fillRect(x, y, cell, cell);
+      if (inRedZone(c, r)) {
+        // the crisis red zone: no defences may be built here
+        ctx.fillStyle = ((c + r) % 2 === 0) ? "rgba(229,86,75,0.20)" : "rgba(229,86,75,0.13)";
+        ctx.fillRect(x, y, cell, cell);
+        ctx.strokeStyle = "rgba(229,86,75,0.45)"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+        ctx.strokeRect(x + 2, y + 2, cell - 4, cell - 4); ctx.setLineDash([]);
+      } else {
+        ctx.fillStyle = ((c + r) % 2 === 0) ? "rgba(120,170,120,0.10)" : "rgba(120,170,120,0.05)";
+        ctx.fillRect(x, y, cell, cell);
+      }
     }
     ctx.strokeStyle = "rgba(40,80,130,0.055)"; ctx.lineWidth = 1;
     for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(ox + c * cell, oy); ctx.lineTo(ox + c * cell, oy + boardH); ctx.stroke(); }
@@ -1357,7 +1384,7 @@
     openCard("note", "YOUR POSTING", S.theatre.icon, esc(S.theatre.name),
       (kind ? `${kind.icon} ${kind.label} · ${nc} communit${nc > 1 ? "ies" : "y"}` : ""),
       esc(story), "How to play",
-      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads; every partner has a running cost, so keep a Pooled Fund nearby to pay it. Sectors also wear down as they work, losing a mark over time and vanishing if it hits zero, so reinforce (upgrade) them or rebuild. Each wave is named for the crisis leading it and previewed in a briefing before it comes. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
+      `${commLine} This posting fields the sectors its crises call for: ${sectorNames}. Spend Funding to place them along the roads, but not in the red zone around the crisis source, where the crises get a protected head start. Every partner has a running cost, so keep a Pooled Fund nearby to pay it. Sectors also wear down as they work, losing a mark over time and vanishing if it hits zero, so reinforce (upgrade) them or rebuild. Each wave is named for the crisis leading it and previewed in a briefing before it comes. Tap the crisis source, any community, or any crisis to learn about it. Hold the line through all ${S.diff.waves} waves to deliver the mandate.`,
       `Your posting. ${S.theatre.name}. ${story}`, false, () => wavePreviewCard(0));
   }
   // A briefing shown before each wave: names the wave, the crisis leading it,

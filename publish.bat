@@ -8,6 +8,15 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-07-08  HOLD THE LINE (td.js v11): CRISIS RED ZONE (NO-BUILD SANCTUARY). The
+REM              crises now get a protected corridor as they leave the source: the cells to
+REM              either side of the first five road squares out from the crisis source are a
+REM              red zone where no defence may be placed (about ten blocks, five per side).
+REM              They are drawn with a red tint and dashed border, buildable() rejects them,
+REM              tapping one with a sector selected flashes "No defences in the crisis red
+REM              zone", and the intro explains it. Tunable via SANCTUARY_DEPTH. Verified:
+REM              exactly ten cells blocked beside the source, all non-buildable, and the red
+REM              tint renders (confirmed by canvas pixel sampling).
 REM  2026-07-06  PUBLISH SCRIPT HARDENED. This uploader now fixes, on every run and
 REM              before staging, the two things that had been silently blocking uploads:
 REM              (1) it sets "windows.appendAtomically false" so Git can write reliably
