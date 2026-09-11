@@ -53,6 +53,7 @@
 
   function onMessage(topic, buf) {
     const payload = buf ? buf.toString() : "";
+    if (topic.indexOf(PREFIX + "/x/") === 0) return onRoomMessage(topic, payload);
     if (topic.indexOf(PREFIX + "/chat/") === 0) {
       if (!payload) return;
       const id = topic.slice((PREFIX + "/chat/").length);
@@ -222,7 +223,128 @@
     })).catch(() => {});
   }
 
+  // ---- rooms for other games ---------------------------------------------
+  // The Long Road keeps the topics above. Any other game asks for its own
+  // namespace with room("<game>"), which lives under
+  //   commonground/v1/x/<ns>/lobby/<id>   retained summary of one open room
+  //   commonground/v1/x/<ns>/game/<id>    retained full state of one room
+  //   commonground/v1/x/<ns>/live/<id>    live, NOT retained (typing, pings,
+  //                                       reactions): gone the moment it lands
+  // so each game's lobby lists only its own rooms, over the same connection.
+  const spaces = {};
+  function space(ns) {
+    if (!spaces[ns]) spaces[ns] = { lobby: {}, games: {}, watch: { id: null, cb: null }, live: { id: null, cb: null }, listed: false };
+    return spaces[ns];
+  }
+  const roomTopic = (ns, kind, id) => PREFIX + "/x/" + ns + "/" + kind + "/" + id;
+
+  function onRoomMessage(topic, payload) {
+    const parts = topic.slice((PREFIX + "/x/").length).split("/");
+    if (parts.length !== 3) return;
+    const sp = spaces[parts[0]];
+    if (!sp) return;
+    const kind = parts[1], id = parts[2];
+    let obj = null;
+    if (payload) { try { obj = JSON.parse(payload); } catch (e) { return; } }
+    if (kind === "lobby") {
+      if (!obj) delete sp.lobby[id]; else sp.lobby[id] = obj;
+    } else if (kind === "game") {
+      if (!obj) delete sp.games[id]; else sp.games[id] = obj;
+      if (sp.watch.id === id && sp.watch.cb) sp.watch.cb(obj);
+    } else if (kind === "live") {
+      if (obj && sp.live.id === id && sp.live.cb) sp.live.cb(obj);
+    }
+  }
+
+  // room(ns, summarize) returns the lobby + state API for one game. summarize
+  // turns a full game state into the small card the lobby shows.
+  function room(ns, summarize) {
+    const sp = space(ns);
+    const sum = (g) => {
+      const s = summarize ? summarize(g) : { id: g.id };
+      s.id = g.id; s.createdAt = g.createdAt; s.lastActive = g.lastActive; s.over = !!g.over;
+      return s;
+    };
+    async function ready() {
+      await connect();
+      if (!sp.listed) { sp.listed = true; client.subscribe(roomTopic(ns, "lobby", "+")); await wait(800); }
+    }
+    let lastSum = 0;
+    return {
+      async list(opts) {
+        await ready();
+        const t = now();
+        Object.keys(sp.lobby).forEach((id) => {
+          const g = sp.lobby[id];
+          if (!g || (t - (g.lastActive || 0)) > IDLE_MS || g.over) {
+            delete sp.lobby[id];
+            if (!(opts && opts.readOnly)) { clearRetained(roomTopic(ns, "lobby", id)); clearRetained(roomTopic(ns, "game", id)); }
+          }
+        });
+        return Object.keys(sp.lobby).map((id) => sp.lobby[id]).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      },
+      async create(game) {
+        await connect();
+        game.id = rid("r"); game.createdAt = now(); game.lastActive = now();
+        sp.games[game.id] = game;
+        await pub(roomTopic(ns, "game", game.id), game);
+        const s = sum(game); sp.lobby[game.id] = s;
+        await pub(roomTopic(ns, "lobby", game.id), s);
+        return game.id;
+      },
+      async get(id) {
+        await connect();
+        client.subscribe(roomTopic(ns, "game", id));
+        const deadline = now() + 4000;
+        while (now() < deadline) { if (sp.games[id]) return sp.games[id]; await wait(150); }
+        return sp.games[id] || null;
+      },
+      async put(game, opts) {
+        await connect();
+        game.lastActive = now();
+        sp.games[game.id] = game;
+        await pub(roomTopic(ns, "game", game.id), game);
+        if ((opts && opts.summary) || now() - lastSum > 12000) {
+          lastSum = now();
+          const s = sum(game); sp.lobby[game.id] = s;
+          await pub(roomTopic(ns, "lobby", game.id), s);
+        }
+      },
+      async drop(id) {
+        await connect();
+        delete sp.lobby[id]; delete sp.games[id];
+        clearRetained(roomTopic(ns, "lobby", id)); clearRetained(roomTopic(ns, "game", id));
+      },
+      watch(id, cb) {
+        sp.watch = { id, cb };
+        connect().then(() => {
+          client.subscribe(roomTopic(ns, "game", id));
+          if (sp.games[id]) cb(sp.games[id]);
+        }).catch(() => {});
+      },
+      unwatch() {
+        const id = sp.watch.id;
+        sp.watch = { id: null, cb: null };
+        if (client && id) { try { client.unsubscribe(roomTopic(ns, "game", id)); } catch (e) {} }
+      },
+      onLive(id, cb) {
+        sp.live = { id, cb };
+        connect().then(() => client.subscribe(roomTopic(ns, "live", id))).catch(() => {});
+      },
+      offLive() {
+        const id = sp.live.id;
+        sp.live = { id: null, cb: null };
+        if (client && id) { try { client.unsubscribe(roomTopic(ns, "live", id)); } catch (e) {} }
+      },
+      sendLive(id, msg) {
+        if (!client || !client.connected) return;
+        try { client.publish(roomTopic(ns, "live", id), JSON.stringify(msg), { retain: false, qos: 0 }); } catch (e) {}
+      },
+    };
+  }
+
   CG.Net = {
+    room,
     clientId,
     IDLE_MS, POLL_MS,
     now,

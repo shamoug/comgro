@@ -8,6 +8,33 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-09-10  NEW GAME: SITUATION REPORT (sitrep.js v1). A third game on the home
+REM              chooser: a Wordle for two field officers, named after the daily
+REM              situation report. HQ sends a coded cable hiding one five-letter word
+REM              from the humanitarian, development or peacebuilding glossary (110
+REM              answers in data/sitrep.js, each with a field scene, a radio clue after
+REM              report 4, a sat-phone clue after report 7, a glossary definition and
+REM              a real fact). One shared board of 5 columns and 10 rows; the officers
+REM              alternate rows (row 1 first officer, row 2 second, and so on). Nothing
+REM              is hidden: each officer watches the other type, letter by letter, and
+REM              every report is open to both. The first to decode the cable wins it,
+REM              with speed points (10 plus one per unused row) as the tie-break; a
+REM              mission is 1, 3 or 5 cables and whoever wins more leads the response.
+REM              Modes: solo vs an AI officer (Junior, Field, Veteran; the AI leans on
+REM              the glossary more as the clues arrive), two on one device, or ONLINE
+REM              ROOMS: open a room and the second seat starts as an AI officer until
+REM              another browser joins and takes it over with its own name, like The
+REM              Long Road. Live typing, reactions and heartbeats ride a non-retained
+REM              channel; a silent player's seat returns to the AI, a silent host is
+REM              replaced. net.js v7 adds CG.Net.room(ns), a namespaced room API on the
+REM              same MQTT broker, so each game lists only its own rooms. Guesses are
+REM              checked against data/words5.js (about 5,400 words built offline from
+REM              the CMU dictionary and WordNet). Flip-and-bell tile reveals, radio
+REM              static for clues, a DECODED stamp, confetti, a mission debrief with a
+REM              shareable emoji summary, a high-contrast palette, a local service
+REM              record, and a phone layout that fits all ten rows and the keyboard.
+REM              audio.js v8 (tile, key, radio sounds), platform.js v14 (third card),
+REM              styles.css v42, new styles/sitrep.css v1.
 REM  2026-07-08  HOLD THE LINE (td.js v11): CRISIS RED ZONE (NO-BUILD SANCTUARY). The
 REM              crises now get a protected corridor as they leave the source: the cells to
 REM              either side of the first five road squares out from the crisis source are a

@@ -230,7 +230,43 @@
     warmTone(277.18, t + 0.68, 1.0, 0.22, 1400, 196.0, 0.55); // C♯4 droops down to G3
   }
 
+  // Situation Report: one tile turning over. A confirmed letter rings a bell that climbs
+  // with each tile along the row; a letter found elsewhere gives a softer
+  // mid-bell; an absent letter is a low wooden tap.
+  function tileTone(kind, i) {
+    ensure(); if (!ctx || muted) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime;
+    const up = [523.25, 587.33, 659.25, 783.99, 880.0][i % 5];
+    if (kind === "g") bell(up, t, 0.9, 0.16, 0.45);
+    else if (kind === "y") bell(up * 0.75, t, 0.6, 0.1, 0.35);
+    else voice(150 + i * 6, t, 0.09, "triangle", 0.1, sfxGain);
+  }
+
+  // Situation Report: a burst of radio static and two call-sign beeps, for a new clue
+  // coming over the net.
+  function radioBurst() {
+    ensure(); if (!ctx || muted) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime;
+    const len = Math.floor(ctx.sampleRate * 0.32);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1800; bp.Q.value = 0.8;
+    const g = ctx.createGain(); g.gain.value = 0.07;
+    src.connect(bp); bp.connect(g); g.connect(sfxGain);
+    src.start(t); src.stop(t + 0.34);
+    voice(1320, t + 0.36, 0.07, "square", 0.05, sfxGain);
+    voice(1760, t + 0.47, 0.09, "square", 0.05, sfxGain);
+  }
+
   Audio.sfx = {
+    key:    () => seq([660 + Math.random() * 60], 0, 0.035, "sine", 0.045),
+    tile:   (kind, i) => tileTone(kind, i || 0),
+    radio:  () => radioBurst(),
+    reject: () => seq([220, 196], 0.07, 0.09, "square", 0.05),
     step:   () => seq([440], 0, 0.05, "sine", 0.08),
     dice:   () => diceRattle(),
     doubles:() => seq([523, 659, 880], 0.06, 0.14, "triangle", 0.2),
