@@ -830,7 +830,14 @@ button { font-family: inherit; cursor: pointer; }
 /* ---- home chooser ----------------------------------------------------- */
 .home-row {
   display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
-  margin-top: 26px; width: 100%; max-width: 760px;
+  margin-top: 26px; width: 100%; max-width: 1140px;
+}
+.home-card.is-new { position: relative; }
+.home-card.is-new::after {
+  content: "NEW"; position: absolute; top: 14px; right: 14px;
+  font: 800 10.5px "Space Grotesk", sans-serif; letter-spacing: .14em; color: #fff;
+  background: linear-gradient(135deg, var(--gold), #d9851a); padding: 4px 8px; border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(239, 159, 37, .35);
 }
 .home-card {
   flex: 1 1 300px; max-width: 360px; cursor: pointer;

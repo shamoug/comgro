@@ -22,8 +22,30 @@ you are posted to.
 - **Surprise cards ❓** are a mystery: a bonus, a jump ahead, a found gem, or a lost turn.
 - **Field notes ★** drop a fun fact as you pass.
 
-It is a single static website. No backend, no build step, no accounts, no
-external media. Drop it on GitHub Pages and it just runs.
+## Situation Report, the word game for two officers
+
+Named after the daily update every humanitarian response lives by.
+Headquarters sends a coded cable: **one five-letter word** from the
+humanitarian, development or peacebuilding glossary (110 of them, from WATER and
+TRUCE to OZONE and GAVEL). Two field officers share **one board of five columns
+and ten rows** and take turns, row by row: row 1 is the first officer's, row 2
+the second's, and so on. Each report turns green (right letter, right place),
+gold (in the word, another place) or slate (not in the cable).
+
+- **Nothing is hidden.** You watch your rival type, letter by letter, and every
+  report on the board is yours to use.
+- **The first officer to decode the cable wins it**, with speed points (10 plus
+  one per unused row) that break a tie. A mission is 1, 3 or 5 cables.
+- **Every cable is a story.** A scene opens it, a radio clue comes over the net
+  after report 4 and a sat-phone clue after report 7; the reveal gives the
+  glossary definition and a real fact from the field.
+- **Play solo** against an AI officer (Junior, Field or Veteran), **two on one
+  device**, or **online**: open a room and the second seat plays as an AI
+  officer until someone joins and takes it over with their own name.
+
+It is a static website. No build step, no accounts, no external media. The only
+backend is optional: online play (The Long Road theatres and Situation Report
+rooms) rides a free public MQTT broker, and everything else works offline.
 
 **Live:** https://shamoug.github.io/comgro/
 
@@ -88,8 +110,14 @@ src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
 src/narrate.js      Warm English narration (Web Speech API).
 src/setup.js        The "build your table" roster screen (Human / AI seats).
 src/game.js         The Long Road: dynamic board, dice, movement, render.
-src/platform.js     The launcher that boots the game.
-styles/styles.css   One self-contained stylesheet (board, dice, cards are CSS/SVG).
+src/td.js           Hold the Line: the tower defence.
+src/sitrep.js       Situation Report: the two-officer word game, its AI and rooms.
+data/sitrep.js      Situation Report content: the words, scenes, clues and facts.
+data/words5.js      The five-letter dictionary Situation Report accepts.
+src/net.js          Online play over a public MQTT broker (lobbies and rooms).
+src/platform.js     The launcher and game chooser.
+styles/styles.css   The shared stylesheet (board, dice, cards are CSS/SVG).
+styles/sitrep.css   Situation Report's board, keyboard and cards.
 ```
 
 **To change the story, edit only `data/content.js`.** Add or rewrite hole cards,

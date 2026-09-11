@@ -1,8 +1,10 @@
 /* =========================================================================
  * COMMON GROUND, platform.js
- * The launcher and game chooser. Common Ground now has two games: The Long Road
+ * The launcher and game chooser. Common Ground has three games: The Long Road
  * (CG.SnakesGame, a cinematic Snakes & Ladders played solo or in a multiplayer
- * Crisis Theatre) and Hold the Line (CG.TowerDefense, a solo tower defence).
+ * Crisis Theatre), Hold the Line (CG.TowerDefense, a solo tower defence) and
+ * Situation Report (CG.SitRep, a two-officer word game, solo, same-device or
+ * online).
  * show() draws the chooser; each game's in-game Quit button calls back here.
  * ========================================================================= */
 (function () {
@@ -14,9 +16,9 @@
     return e;
   }
 
-  // The chooser: two cards, one per game. The Long Road opens into the
-  // multiplayer lobby (name yourself, see the open Crisis Theatres, join one);
-  // Hold the Line opens its own solo title. If a game module is missing, its
+  // The chooser: one card per game. The Long Road opens into the multiplayer
+  // lobby (name yourself, see the open Crisis Theatres, join one); Hold the
+  // Line and Situation Report open their own titles. If a game module is missing, its
   // card is simply hidden so the page still works.
   function show() {
     if (CG.Narrate) CG.Narrate.stop();
@@ -27,9 +29,9 @@
     wrap.appendChild(el("div", "title-glow"));
     wrap.appendChild(el("div", "logo-mark", "◆"));
     wrap.appendChild(el("h1", "title", "Common Ground"));
-    wrap.appendChild(el("p", "subtitle", "Two ways to play"));
+    wrap.appendChild(el("p", "subtitle", "Three ways to play"));
     wrap.appendChild(el("p", "tagline",
-      "A pair of games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
+      "Three games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
 
     const row = el("div", "home-row");
 
@@ -44,6 +46,13 @@
         "A tower defence. Waves of crises march on the community you protect. Place UN partners along the road and hold the line through every wave. Solo.",
         "Enter ▸", () => CG.TowerDefense.show());
       row.appendChild(b);
+    }
+    if (CG.SitRep) {
+      const c = gameCard("📡", "Situation Report",
+        "A word game for two field officers. Watch each other type, use each other's reports, and be the first to decode the five-letter cable from the humanitarian, development and peacebuilding glossary. Solo, same device or online.",
+        "Enter ▸", () => CG.SitRep.show());
+      c.classList.add("is-new");
+      row.appendChild(c);
     }
     wrap.appendChild(row);
     root.appendChild(wrap);
