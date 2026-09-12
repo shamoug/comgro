@@ -1,11 +1,22 @@
 /* =========================================================================
  * COMMON GROUND, platform.js
- * The launcher and game chooser. Common Ground has three games: The Long Road
- * (CG.SnakesGame, a cinematic Snakes & Ladders played solo or in a multiplayer
- * Crisis Theatre), Hold the Line (CG.TowerDefense, a solo tower defence) and
- * Situation Report (CG.SitRep, a two-officer word game, solo, same-device or
- * online).
- * show() draws the chooser; each game's in-game Quit button calls back here.
+ * The launcher, the game chooser and the router. Common Ground has three
+ * games: The Long Road (CG.SnakesGame, a cinematic Snakes & Ladders played
+ * solo or in a multiplayer Crisis Theatre), Hold the Line (CG.TowerDefense, a
+ * solo tower defence) and Situation Report (CG.SitRep, a two-officer word
+ * game, solo, same-device or online).
+ *
+ * Each game has its own address, so a game can be linked, bookmarked and
+ * shared on its own:
+ *   /              the chooser
+ *   /longroad/     The Long Road
+ *   /holdtheline/  Hold the Line
+ *   /sitrep/       Situation Report
+ * Every address serves the same app (see src/boot.js); this file reads the
+ * last path segment and opens the matching game instead of the chooser. A
+ * chooser card navigates to its game's address, and each game's in-game Quit
+ * button calls CG.Platform.show(), which navigates back to the chooser, so
+ * the browser's Back button does the obvious thing throughout.
  * ========================================================================= */
 (function () {
   const CG = (window.CG = window.CG || {});
@@ -16,11 +27,60 @@
     return e;
   }
 
+  // ---- the routes --------------------------------------------------------
+  // available() keeps a missing module from stranding the page on a blank
+  // screen: the address simply falls back to the chooser.
+  const ROUTES = {
+    longroad: {
+      available: () => !!(CG.Lobby || CG.SnakesGame),
+      start: () => (CG.Lobby ? CG.Lobby.show() : CG.SnakesGame.show()),
+    },
+    holdtheline: {
+      available: () => !!CG.TowerDefense,
+      start: () => CG.TowerDefense.show(),
+    },
+    sitrep: {
+      available: () => !!CG.SitRep,
+      start: () => CG.SitRep.show(),
+    },
+  };
+
+  // Which game this address asks for, if any. Works served from a folder
+  // (/sitrep/), opened as a file (sitrep/index.html) and with ?game=sitrep.
+  function routeKey() {
+    const path = location.pathname.replace(/\/index\.html?$/i, "").replace(/\/+$/, "");
+    const seg = decodeURIComponent(path.split("/").pop() || "").toLowerCase();
+    if (ROUTES[seg]) return seg;
+    const q = (/[?&]game=([a-z]+)/i.exec(location.search) || [])[1];
+    return q && ROUTES[q.toLowerCase()] ? q.toLowerCase() : "";
+  }
+  // <base href> on a game page points at the site root, so "./" is the
+  // chooser and "sitrep/" is a game, from any address.
+  const isFile = location.protocol === "file:";
+  const homeUrl = () => new URL(isFile ? "index.html" : "./", document.baseURI).href;
+  const gameUrl = (key) => new URL(key + (isFile ? "/index.html" : "/"), document.baseURI).href;
+  function go(key) {
+    if (routeKey() === key) return ROUTES[key].start();
+    location.href = gameUrl(key);
+  }
+
+  function onReady(fn) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+    else fn();
+  }
+
   // The chooser: one card per game. The Long Road opens into the multiplayer
   // lobby (name yourself, see the open Crisis Theatres, join one); Hold the
   // Line and Situation Report open their own titles. If a game module is missing, its
   // card is simply hidden so the page still works.
+  // The way back from a game. From a game's own address that means going to
+  // the chooser's address; from the chooser it just redraws.
   function show() {
+    if (routeKey()) { location.href = homeUrl(); return; }
+    renderChooser();
+  }
+
+  function renderChooser() {
     if (CG.Narrate) CG.Narrate.stop();
     const root = document.getElementById("app");
     if (!root) return;
@@ -38,19 +98,19 @@
     if (CG.Lobby || CG.SnakesGame) {
       const a = gameCard("◆", "The Long Road",
         "A cinematic race of Ladders and Holes. Roll the dice, ride the lucky breaks, survive the crises, and reach a finished mandate. Solo or multiplayer.",
-        "Enter ▸", () => { if (CG.Lobby) CG.Lobby.show(); else CG.SnakesGame.show(); });
+        "Enter ▸", () => go("longroad"));
       row.appendChild(a);
     }
     if (CG.TowerDefense) {
       const b = gameCard("🛡️", "Hold the Line",
         "A tower defence. Waves of crises march on the community you protect. Place UN partners along the road and hold the line through every wave. Solo.",
-        "Enter ▸", () => CG.TowerDefense.show());
+        "Enter ▸", () => go("holdtheline"));
       row.appendChild(b);
     }
     if (CG.SitRep) {
       const c = gameCard("📡", "Situation Report",
         "A word game for two field officers. Watch each other type, use each other's reports, and be the first to decode the five-letter cable from the humanitarian, development and peacebuilding glossary. Solo, same device or online.",
-        "Enter ▸", () => CG.SitRep.show());
+        "Enter ▸", () => go("sitrep"));
       c.classList.add("is-new");
       row.appendChild(c);
     }
@@ -146,10 +206,12 @@
     });
   }
 
-  CG.Platform = { show };
-  document.addEventListener("DOMContentLoaded", () => {
-    show();
+  CG.Platform = { show, go, routeKey, gameUrl, homeUrl };
+  onReady(() => {
     initBackdropDismiss();
     initPullToRefresh();
+    const key = routeKey();
+    if (key && ROUTES[key].available()) ROUTES[key].start();
+    else renderChooser();
   });
 })();

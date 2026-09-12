@@ -40,14 +40,24 @@ gold (in the word, another place) or slate (not in the cable).
   after report 4 and a sat-phone clue after report 7; the reveal gives the
   glossary definition and a real fact from the field.
 - **Play solo** against an AI officer (Junior, Field or Veteran), **two on one
-  device**, or **online**: open a room and the second seat plays as an AI
-  officer until someone joins and takes it over with their own name.
+  device**, or **online**, which is people only: open a room and it waits, one
+  seat empty, until another officer takes it. Whoever opened the room can close
+  it again, from the room list or from the board.
 
 It is a static website. No build step, no accounts, no external media. The only
 backend is optional: online play (The Long Road theatres and Situation Report
 rooms) rides a free public MQTT broker, and everything else works offline.
 
 **Live:** https://shamoug.github.io/comgro/
+
+Each game has its own address, so you can link straight to one:
+
+| Game | Address |
+| --- | --- |
+| The chooser | https://shamoug.github.io/comgro/ |
+| The Long Road | https://shamoug.github.io/comgro/longroad/ |
+| Hold the Line | https://shamoug.github.io/comgro/holdtheline/ |
+| Situation Report | https://shamoug.github.io/comgro/sitrep/ |
 
 ---
 
@@ -104,7 +114,11 @@ Netlify, an S3 bucket, a USB stick). Relative paths keep it working everywhere.
 ## Project layout
 
 ```
-index.html          Loads the data, the game, then the launcher.
+index.html          The chooser. Loads src/boot.js, nothing else.
+longroad/index.html     The Long Road's own address (a four-line stub).
+holdtheline/index.html  Hold the Line's own address.
+sitrep/index.html       Situation Report's own address.
+src/boot.js         The one list of files the app loads, with their versions.
 data/content.js     ALL game content: decks, cards, theatres, names, story.
 src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
 src/narrate.js      Warm English narration (Web Speech API).
@@ -115,7 +129,7 @@ src/sitrep.js       Situation Report: the two-officer word game, its AI and room
 data/sitrep.js      Situation Report content: the words, scenes, clues and facts.
 data/words5.js      The five-letter dictionary Situation Report accepts.
 src/net.js          Online play over a public MQTT broker (lobbies and rooms).
-src/platform.js     The launcher and game chooser.
+src/platform.js     The launcher, the game chooser and the router.
 styles/styles.css   The shared stylesheet (board, dice, cards are CSS/SVG).
 styles/sitrep.css   Situation Report's board, keyboard and cards.
 ```

@@ -220,6 +220,9 @@ body.sr-hc { --sr-g: #f5793a; --sr-y: #3b9ae1; --sr-x: #6f7c8b; }
 .sr-banner em { font-style: normal; color: var(--gold); font-weight: 700; }
 .sr-banner.good { color: #1e6e3a; font-weight: 800; }
 .sr-banner.bad { color: #b73a30; font-weight: 800; }
+/* an online room still one officer short */
+.sr-banner.wait { color: var(--muted); font-weight: 700; }
+.sr-banner.wait .sr-bdot { animation-duration: 2.2s; opacity: .7; }
 .sr-bdot { width: 9px; height: 9px; border-radius: 50%; background: var(--pc); flex: none; animation: srPulse 1.4s ease-in-out infinite; }
 .sr-react { display: flex; gap: 4px; flex: none; }
 .sr-rb {
