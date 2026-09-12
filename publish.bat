@@ -8,6 +8,31 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-09-12  A PAGE PER GAME, AND SITUATION REPORT ONLINE IS PEOPLE ONLY.
+REM              (1) EVERY GAME HAS ITS OWN ADDRESS, so one game can be linked,
+REM              bookmarked and shared on its own: /longroad/, /holdtheline/ and
+REM              /sitrep/ next to the chooser at /. Each of those is a four-line
+REM              index.html that sets <base href="../"> and loads the new src/boot.js,
+REM              the single list of every file and its ?v= version, so there is still
+REM              only one copy of that list to maintain. platform.js v15 reads the last
+REM              path segment and opens the matching game instead of the chooser; a
+REM              chooser card navigates to its game's address and every in-game Quit
+REM              navigates back, so the browser's Back button works throughout. Old
+REM              links to /index.html still land on the chooser.
+REM              (2) SITUATION REPORT ONLINE HAS NO AI (sitrep.js v2). An online room
+REM              now opens with the second chair EMPTY and simply waits: no briefing,
+REM              no turn, nothing typing for the officer who has not arrived. The board
+REM              says "Room open, waiting for a second officer to take the seat", the
+REM              room list shows a dashed Open seat chip and a "Take the open seat"
+REM              button, and play begins the moment someone takes it. A seat whose
+REM              officer leaves (or goes quiet for 35 seconds) opens again for the next
+REM              one instead of reverting to an AI. (3) ROOMS CAN BE CLOSED: whoever
+REM              opened a room gets "Close the room" on the leave card and "Close room"
+REM              on its card in the list; closing clears it from the broker, so it
+REM              leaves every officer's list at once. A room still closes by itself
+REM              when the last officer walks away. AI officers remain in solo play,
+REM              unchanged. styles.css v43 (room card actions), sitrep.css v2 (the
+REM              waiting banner).
 REM  2026-09-10  NEW GAME: SITUATION REPORT (sitrep.js v1). A third game on the home
 REM              chooser: a Wordle for two field officers, named after the daily
 REM              situation report. HQ sends a coded cable hiding one five-letter word

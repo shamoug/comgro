@@ -22,9 +22,11 @@
  * the response (speed points break a tie).
  *
  * Modes: solo against an AI officer (three levels), two people on one
- * device, or online rooms over the shared MQTT broker. An online room starts
- * with the second seat as AI; anyone can join and take the AI's seat over,
- * forcing their own name onto it, exactly like The Long Road's theatres.
+ * device, or online rooms over the shared MQTT broker. Online is people only,
+ * never an AI: you open a room, it sits in the list with one seat open, and
+ * the cable waits until another officer takes that seat. Whoever opened the
+ * room can close it again, from the list or from the board, and a seat whose
+ * officer walks away (or goes quiet) simply opens for the next one.
  *
  * Content lives in data/sitrep.js (words, scenes, clues, facts) and
  * data/words5.js (the dictionary). Reuses CG.Audio, CG.Narrate, CG.Net,
@@ -158,8 +160,13 @@
   // =======================================================================
   // Whose report is next? The officers simply alternate, row by row, from
   // whoever opens the cable (the opener alternates from cable to cable).
+  // An online room with an empty chair is not a game yet: nobody's turn,
+  // nobody types, and nothing fills in for the officer who has not arrived.
+  const waiting = (g) => !!g && g.players.some((p) => p.vacant);
+
   function turnSeat(g) {
     if (!g || g.phase !== "play" || g.rows.length >= ROWS) return -1;
+    if (waiting(g)) return -1;
     if (!g.rows.length) return g.first;
     return 1 - g.rows[g.rows.length - 1].p;
   }
@@ -250,6 +257,17 @@
       wins: 0, score: 0,
     };
   }
+  // Empty a seat: the name and the face go, the score stays with the room, so
+  // an officer who takes it over inherits the seat exactly as it stood.
+  function vacate(p) {
+    p.vacant = true; p.isAI = false; p.ownerId = null;
+    p.name = "Open seat"; p.icon = "＋";
+    return p;
+  }
+  // The empty chair in a freshly opened room: listed and coloured, owned by
+  // nobody until a player takes it.
+  function vacantPlayer(seat, taken) { return vacate(newPlayer("Open seat", false, null, seat, taken)); }
+
   function aiName(avoid) {
     const names = (CG.AGENT_NAMES && CG.AGENT_NAMES.length) ? CG.AGENT_NAMES : ["Amara", "Diego", "Mei", "Kofi", "Leila"];
     for (let i = 0; i < 30; i++) { const n = rand(names); if (n !== avoid) return n; }
@@ -261,9 +279,13 @@
     const theatre = opts.theatre || rand(CG.THEATRES || [{ name: "The Field", icon: "🌍", tags: [] }]);
     const words = pickWords(opts.desk, theatre, opts.total);
     const p0 = newPlayer(opts.names[0], false, opts.mode === "online" ? myId() : null, 0);
-    const p1 = opts.ai
-      ? newPlayer(aiName(opts.names[0]), true, null, 1, [p0.icon])
-      : newPlayer(opts.names[1], false, null, 1, [p0.icon]);
+    // Online rooms open with the second chair empty: no AI stands in for the
+    // officer who has not arrived yet.
+    const p1 = opts.mode === "online"
+      ? vacantPlayer(1, [p0.icon])
+      : opts.ai
+        ? newPlayer(aiName(opts.names[0]), true, null, 1, [p0.icon])
+        : newPlayer(opts.names[1], false, null, 1, [p0.icon]);
     const t0 = randInt(0, (CG.SITREP_TIMES || ["06:00"]).length - 1);
     return {
       kind: "sitrep", v: 1, id: null,
@@ -392,10 +414,11 @@
     if (!p || p.isAI) return false;
     return S.mode !== "online" || p.ownerId === myId();
   }
+  // AI officers only ever sit at a solo board. Online is people only.
   function controlsAI(seat) {
+    if (S.mode === "online") return false;
     const p = S.g && S.g.players[seat];
-    if (!p || !p.isAI) return false;
-    return S.mode !== "online" || S.g.hostId === myId();
+    return !!p && !!p.isAI;
   }
   function canType() {
     const g = S.g;
@@ -461,7 +484,7 @@
     wrap.appendChild(toggles);
 
     const modes = el("div", "sr-modes");
-    modes.appendChild(modeCard("🌐", "Play online", "Open a room. The second seat starts as an AI officer until another player takes it over.", true,
+    modes.appendChild(modeCard("🌐", "Play online", "Open a room and wait for another officer to arrive, or take the open seat in someone else's. People only, no AI.", true,
       () => (CG.Net && CG.Net.getName && CG.Net.getName()) ? renderRooms() : renderLogin()));
     modes.appendChild(modeCard("🤖", "Solo vs AI", "Face an AI field officer. Pick how seasoned they are.", false, () => renderSetup("solo")));
     modes.appendChild(modeCard("👥", "Two on this device", "Pass and play with a colleague at the same screen.", false, () => renderSetup("hotseat")));
@@ -508,7 +531,7 @@
     wrap.appendChild(el("div", "logo-mark", "📡"));
     wrap.appendChild(el("h1", "title sr-h", mode === "online" ? "Open a room" : "Brief the mission"));
     wrap.appendChild(el("p", "tagline",
-      mode === "online" ? `You take the first seat as <b>${esc(CG.Net.getName())}</b>. The second seat starts as an AI officer; any player can join and take it over.`
+      mode === "online" ? `You take the first seat as <b>${esc(CG.Net.getName())}</b>. The second stays open, and the cable waits, until another officer takes it.`
       : mode === "hotseat" ? "Two officers, one screen. Take turns at the keyboard, row by row."
       : "You against an AI field officer, one shared board, turn by turn."));
 
@@ -530,9 +553,9 @@
     wrap.appendChild(el("p", "pick-label", "Cables in the mission"));
     wrap.appendChild(seg([1, 3, 5], total, (v) => { total = v; }, (v) => v === 1 ? "1 · quick" : v + ""));
 
-    // AI officer
-    if (mode !== "hotseat") {
-      wrap.appendChild(el("p", "pick-label", mode === "online" ? "The AI officer, until someone takes the seat" : "Your rival"));
+    // The AI officer, in solo only: an online room never has one.
+    if (mode === "solo") {
+      wrap.appendChild(el("p", "pick-label", "Your rival"));
       const lvlNote = el("p", "sr-note", LEVELS[level].blurb);
       wrap.appendChild(seg(Object.keys(LEVELS), level, (v) => { level = v; lvlNote.textContent = LEVELS[v].blurb; }, (v) => LEVELS[v].label));
       wrap.appendChild(lvlNote);
@@ -581,7 +604,7 @@
       if (mode === "online") {
         go.disabled = true; go.textContent = "Opening…";
         try {
-          const g = buildGame({ mode: "online", desk, total, level, theatre, names: [CG.Net.getName()], ai: true });
+          const g = buildGame({ mode: "online", desk, total, level, theatre, names: [CG.Net.getName()] });
           await room().create(g);
           enterOnline(g);
         } catch (e) {
@@ -695,11 +718,11 @@
     try {
       const rooms = await room().list({ readOnly: !prune });
       if (!list.isConnected) return;
-      if (!rooms.length) { list.innerHTML = `<div class="lobby-empty">No open rooms yet. <b>Open a room</b> and play the AI until someone joins you.</div>`; return; }
+      if (!rooms.length) { list.innerHTML = `<div class="lobby-empty">No open rooms yet. <b>Open a room</b> and wait: it appears here on every other officer's screen.</div>`; return; }
       list.innerHTML = "";
       rooms.forEach((r) => {
         const seats = r.seats || [];
-        const open = seats.filter((s) => s.isAI).length;
+        const open = seats.filter((s) => s.vacant).length;
         const D = (CG.SITREP_DESKS || {})[r.desk] || { icon: "🌐", label: "All desks" };
         const card = el("div", "theatre-card");
         card.innerHTML =
@@ -707,17 +730,34 @@
             `<div class="tc-id"><b>${esc(r.theatre || "Situation Report room")}</b>` +
             `<small>${D.icon} ${D.label} · cable ${(r.dispatch || 0) + 1} of ${r.total || 1} · ${ago(r.lastActive)}</small></div></div>` +
           `<div class="tc-seats">${seats.map((s) =>
-            `<span class="seat-chip ${s.isAI ? "ai" : "human"}" style="--tok:${s.color}"><span class="sc-ic">${s.icon || "◆"}</span>` +
-            `<span class="sc-nm">${s.isAI ? "🤖" : "🙋"} ${esc(s.name)} · ${s.score || 0}</span></span>`).join("")}</div>`;
-        const join = el("button", "btn btn-primary", open ? "Join, take the AI's seat ▸" : "Full · watch ▸");
+            `<span class="seat-chip ${s.vacant ? "open" : "human"}" style="--tok:${s.color}"><span class="sc-ic">${s.icon || "◆"}</span>` +
+            `<span class="sc-nm">${s.vacant ? "🪑 Open seat" : "🙋 " + esc(s.name) + " · " + (s.score || 0)}</span></span>`).join("")}</div>`;
+        const acts = el("div", "tc-actions");
+        const join = el("button", "btn btn-primary", open ? "Take the open seat ▸" : "Full · watch ▸");
         join.onclick = () => { stopList(); openJoin(r.id); };
-        card.appendChild(join);
+        acts.appendChild(join);
+        // Your own room: close it and it leaves every officer's list at once.
+        if (r.hostId === myId()) {
+          const close = el("button", "btn btn-ghost", "✕ Close room");
+          close.onclick = () => closeRoom(r.id, close, list);
+          acts.appendChild(close);
+        }
+        card.appendChild(acts);
         list.appendChild(card);
       });
     } catch (e) {
       if (list.isConnected) list.innerHTML = `<div class="lobby-empty">Could not reach the rooms. <b>Refresh</b> to try again, or play solo.</div>`;
     }
   }
+  // Closing a room clears it from the broker, so it disappears from every
+  // officer's list. Only the officer who opened it is offered the button.
+  async function closeRoom(id, btn, list) {
+    if (btn) { btn.disabled = true; btn.textContent = "Closing…"; }
+    sfx("click");
+    try { await room().drop(id); } catch (e) {}
+    if (list && list.isConnected) loadRooms(list, false);
+  }
+
   function ago(t) {
     if (!t) return "just now";
     const s = Math.max(0, Math.round((now() - t) / 1000));
@@ -728,7 +768,7 @@
     return {
       kind: "sitrep", theatre: g.theatre && g.theatre.name, icon: g.theatre && g.theatre.icon,
       desk: g.desk, total: g.total, dispatch: g.dispatch, hostId: g.hostId,
-      seats: g.players.map((p) => ({ name: p.name, isAI: p.isAI, owned: !!p.ownerId, color: p.color, icon: p.icon, score: p.score || 0 })),
+      seats: g.players.map((p) => ({ name: p.name, isAI: p.isAI, vacant: !!p.vacant, owned: !!p.ownerId, color: p.color, icon: p.icon, score: p.score || 0 })),
     };
   }
 
@@ -750,27 +790,27 @@
     try { g = await room().get(id); } catch (e) { g = null; }
     if (!g) { sub.textContent = "This room has closed."; return; }
     const D = (CG.SITREP_DESKS || {})[g.desk] || { icon: "🌐", label: "All desks" };
-    sub.innerHTML = `${esc(g.theatre.icon)} <b>${esc(g.theatre.name)}</b> · ${D.icon} ${D.label} · cable ${g.dispatch + 1} of ${g.total}. Take over the AI officer's seat, and your name goes on it.`;
+    sub.innerHTML = `${esc(g.theatre.icon)} <b>${esc(g.theatre.name)}</b> · ${D.icon} ${D.label} · cable ${g.dispatch + 1} of ${g.total}. Take the open seat, and your name goes on it.`;
     paintSeats(list, g);
   }
   function paintSeats(list, g) {
     list.innerHTML = "";
     let any = false;
     g.players.forEach((p, i) => {
-      const mine = !p.isAI && p.ownerId === myId();
+      const mine = !p.vacant && p.ownerId === myId();
       const row = el("div", "seat-row");
       row.style.setProperty("--tok", p.color);
       row.appendChild(el("span", "seat-badge", "" + (i + 1)));
       row.appendChild(el("span", "join-avatar", p.icon || "◆"));
       const info = el("div", "join-info");
-      info.innerHTML = `<b>${esc(p.name)}</b><small>${mine ? "🙋 your seat" : p.isAI ? "🤖 AI officer" : "🙋 player"} · ${p.score || 0} pts</small>`;
+      info.innerHTML = `<b>${esc(p.name)}</b><small>${mine ? "🙋 your seat" : p.vacant ? "🪑 waiting for an officer" : "🙋 player"} · ${p.score || 0} pts</small>`;
       row.appendChild(info);
       if (mine) {
         any = true;
         const b = el("button", "btn btn-primary sm", "Resume ▸");
         b.onclick = () => enterOnline(g);
         row.appendChild(b);
-      } else if (p.isAI) {
+      } else if (p.vacant) {
         any = true;
         const nm = el("input", "seat-input sm"); nm.type = "text"; nm.maxLength = 22; nm.value = CG.Net.getName();
         row.appendChild(nm);
@@ -797,16 +837,24 @@
     try { g = await room().get(id); } catch (e) { g = null; }
     if (!g) return renderRooms();
     const seat = g.players[idx];
-    if (!seat || !(seat.isAI || seat.ownerId === myId())) {
+    if (!seat || !(seat.vacant || seat.ownerId === myId())) {
       const list = document.querySelector(".join-list");
       if (list) paintSeats(list, g);
       return;
     }
     const other = g.players[1 - idx];
     if (other && other.name.toLowerCase() === nm.toLowerCase()) seat.name = nm + " II"; else seat.name = nm;
-    seat.isAI = false; seat.ownerId = myId();
+    // an empty chair has no face yet: give it one the other officer is not using
+    const roles = CG.ROLES || [];
+    if (seat.vacant && roles.length) {
+      for (let i = 0; i < 24; i++) {
+        const r = rand(roles);
+        if (!other || r.icon !== other.icon) { seat.icon = r.icon; seat.roleIdx = roles.indexOf(r); break; }
+      }
+    }
+    seat.vacant = false; seat.isAI = false; seat.ownerId = myId();
     g.seq = (g.seq || 0) + 1; g.lastWriter = myId();
-    g.lastEvent = `${seat.name} takes over the seat`;
+    g.lastEvent = `${seat.name} takes the second seat. The cable is live.`;
     try { await room().put(g, { summary: true }); } catch (e) { return renderRooms(); }
     sfx("pick");
     enterOnline(g, { joined: true });
@@ -839,6 +887,7 @@
     S.net.tick = setInterval(netTick, 2000);
     live({ t: "hb", by: myId() });
     if (opts && opts.joined) toast(`You take the seat. Welcome to ${g.theatre.name}.`, "good");
+    else if (waiting(g)) toast("Room open. Waiting for a second officer to take the seat.", "muted");
     afterChange();
   }
   function resetRound() {
@@ -983,8 +1032,8 @@
     const vs = $("sr-vs");
     const t = turnSeat(g);
     vs.innerHTML = g.players.map((p, i) => {
-      const tag = p.isAI ? `🤖 ${LEVELS[g.level] ? LEVELS[g.level].short : "AI"}` : (S.mode === "online" ? (p.ownerId === myId() ? "🙋 you" : "🙋 player") : (S.mode === "solo" ? "🙋 you" : "🙋"));
-      const state = g.phase === "play" ? (i === t ? (p.isAI ? "drafting" : "on report") : "waiting") : `${p.score || 0} pts`;
+      const tag = p.vacant ? "🪑 open" : p.isAI ? `🤖 ${LEVELS[g.level] ? LEVELS[g.level].short : "AI"}` : (S.mode === "online" ? (p.ownerId === myId() ? "🙋 you" : "🙋 player") : (S.mode === "solo" ? "🙋 you" : "🙋"));
+      const state = p.vacant ? "no officer yet" : g.phase === "play" ? (i === t ? (p.isAI ? "drafting" : "on report") : "waiting") : `${p.score || 0} pts`;
       return `<div class="sr-pc${i === t ? " turn" : ""}" id="sr-pc${i}" style="--pc:${p.color}" title="Cables decoded">` +
         `<span class="sr-av">${p.icon}</span>` +
         `<span class="sr-pid"><b>${esc(p.name)}</b><small>${tag} · ${state}</small></span>` +
@@ -1003,6 +1052,12 @@
       const any = res && res.winner >= 0;
       b.innerHTML = g.phase === "over" ? "Mission complete" : (any ? "Cable decoded" : "The cable went unread");
       b.classList.add(any || g.phase === "over" ? "good" : "bad");
+      return;
+    }
+    if (waiting(g)) {
+      b.style.setProperty("--pc", g.players[0].color);
+      b.classList.add("live", "wait");
+      b.innerHTML = `<span class="sr-bdot"></span><span class="sr-bt">Room open · waiting for a second officer to take the seat</span>`;
       return;
     }
     if (t < 0) { b.innerHTML = ""; return; }
@@ -1301,6 +1356,7 @@
     if (CG.Audio && CG.Audio.setProgress) CG.Audio.setProgress(1 + Math.min(99, g.rows.length * 11));
     paint();
     if (g.phase === "play") {
+      if (waiting(g)) return;        // one chair still empty: no briefing, no turn
       checkClues();
       if (S.shownBrief !== g.dispatch) { S.shownBrief = g.dispatch; showBriefing(); }
       const t = turnSeat(g);
@@ -1530,7 +1586,7 @@
         `<p class="sm"><b>T</b> is confirmed, right place. <b>U</b> is in the word, somewhere else. The rest are not in the cable.</p>` +
         `<p><b>Nothing is hidden.</b> You watch your rival type, letter by letter, and every report on the board is yours to use, so each guess helps you both. Read the scene: it hints at the word, and <b>radio</b> and <b>sat phone</b> clues come over the net after reports 4 and 7.</p>` +
         `<p><b>The first officer to decode the cable wins it</b> ★, with speed points (10, plus one per unused row). A mission is 1, 3 or 5 cables; whoever wins more cables leads the response, and speed points break a tie.</p>` +
-        `<p class="sm">Online: open a room and the second seat plays as an AI officer until someone joins and takes it over.</p>` +
+        `<p class="sm">Online is people only: open a room and it waits, one seat empty, until another officer takes it. Whoever opened the room can close it again.</p>` +
       `</div>`;
     const act = el("div", "ec-actions");
     act.appendChild(cardBtn("Got it ▸", true, () => closeOverlay(false)));
@@ -1562,25 +1618,31 @@
     const c = el("div", "event-card sr-card");
     c.innerHTML = `<div class="ec-band">LEAVE THE MISSION</div><div class="ec-icon">📡</div>` +
       `<div class="ec-title">Step away from ${esc(g.theatre.name)}?</div>` +
-      `<div class="ec-why">${S.mode === "online" ? (iOwnASeat() ? "Your seat goes back to an AI officer, and someone else can take it over." : "You stop watching this room.") : "This mission ends here."}</div>`;
+      `<div class="ec-why">${S.mode === "online" ? (iOwnASeat() ? "Your seat opens again and another officer can take it. Close the room instead and it leaves everyone's list." : "You stop watching this room.") : "This mission ends here."}</div>`;
     const act = el("div", "ec-actions");
     act.appendChild(cardBtn("Leave ▸", false, () => { closeOverlay(true); leave(); }));
+    if (S.mode === "online" && g.hostId === myId())
+      act.appendChild(cardBtn("Close the room ▸", false, () => { closeOverlay(true); leave(false, true); }));
     act.appendChild(cardBtn("Stay", true, () => closeOverlay(false)));
     c.appendChild(act);
     openOverlay(c, { stay: true });
   }
 
-  function leave(toRooms) {
+  // close: shut the room down for everyone. Otherwise your own seat simply
+  // opens again, and the room closes by itself once nobody is left in it.
+  function leave(toRooms, close) {
     const g = S.g;
     if (S.mode === "online" && g && room()) {
       const r = room();
-      if (iOwnASeat() && g.phase !== "over") {
-        g.players.forEach((p) => { if (!p.isAI && p.ownerId === myId()) { p.isAI = true; p.ownerId = null; } });
-        const heir = g.players.find((p) => !p.isAI && p.ownerId && p.ownerId !== myId());
+      if (close) {
+        r.drop(g.id);
+      } else if (iOwnASeat() && g.phase !== "over") {
+        g.players.forEach((p) => { if (p.ownerId === myId()) vacate(p); });
+        const heir = g.players.find((p) => !p.vacant && p.ownerId && p.ownerId !== myId());
         if (!heir) { r.drop(g.id); }
         else {
           if (g.hostId === myId()) g.hostId = heir.ownerId;
-          g.seq++; g.lastWriter = myId(); g.lastEvent = "An officer stepped away";
+          g.seq++; g.lastWriter = myId(); g.lastEvent = "An officer stepped away. The seat is open again.";
           r.put(g, { summary: true }).catch(() => {});
         }
       }
@@ -1744,8 +1806,8 @@
     }
   }
 
-  // Every two seconds: a heartbeat, and the host's chores. A human seat whose
-  // browser has gone silent goes back to the AI; if the host goes silent, a
+  // Every two seconds: a heartbeat, and the host's chores. A seat whose browser
+  // has gone silent opens again for the next officer; if the host goes silent, a
   // remaining player takes over as host; a finished cable moves on by itself.
   function netTick() {
     const g = S.g;
@@ -1760,12 +1822,13 @@
     if (g.hostId === myId()) {
       let changed = false;
       g.players.forEach((p) => {
-        if (!p.isAI && p.ownerId && p.ownerId !== myId() && quietFor(p.ownerId) > 35000) {
-          p.isAI = true; p.ownerId = null; changed = true;
-          toast(`${p.name} went quiet. An AI officer takes the seat.`, "muted");
+        if (!p.vacant && p.ownerId && p.ownerId !== myId() && quietFor(p.ownerId) > 35000) {
+          const gone = p.name;
+          vacate(p); changed = true;
+          toast(`${gone} went quiet. The seat is open again.`, "muted");
         }
       });
-      if (changed) { g.lastEvent = "A seat went back to an AI officer"; pushState({ summary: true }); afterChange(); return; }
+      if (changed) { g.lastEvent = "A seat is open again"; pushState({ summary: true }); afterChange(); return; }
       if (g.phase === "reveal" && t > (g.revealAt || 0) && !S.busy) {
         const last = g.dispatch + 1 >= g.total;
         closeOverlay(true);
