@@ -44,8 +44,31 @@ gold (in the word, another place) or slate (not in the cable).
   seat empty, until another officer takes it. Whoever opened the room can close
   it again, from the room list or from the board.
 
+## Parley, chess that wins people over
+
+A parley is a meeting between opposing sides to talk terms. Here it is chess on
+a **five by five table**, made easier and friendlier. Each delegation has an
+**Envoy** 🕊️ (the king), two **Convoys** 🚚 (rooks), an **Airlift** 🚁 (knight),
+a **Scout** 🧭 (bishop) and three **Volunteers** 🙋 (pawns).
+
+- **Easier than chess.** No check, no checkmate, no castling, no en passant, no
+  double step. A Volunteer steps one square forward, straight or diagonal, and
+  wins over the same way; on the far row it becomes a **Coordinator** 🌟 (a queen).
+- **Nobody is knocked out.** Land on a rival piece and you win it over: it joins
+  your reserve, and on a later turn you can bring it in on your two home rows.
+- **Two ways to win:** win over the rival Envoy, or walk your own Envoy onto
+  their **Summit** 🏔️, the square their Envoy started on.
+- **Help at the table.** Tap a piece to see its moves, ⚠ marks a piece that could
+  be won over next move, the banner warns when your Envoy or Summit is in danger,
+  💡 **Hint** suggests a move and says why, ↩ takes a move back, and either side
+  can offer peace 🤝.
+- **Play solo** against an AI envoy (Junior, Field or Veteran), **two on one
+  device**, or **online** (people only, like Situation Report). A match is one
+  round or best of three, and both house rules can be switched off for a game
+  closer to classic chess.
+
 It is a static website. No build step, no accounts, no external media. The only
-backend is optional: online play (The Long Road theatres and Situation Report
+backend is optional: online play (The Long Road theatres, Situation Report and Parley
 rooms) rides a free public MQTT broker, and everything else works offline.
 
 **Live:** https://shamoug.github.io/comgro/
@@ -58,6 +81,7 @@ Each game has its own address, so you can link straight to one:
 | The Long Road | https://shamoug.github.io/comgro/longroad/ |
 | Hold the Line | https://shamoug.github.io/comgro/holdtheline/ |
 | Situation Report | https://shamoug.github.io/comgro/sitrep/ |
+| Parley | https://shamoug.github.io/comgro/parley/ |
 
 ---
 
@@ -118,6 +142,7 @@ index.html          The chooser. Loads src/boot.js, nothing else.
 longroad/index.html     The Long Road's own address (a four-line stub).
 holdtheline/index.html  Hold the Line's own address.
 sitrep/index.html       Situation Report's own address.
+parley/index.html       Parley's own address.
 src/boot.js         The one list of files the app loads, with their versions.
 data/content.js     ALL game content: decks, cards, theatres, names, story.
 src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
@@ -128,10 +153,13 @@ src/td.js           Hold the Line: the tower defence.
 src/sitrep.js       Situation Report: the two-officer word game, its AI and rooms.
 data/sitrep.js      Situation Report content: the words, scenes, clues and facts.
 data/words5.js      The five-letter dictionary Situation Report accepts.
+src/parley.js       Parley: the 5 by 5 rules, the AI envoy, hints and rooms.
+data/parley.js      Parley content: pieces, table talk, endings and field notes.
 src/net.js          Online play over a public MQTT broker (lobbies and rooms).
 src/platform.js     The launcher, the game chooser and the router.
 styles/styles.css   The shared stylesheet (board, dice, cards are CSS/SVG).
 styles/sitrep.css   Situation Report's board, keyboard and cards.
+styles/parley.css   Parley's table, tokens, reserve trays and move diagrams.
 ```
 
 **To change the story, edit only `data/content.js`.** Add or rewrite hole cards,

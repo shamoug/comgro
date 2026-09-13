@@ -8,6 +8,25 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-09-13  NEW GAME: PARLEY (parley.js v1). A fourth game on the home chooser and
+REM              at its own address, /parley/: chess on a 5 by 5 table, made easier and
+REM              friendlier. Each delegation has an Envoy (king), two Convoys (rooks), an
+REM              Airlift (knight), a Scout (bishop) and three Volunteers (pawns). No check,
+REM              no checkmate, no castling, no en passant, no double step; a Volunteer
+REM              steps one square forward, straight or diagonal, and becomes a Coordinator
+REM              (queen) on the far row. NOBODY IS KNOCKED OUT: a captured piece is won
+REM              over into your reserve and can be brought back on your two home rows (the
+REM              shogi idea). Two ways to win: win over the rival Envoy, or walk your Envoy
+REM              onto their Summit (the Onitama and Dobutsu shogi idea). Three repeats or
+REM              160 moves share the round; either side may offer peace; 1 round or best of
+REM              3; both house rules can be switched off. Beginner help: tap to see moves,
+REM              danger marks on pieces that could be won over, Envoy and Summit warnings,
+REM              a Hint that suggests a move and says why, and take-backs. Solo vs an AI
+REM              envoy (Junior, Field, Veteran: alpha-beta search with a time budget), two
+REM              on one device, or online rooms (people only, via CG.Net.room("parley")).
+REM              Sliding tokens, won-over spins, confetti, table talk, field notes on
+REM              mediation. New data/parley.js, styles/parley.css v1, parley/index.html;
+REM              platform.js v16 (fourth card and route), boot.js lists the new files.
 REM  2026-09-12  A PAGE PER GAME, AND SITUATION REPORT ONLINE IS PEOPLE ONLY.
 REM              (1) EVERY GAME HAS ITS OWN ADDRESS, so one game can be linked,
 REM              bookmarked and shared on its own: /longroad/, /holdtheline/ and

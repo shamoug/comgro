@@ -3,8 +3,9 @@
  * The launcher, the game chooser and the router. Common Ground has three
  * games: The Long Road (CG.SnakesGame, a cinematic Snakes & Ladders played
  * solo or in a multiplayer Crisis Theatre), Hold the Line (CG.TowerDefense, a
- * solo tower defence) and Situation Report (CG.SitRep, a two-officer word
- * game, solo, same-device or online).
+ * solo tower defence), Situation Report (CG.SitRep, a two-officer word
+ * game) and Parley (CG.Parley, a friendlier 5 by 5 chess), the last two
+ * solo, same-device or online.
  *
  * Each game has its own address, so a game can be linked, bookmarked and
  * shared on its own:
@@ -12,6 +13,7 @@
  *   /longroad/     The Long Road
  *   /holdtheline/  Hold the Line
  *   /sitrep/       Situation Report
+ *   /parley/       Parley
  * Every address serves the same app (see src/boot.js); this file reads the
  * last path segment and opens the matching game instead of the chooser. A
  * chooser card navigates to its game's address, and each game's in-game Quit
@@ -42,6 +44,10 @@
     sitrep: {
       available: () => !!CG.SitRep,
       start: () => CG.SitRep.show(),
+    },
+    parley: {
+      available: () => !!CG.Parley,
+      start: () => CG.Parley.show(),
     },
   };
 
@@ -89,9 +95,9 @@
     wrap.appendChild(el("div", "title-glow"));
     wrap.appendChild(el("div", "logo-mark", "◆"));
     wrap.appendChild(el("h1", "title", "Common Ground"));
-    wrap.appendChild(el("p", "subtitle", "Three ways to play"));
+    wrap.appendChild(el("p", "subtitle", "Four ways to play"));
     wrap.appendChild(el("p", "tagline",
-      "Three games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
+      "Four games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
 
     const row = el("div", "home-row");
 
@@ -111,8 +117,14 @@
       const c = gameCard("📡", "Situation Report",
         "A word game for two field officers. Watch each other type, use each other's reports, and be the first to decode the five-letter cable from the humanitarian, development and peacebuilding glossary. Solo, same device or online.",
         "Enter ▸", () => go("sitrep"));
-      c.classList.add("is-new");
       row.appendChild(c);
+    }
+    if (CG.Parley) {
+      const d = gameCard("🕊️", "Parley",
+        "Chess on a five by five table, easier and friendlier. No check, no checkmate: win pieces over to your side, then win over the rival Envoy or walk yours onto their Summit. Solo vs AI with hints, same device or online.",
+        "Enter ▸", () => go("parley"));
+      d.classList.add("is-new");
+      row.appendChild(d);
     }
     wrap.appendChild(row);
     root.appendChild(wrap);

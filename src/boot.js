@@ -7,6 +7,7 @@
  *   /longroad/   The Long Road
  *   /holdtheline/Hold the Line
  *   /sitrep/     Situation Report
+ *   /parley/     Parley
  * Each of those pages is a four-line stub that sets <base href> and loads
  * this file, so the cache-busting ?v= numbers below are the only copy there
  * is: bump one here and every entry point picks it up.
@@ -18,14 +19,16 @@
  * ========================================================================= */
 (function () {
   var CSS = [
-    "styles/styles.css?v=43",
+    "styles/styles.css?v=44",
     "styles/sitrep.css?v=2",
+    "styles/parley.css?v=1",
   ];
   var JS = [
     // DATA: all flavour text, board layout, decks and the dictionary
     "data/content.js?v=23",
     "data/sitrep.js?v=1",
     "data/words5.js?v=1",
+    "data/parley.js?v=1",
     // Multiplayer transport: mqtt.js over secure WebSockets to a public
     // broker. Loads online; if it is unavailable, the lobbies fall back to
     // solo play.
@@ -40,7 +43,8 @@
     "src/lobby.js?v=4",
     "src/td.js?v=11",
     "src/sitrep.js?v=2",
-    "src/platform.js?v=15",
+    "src/parley.js?v=1",
+    "src/platform.js?v=16",
   ];
 
   var head = document.head || document.getElementsByTagName("head")[0];
