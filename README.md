@@ -67,9 +67,36 @@ a **Scout** 🧭 (bishop) and three **Volunteers** 🙋 (pawns).
   round or best of three, and both house rules can be switched off for a game
   closer to classic chess.
 
+## Agenda 2030, the Global Goals quiz show
+
+A quiz show on the Sustainable Development Goals, in the spirit of *Who Wants to
+Be a Millionaire?*. **Ten questions a show**, each harder than the last (four
+warm-up, three harder, three for the brave), drawn from a bank of several hundred
+questions across all 17 Goals and the 2030 Agenda itself. Every question has four
+answers, A to D, with exactly one right, and **every one was checked against the
+official source it cites** (sdgs.un.org target texts, unstats.un.org, UN
+resolutions and agency sites). The answers are shuffled every show.
+
+- **Host a show on the big screen.** Pick how many contestants (1 to 5) and
+  the screen opens a show with a **random five-letter code, a link and a QR
+  code**. Players scan it with their phones, type a name, pick an avatar, and pop
+  onto the stage. **When the last seat is taken, the show starts by itself**
+  (or the host starts early). Seats can be added or removed while people join.
+- **Phones are private answer pads.** Each question shows on the big screen and on
+  every phone. You have **10 seconds**, under a countdown score that builds to
+  the buzzer: tap an answer, then lock it in. Nobody sees anybody's pick.
+- **Five seconds of suspense**, lights down, then the right answer lights up, the
+  avatars show who picked what, and a fact appears with its official source.
+- **Most right answers wins**; a tie goes to whoever was quicker on their right
+  answers. Everyone has one **50:50** per show.
+- **Come in late.** A small QR code stays in the corner of the stage during the
+  show: scan it to watch on your phone, or take a seat if one is open.
+- Phones can fire emoji reactions that float up on the big screen.
+- **Play solo** against one to four AI contestants (Casual, Sharp or Expert).
+
 It is a static website. No build step, no accounts, no external media. The only
-backend is optional: online play (The Long Road theatres, Situation Report and Parley
-rooms) rides a free public MQTT broker, and everything else works offline.
+backend is optional: online play (The Long Road theatres and the Situation Report, Parley
+and Agenda 2030 rooms) rides a free public MQTT broker, and everything else works offline.
 
 **Live:** https://shamoug.github.io/comgro/
 
@@ -82,6 +109,7 @@ Each game has its own address, so you can link straight to one:
 | Hold the Line | https://shamoug.github.io/comgro/holdtheline/ |
 | Situation Report | https://shamoug.github.io/comgro/sitrep/ |
 | Parley | https://shamoug.github.io/comgro/parley/ |
+| Agenda 2030 | https://shamoug.github.io/comgro/agenda/ |
 
 ---
 
@@ -143,6 +171,7 @@ longroad/index.html     The Long Road's own address (a four-line stub).
 holdtheline/index.html  Hold the Line's own address.
 sitrep/index.html       Situation Report's own address.
 parley/index.html       Parley's own address.
+agenda/index.html       Agenda 2030's own address (phones join at ?room=CODE).
 src/boot.js         The one list of files the app loads, with their versions.
 data/content.js     ALL game content: decks, cards, theatres, names, story.
 src/audio.js        Procedural cinematic music + sound effects (Web Audio API).
@@ -155,11 +184,14 @@ data/sitrep.js      Situation Report content: the words, scenes, clues and facts
 data/words5.js      The five-letter dictionary Situation Report accepts.
 src/parley.js       Parley: the 5 by 5 rules, the AI envoy, hints and rooms.
 data/parley.js      Parley content: pieces, table talk, endings and field notes.
+src/agenda.js       Agenda 2030: the quiz show, its host engine, phone pads, QR rooms, score.
+data/agenda.js      Agenda 2030 content: the 17 Goals and the sourced question bank.
 src/net.js          Online play over a public MQTT broker (lobbies and rooms).
 src/platform.js     The launcher, the game chooser and the router.
 styles/styles.css   The shared stylesheet (board, dice, cards are CSS/SVG).
 styles/sitrep.css   Situation Report's board, keyboard and cards.
 styles/parley.css   Parley's table, tokens, reserve trays and move diagrams.
+styles/agenda.css   Agenda 2030's studio, answer plates, ladder, QR wall and phone pad.
 ```
 
 **To change the story, edit only `data/content.js`.** Add or rewrite hole cards,

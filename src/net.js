@@ -97,6 +97,13 @@
       client.on("error", (e) => { if (!settled) { settled = true; reject(e); } });
       setTimeout(() => { if (!settled) { settled = true; reject(new Error("broker timeout")); } }, 9000);
     });
+    // A failed attempt is not remembered: the next call tries again, so a
+    // network blip does not leave online play off until the page reloads.
+    connectPromise.catch(() => {
+      connectPromise = null;
+      try { if (client) client.end(true); } catch (e) {}
+      client = null;
+    });
     return connectPromise;
   }
 
@@ -283,15 +290,20 @@
         });
         return Object.keys(sp.lobby).map((id) => sp.lobby[id]).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       },
-      async create(game) {
+      // opts.id asks for a chosen id (a short room code, say) instead of a
+      // random one; the caller checks has() first so the code is unused.
+      async create(game, opts) {
         await connect();
-        game.id = rid("r"); game.createdAt = now(); game.lastActive = now();
+        game.id = (opts && opts.id) || rid("r"); game.createdAt = now(); game.lastActive = now();
         sp.games[game.id] = game;
         await pub(roomTopic(ns, "game", game.id), game);
         const s = sum(game); sp.lobby[game.id] = s;
         await pub(roomTopic(ns, "lobby", game.id), s);
         return game.id;
       },
+      // Is this id already an open room? (Only as good as the lobby list,
+      // which every browser receives in full a moment after subscribing.)
+      async has(id) { await ready(); return !!sp.lobby[id]; },
       async get(id) {
         await connect();
         client.subscribe(roomTopic(ns, "game", id));

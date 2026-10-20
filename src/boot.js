@@ -8,6 +8,7 @@
  *   /holdtheline/Hold the Line
  *   /sitrep/     Situation Report
  *   /parley/     Parley
+ *   /agenda/     Agenda 2030
  * Each of those pages is a four-line stub that sets <base href> and loads
  * this file, so the cache-busting ?v= numbers below are the only copy there
  * is: bump one here and every entry point picks it up.
@@ -19,9 +20,10 @@
  * ========================================================================= */
 (function () {
   var CSS = [
-    "styles/styles.css?v=44",
+    "styles/styles.css?v=45",
     "styles/sitrep.css?v=2",
     "styles/parley.css?v=1",
+    "styles/agenda.css?v=1",
   ];
   var JS = [
     // DATA: all flavour text, board layout, decks and the dictionary
@@ -29,6 +31,7 @@
     "data/sitrep.js?v=1",
     "data/words5.js?v=1",
     "data/parley.js?v=1",
+    "data/agenda.js?v=1",
     // Multiplayer transport: mqtt.js over secure WebSockets to a public
     // broker. Loads online; if it is unavailable, the lobbies fall back to
     // solo play.
@@ -38,13 +41,14 @@
     "src/audio.js?v=8",
     "src/narrate.js?v=4",
     "src/setup.js?v=6",
-    "src/net.js?v=7",
+    "src/net.js?v=8",
     "src/game.js?v=53",
     "src/lobby.js?v=4",
     "src/td.js?v=11",
     "src/sitrep.js?v=2",
     "src/parley.js?v=1",
-    "src/platform.js?v=16",
+    "src/agenda.js?v=1",
+    "src/platform.js?v=17",
   ];
 
   var head = document.head || document.getElementsByTagName("head")[0];

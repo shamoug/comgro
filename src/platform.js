@@ -4,8 +4,8 @@
  * games: The Long Road (CG.SnakesGame, a cinematic Snakes & Ladders played
  * solo or in a multiplayer Crisis Theatre), Hold the Line (CG.TowerDefense, a
  * solo tower defence), Situation Report (CG.SitRep, a two-officer word
- * game) and Parley (CG.Parley, a friendlier 5 by 5 chess), the last two
- * solo, same-device or online.
+ * game), Parley (CG.Parley, a friendlier 5 by 5 chess) and Agenda 2030
+ * (CG.Agenda, an SDG quiz show for up to five players on their phones).
  *
  * Each game has its own address, so a game can be linked, bookmarked and
  * shared on its own:
@@ -14,6 +14,7 @@
  *   /holdtheline/  Hold the Line
  *   /sitrep/       Situation Report
  *   /parley/       Parley
+ *   /agenda/       Agenda 2030
  * Every address serves the same app (see src/boot.js); this file reads the
  * last path segment and opens the matching game instead of the chooser. A
  * chooser card navigates to its game's address, and each game's in-game Quit
@@ -48,6 +49,10 @@
     parley: {
       available: () => !!CG.Parley,
       start: () => CG.Parley.show(),
+    },
+    agenda: {
+      available: () => !!CG.Agenda,
+      start: () => CG.Agenda.show(),
     },
   };
 
@@ -95,9 +100,9 @@
     wrap.appendChild(el("div", "title-glow"));
     wrap.appendChild(el("div", "logo-mark", "◆"));
     wrap.appendChild(el("h1", "title", "Common Ground"));
-    wrap.appendChild(el("p", "subtitle", "Four ways to play"));
+    wrap.appendChild(el("p", "subtitle", "Five ways to play"));
     wrap.appendChild(el("p", "tagline",
-      "Four games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
+      "Five games about the same work: a UN Country Team holding a crisis together. Pick one to begin."));
 
     const row = el("div", "home-row");
 
@@ -123,8 +128,14 @@
       const d = gameCard("🕊️", "Parley",
         "Chess on a five by five table, easier and friendlier. No check, no checkmate: win pieces over to your side, then win over the rival Envoy or walk yours onto their Summit. Solo vs AI with hints, same device or online.",
         "Enter ▸", () => go("parley"));
-      d.classList.add("is-new");
       row.appendChild(d);
+    }
+    if (CG.Agenda) {
+      const e = gameCard("🌍", "Agenda 2030",
+        "A quiz show on the Sustainable Development Goals. Put it on the big screen, scan the QR code with your phones, and answer in secret. Ten questions, five seconds of suspense each. Up to five players, or solo.",
+        "Enter ▸", () => go("agenda"));
+      e.classList.add("is-new");
+      row.appendChild(e);
     }
     wrap.appendChild(row);
     root.appendChild(wrap);

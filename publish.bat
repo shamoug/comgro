@@ -8,6 +8,24 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  NEW GAME: AGENDA 2030 (agenda.js v1). A fifth game, at /agenda/: a quiz
+REM              show on the SDGs in the spirit of Who Wants to Be a Millionaire. Ten
+REM              questions a show (4 warm-up, 3 harder, 3 for the brave) from a bank of
+REM              several hundred, four answers A-D with one right, each checked against the
+REM              official source it cites (shown after the reveal). Host a show on a big
+REM              screen: choose 1-5 contestants, get a random 5-letter code, link and QR
+REM              code; phones scan in, name themselves, pick an avatar, and the show starts
+REM              when the last seat is taken. Phones are private answer pads: 10 seconds a
+REM              question under a countdown score, lock in, one 50:50 each. Five seconds of
+REM              suspense, the reveal, a fact. Most right wins; ties go to the quickest. A
+REM              corner QR lets latecomers watch or take an open seat mid-show. Solo vs 1-4
+REM              AI contestants. Synthesised show music (theme, question bed, countdown,
+REM              suspense, correct/wrong stings, fanfare). The main screen is the only
+REM              writer of the show state (no races); phones talk to it over the live
+REM              channel. net.js v8: rooms can take a chosen id and has(id). New
+REM              data/agenda.js, src/agenda.js, styles/agenda.css, agenda/index.html;
+REM              platform.js v17 (fifth card and route), styles.css v45 (centred card row),
+REM              boot.js v3 on every page.
 REM  2026-09-13  NEW GAME: PARLEY (parley.js v1). A fourth game on the home chooser and
 REM              at its own address, /parley/: chess on a 5 by 5 table, made easier and
 REM              friendlier. Each delegation has an Envoy (king), two Convoys (rooks), an
