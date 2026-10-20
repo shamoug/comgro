@@ -96,6 +96,9 @@ resolutions and agency sites). The answers are shuffled every show.
   show: scan it to watch on your phone, or take a seat if one is open.
 - **Pause** (⏸ or the space bar) freezes the show on every screen; resume picks up
   with exactly the time that was left.
+- **A reload never costs a seat.** A phone that refreshes goes straight back to
+  its seat with its answer intact; a phone that goes quiet keeps its seat until
+  the show is closed.
 - Phones can fire emoji reactions that float up on the big screen.
 - **Play solo** against one to four AI contestants (Casual, Sharp or Expert).
 - **AI vs AI**: watch two to five AI contestants play on their own, just like

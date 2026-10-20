@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v9, boot.js v11): A RELOAD NEVER COSTS A SEAT. A phone
+REM              that refreshes goes straight back to its seat (no join form), with its
+REM              locked-in answer and 50:50 for the current question restored. A quiet
+REM              phone (reload, locked screen, weak signal) is only marked away, in the
+REM              lobby too, and its seat waits for it until the show is closed.
 REM  2026-10-20  AGENDA 2030 (agenda.js v8, agenda.css v8, narrate.js v6, boot.js v10): THE HOST
 REM              IS NEVER INTERRUPTED. Lines queue instead of cancelling each other, and
 REM              the show waits for the host before every step (intro, question, suspense,

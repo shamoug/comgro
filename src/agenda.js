@@ -978,11 +978,9 @@
     g.players.forEach((p) => {
       if (p.vacant || !p.ownerId) return;
       if (!S.net.seen[p.ownerId]) S.net.seen[p.ownerId] = t;
-      if (!p.away && t - S.net.seen[p.ownerId] > QUIET_MS) {
-        if (g.phase === "lobby") { const i = g.players.indexOf(p); g.players[i] = blankPlayer(i); }
-        else p.away = true;
-        changed = true;
-      }
+      // A quiet phone (a reload, a locked screen, a weak signal) is only
+      // marked away: its seat waits for it until the show is closed.
+      if (!p.away && t - S.net.seen[p.ownerId] > QUIET_MS) { p.away = true; changed = true; }
     });
     if (changed) { publish({ summary: true }); paintAll(); }
     else if (t - S.net.lastPut > 45000) publish({ summary: true });   // keep the show in the list
@@ -1014,6 +1012,14 @@
     const quiet = S.net.hostSeen && now() - S.net.hostSeen > 15000;
     const w = $("ag-ph-warn"); if (w) w.classList.toggle("on", !!quiet);
   }
+  // The phone keeps its answer for the current question in this browser, so
+  // a reload shows the same locked-in pick and the same 50:50.
+  function freshMe(g) {
+    const sv = S.role === "phone" && g && g.id ? ls("cg_agenda_me_" + g.id) : null;
+    const me = { sel: -1, locked: false, fifty: null, qi: g ? g.qi : -1, ms: 0 };
+    return sv && g && sv.qi === g.qi && sv.show === g.show ? Object.assign(me, { sel: sv.sel, locked: sv.locked, fifty: sv.fifty, ms: sv.ms }) : me;
+  }
+  function saveMe() { if (S.role === "phone" && S.g && S.g.id) ls("cg_agenda_me_" + S.g.id, Object.assign({ show: S.g.show }, S.me)); }
   function sendPick() {
     const g = S.g;
     sendLive({ t: "pick", qi: g.qi, c: S.me.sel, ms: S.me.ms, f: S.me.fifty ? 1 : 0 });
@@ -1045,7 +1051,7 @@
   function onPhase(local) {
     const g = S.g;
     if (!g) return;
-    if (g.qi !== S.me.qi && g.phase === "question") { S.me = { sel: -1, locked: false, fifty: null, qi: g.qi, ms: 0 }; }
+    if (g.qi !== S.me.qi && g.phase === "question") S.me = freshMe(g);
     S.lastTick = -1; S.cdStarted = false;
     if (g.phase !== "question") SA.stopCountdown();
     if (isStage()) stagePhase(); else paintPhone(true);
@@ -1139,8 +1145,28 @@
     // A phone that scanned a code goes straight to the door.
     const code = queryParam("room").toUpperCase(), hostCode = queryParam("host").toUpperCase();
     if (hostCode) return resumeHost(hostCode);
-    if (code) return renderJoin(code);
+    if (code) return resumePhone(code);
     renderTitle();
+  }
+  // A phone that reloads the page (by mistake or not) goes straight back to
+  // its seat: the seat belongs to this browser until the show is closed.
+  async function resumePhone(code) {
+    teardown();
+    const w = screen("ag-setup");
+    w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
+    w.appendChild(el("p", "ag-tag", "Finding your seat…"));
+    for (let i = 0; room() && i < 4; i++) {
+      let g = null;
+      try { g = await room().get(code); } catch (e) { g = null; }
+      if (g && g.kind === "agenda") {
+        if (g.players.some((p) => !p.vacant && p.ownerId === myId())) {
+          try { await joinShow(code, settings.name, settings.avatar); return; } catch (e) { break; }
+        }
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    if (w.isConnected) renderJoin(code);
   }
 
   function renderTitle() {
@@ -1409,6 +1435,7 @@
     const seated = g.players.some((p) => !p.vacant && p.ownerId === myId());
     S.role = seated ? "phone" : (g.phase !== "final" && g.players.some((p) => p.vacant)) ? "phone" : "watch";
     S.g = g; S.pk = g.pk; S.t0 = now();
+    S.me = freshMe(g);
     if (!seated && S.role === "phone") { S.net.joining = { name: nm, icon }; S.net.joinAt = now(); }
     mountPhone();
     room().watch(code, applyRemote);
@@ -2276,6 +2303,7 @@
     if (S.me.sel < 0 || S.me.locked || g.phase !== "question" || g.paused || elapsed() >= g.phaseLen) return;
     S.me.locked = true; S.me.qi = g.qi;
     S.me.ms = Math.max(0, now() - S.t0 - INTRO_MS);
+    saveMe();
     SA.lock(); buzz(40);
     sendPick();
     paintPhone(true);
@@ -2291,6 +2319,7 @@
     if (right < 0) { toast("The 50:50 is unavailable for this question"); return; }
     S.me.fifty = shuffle([0, 1, 2, 3].filter((k) => k !== right)).slice(0, 2);
     if (S.me.fifty.indexOf(S.me.sel) >= 0) S.me.sel = -1;
+    S.me.qi = g.qi; saveMe();
     SA.whoosh(); buzz(20);
     phoneLight();
   }
