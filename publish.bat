@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  A MORE HUMAN NARRATOR (narrate.js v5, every game). Scores every voice the
+REM              device has and picks the most natural English one (Edge Natural, Google,
+REM              Apple Enhanced/Premium) unless the player chose one; speaks a phrase at a
+REM              time with breaths, dramatic pauses at an ellipsis, a lift on questions and
+REM              tiny natural variation; says SDG, UN, degrees and & the way people do and
+REM              never reads emoji. AGENDA 2030: 30 seconds per answer (question bed, then
+REM              the countdown score for the last 10), a voice picker with a sample, livelier
+REM              host lines, a readable How it works card that says where the QR code appears.
 REM  2026-10-20  ONLINE PLAY ON SEVERAL BROKERS AT ONCE (net.js v9), for every game. The
 REM              single EMQX broker went unreachable (port 8084 blocked on some networks,
 REM              UN ones included). Now each browser connects to every broker in BROKERS

@@ -5,7 +5,9 @@
  * the phone answer pad. Everything is scoped under .ag-*; the rest of the
  * site keeps its light theme.
  * ========================================================================= */
-.ag-screen, .ag-stage, .ag-phone {
+/* The palette lives on every Agenda surface, overlays and toasts included,
+   so a dialog opened from the title screen keeps its colours. */
+.ag-screen, .ag-stage, .ag-phone, .ag-over, .ag-flash, .ag-fx {
   --ag-ink: #eef2ff;
   --ag-dim: #a9b4d8;
   --ag-faint: rgba(169, 180, 216, .55);
@@ -19,6 +21,8 @@
   --ag-line: rgba(150, 170, 255, .22);
   --ag-display: "Fraunces", Georgia, serif;
   --ag-mono: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+.ag-screen, .ag-stage, .ag-phone {
   position: relative; height: 100vh; height: 100dvh; overflow: hidden;
   color: var(--ag-ink); background: var(--ag-navy);
   font-family: "Inter", system-ui, sans-serif;
@@ -122,6 +126,11 @@
 .ag-mode-t { font: 800 19px var(--ag-display); }
 .ag-mode-b { color: var(--ag-dim); font-size: 13.5px; line-height: 1.45; }
 .ag-toggles { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+.ag-voice { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+.ag-voice-l { font: 600 13px "Inter", sans-serif; color: var(--ag-dim); }
+.ag-voice-s { max-width: 260px; background: rgba(255, 255, 255, .07); color: var(--ag-ink); border: 1px solid var(--ag-line); border-radius: 999px;
+  padding: 8px 12px; font: 600 13px "Inter", sans-serif; outline: none; }
+.ag-voice-s option { background: #10164a; color: #eef2ff; }
 .ag-link { background: none; border: 0; color: var(--ag-gold); font: 600 14px "Inter", sans-serif; margin-top: 14px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
 .ag-record { color: var(--ag-dim); font-size: 13px; margin-top: 8px; }
 .ag-record b { color: var(--ag-ink); }
@@ -341,7 +350,7 @@
 .ag-ph-watch { display: flex; flex-direction: column; gap: 12px; opacity: .85; }
 
 /* ---- overlays: countdown, final, dialogs --------------------------------- */
-.ag-over { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px;
+.ag-over { position: absolute; inset: 0; z-index: 40; color: var(--ag-ink); font-family: "Inter", system-ui, sans-serif; display: grid; place-items: center; padding: 16px;
   background: radial-gradient(circle at 50% 40%, rgba(10, 14, 50, .55), rgba(3, 5, 18, .88)); opacity: 0; transition: opacity .35s ease; }
 .ag-over.show { opacity: 1; }
 .ag-count { text-align: center; }
@@ -381,7 +390,13 @@
 .ag-dialog.how { width: min(620px, 100%); text-align: left; }
 .ag-dialog.how ol { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--ag-dim); line-height: 1.5; margin: 12px 0 18px; }
 .ag-dialog.how b { color: var(--ag-ink); }
-.ag-dialog.how .ag-btn { display: block; margin: 0 auto; }
+.ag-dialog.how .ag-dialog-acts { margin-top: 4px; }
+.ag-dialog.how li { display: grid; grid-template-columns: 28px 1fr; gap: 6px; }
+.ag-dialog.how li i { font-style: normal; font-size: 18px; }
+.ag-how-qr { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 12px; border-radius: 14px;
+  background: rgba(245, 197, 66, .1); border: 1px solid rgba(245, 197, 66, .4); color: var(--ag-ink); font-size: 14px; line-height: 1.45; }
+.ag-how-qr b { color: var(--ag-gold); }
+.ag-how-qr span:first-child { font-size: 30px; }
 
 /* ---- effects --------------------------------------------------------------- */
 .ag-fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }

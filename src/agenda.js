@@ -68,7 +68,8 @@
   const TIER_NAMES = { 1: "Warm-up", 2: "Harder", 3: "For the brave" };
   const LETTERS = ["A", "B", "C", "D"];
   const INTRO_MS = 2200;       // the question and its answers land
-  const ANSWER_S = 10;         // seconds to answer, the same for every question
+  const ANSWER_S = 30;         // seconds to answer, the same for every question
+  const FINAL_S = 10;          // the countdown score takes over for the last ten
   const SUSPENSE_MS = 5000;    // lights down, final answers are in
   const REVEAL_MS = 7500;      // the right answer and the fact
   const COUNTDOWN_MS = 6500;   // “tonight's contestants”, then 3, 2, 1
@@ -656,6 +657,17 @@
   }
   function queryParam(k) { try { return new URL(location.href).searchParams.get(k) || ""; } catch (e) { return ""; } }
 
+  // The host's patter: a different way in to each question.
+  const ORD = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  function questionIntro(qi, tier) {
+    const n = ORD[qi] || String(qi + 1);
+    if (qi === 0) return rand(["Here's your first question.", "Question one, for the warm-up."]);
+    if (qi === QCOUNT - 1) return rand(["The final question.", "Question ten… the last one."]);
+    if (qi === 4) return `Question five. Things get harder from here.`;
+    if (qi === 7) return `Question eight. This is for the brave.`;
+    return rand([`Question ${n}.`, `Here's question ${n}.`, `On to question ${n}.`, tier === 3 ? `Question ${n}. Take a deep breath.` : `Question ${n}, coming up.`]);
+  }
+
   function wheelSvg(cls, centre) {
     const R = 50, r = 31, n = 17;
     let paths = "";
@@ -741,6 +753,8 @@
     tg.appendChild(toggle("🎙️ Host voice", settings.voice, (on) => { settings.voice = on; saveSettings(); if (CG.Narrate) CG.Narrate.setEnabled(on); }));
     w.appendChild(tg);
 
+    if (CG.Narrate && CG.Narrate.voices && CG.Narrate.supported()) w.appendChild(voicePicker());
+
     const how = el("button", "ag-link", "How it works");
     how.onclick = showHowTo;
     w.appendChild(how);
@@ -805,7 +819,7 @@
     const note = el("p", "ag-note", LEVELS[level].blurb);
     w.appendChild(seg(Object.keys(LEVELS), level, (v) => { level = v; note.textContent = LEVELS[v].blurb; }, (v) => LEVELS[v].label));
     w.appendChild(note);
-    w.appendChild(el("p", "ag-note", `${ANSWER_S} seconds a question. Think fast.`));
+    w.appendChild(el("p", "ag-note", `${ANSWER_S} seconds a question, with a countdown for the last ${FINAL_S}.`));
     const go = el("button", "ag-btn gold big", "Lights, camera ▸");
     go.onclick = () => {
       const nm = clean(name.value);
@@ -821,6 +835,31 @@
     };
     w.appendChild(go);
   }
+  // Pick the host's voice from what this device offers (best first).
+  function voicePicker() {
+    const box = el("div", "ag-voice");
+    const fill = () => {
+      const list = CG.Narrate.voices();
+      box.innerHTML = "";
+      if (!list.length) return;
+      box.appendChild(el("span", "ag-voice-l", "Voice"));
+      const sel = el("select", "ag-voice-s");
+      list.slice(0, 24).forEach((v) => {
+        const o = el("option", "", esc(v.name.replace(/^Microsoft |^Google /, "").replace(/ - English.*$/, "")) + (v.natural ? " ★" : ""));
+        o.value = v.name; if (v.name === CG.Narrate.voiceName()) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.onchange = () => { CG.Narrate.setVoice(sel.value); CG.Narrate.sample(); };
+      box.appendChild(sel);
+      const t = el("button", "ag-chip", "▶ Listen");
+      t.onclick = () => CG.Narrate.sample();
+      box.appendChild(t);
+    };
+    fill();
+    if (window.speechSynthesis) window.speechSynthesis.addEventListener("voiceschanged", () => { if (box.isConnected) fill(); });
+    return box;
+  }
+
   function avatarPicker(cur, onPick) {
     const row = el("div", "ag-avatars");
     AVATARS.forEach((a) => {
@@ -1015,7 +1054,7 @@
     if (!g) return;
     const lvl = Math.max(0, g.qi);
     if (g.phase === "lobby" || g.phase === "final") SA.setMode("theme");
-    else if (g.phase === "question") SA.setMode(elapsed() < INTRO_MS ? "question" : "off", lvl);
+    else if (g.phase === "question") SA.setMode(S.cdStarted ? "off" : "question", lvl);
     else SA.setMode("off", lvl);
   }
 
@@ -1032,10 +1071,10 @@
       SA.whoosh();
       const d = g.qs[g.qi];
       [0, 1, 2, 3].forEach((i) => setTimeout(() => { if (S.g === g && g.phase === "question") SA.plate(i); }, 900 + i * 260));
-      say(`Question ${g.qi + 1}. ${d.q}`);
+      say(`${questionIntro(g.qi, d.t)} ${d.q}`);
     } else if (g.phase === "suspense") {
       SA.suspense(SUSPENSE_MS / 1000);
-      say("Final answers are in.");
+      say(rand(["Final answers are in.", "Everyone's locked in. Let's see…", "No more changes now. Here it comes…", "The answers are in. Lights down…"]));
     } else if (g.phase === "reveal") {
       revealFx();
     } else if (g.phase === "final") {
@@ -1390,7 +1429,8 @@
       const s = $("ag-secs");
       if (s && elapsed() > INTRO_MS) { s.textContent = secs; const lb = $("ag-em-lab"); if (lb) lb.textContent = "SECS"; }
       const ps = $("ag-ph-secs"); if (ps) ps.textContent = secs;
-      if (isStage() && !S.cdStarted && elapsed() > INTRO_MS) { S.cdStarted = true; SA.countdown(Math.max(1, left / 1000)); }
+      // The question bed runs first; the countdown score takes the last ten seconds.
+      if (isStage() && !S.cdStarted && elapsed() > INTRO_MS && left <= FINAL_S * 1000) { S.cdStarted = true; SA.countdown(Math.max(1, left / 1000)); }
       if (secs !== S.lastTick && elapsed() > INTRO_MS) {
         S.lastTick = secs;
         if (secs > 0 && (S.role === "phone" ? !S.me.locked && secs <= 5 : !settings.music)) SA.tick(secs <= 3);
@@ -1409,7 +1449,9 @@
       `<div class="ag-lineup">${filled(g).map((p, i) => `<div class="ag-line-p" style="--c:${p.color};--i:${i}"><span>${p.icon}</span><b>${esc(p.name)}</b></div>`).join("")}</div>` +
       `<div class="ag-count-n" id="ag-count-n"></div>`;
     openOverlay(c, "ag-over-count");
-    say(`Welcome to Agenda 2030! Tonight's contestants: ${filled(g).map((p) => p.name).join(", ")}. Ten questions. Let's play!`);
+    const names = filled(g).map((p) => p.name);
+    const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
+    say(`Good evening, and welcome to Agenda 2030! Tonight's contestants are… ${list}. Ten questions, thirty seconds each. Let's play!`);
     const nEl = $("ag-count-n");
     [3, 2, 1, 0].forEach((k, j) => setTimeout(() => {
       if (!nEl.isConnected) return;
@@ -1436,7 +1478,10 @@
     g.players.forEach((p, i) => {
       if (g.answers[g.qi] && g.answers[g.qi][i] === d.c) { const pod = $("ag-pod" + i); if (pod) { pod.classList.add("score-pop"); burst(pod, p.color, 14); } }
     });
-    say(`The answer is ${LETTERS[d.c]}: ${d.a[d.c]}. ${d.f}`);
+    const right = g.answers[g.qi] ? g.answers[g.qi].filter((x) => x === d.c).length : 0;
+    const n = filled(g).length;
+    const crowd = n < 2 ? "" : right === n ? " Everybody got that one!" : right === 0 ? " Ooh, nobody got that one." : right === 1 ? " Just one of you got it." : "";
+    say(`${rand(["The right answer is…", "And the answer is…", "It's…"])} ${LETTERS[d.c]}! ${d.a[d.c]}.${crowd} ${d.f}`);
   }
 
   function showFinal() {
@@ -1473,7 +1518,7 @@
     const out = el("button", "ag-btn ghost", S.role === "host" ? "Close the show" : "Leave");
     out.onclick = () => leave(true);
     acts.appendChild(out);
-    say(top ? (tie ? `It's a dead heat at ${top.score} out of ten!` : `And the winner is ${top.name}, with ${top.score} out of ten!`) : "");
+    say(top ? (tie ? `What a finish… it's a dead heat, at ${top.score} out of ten!` : `Ladies and gentlemen… the winner of tonight's show is… ${top.name}! With ${top.score} out of ten. Congratulations!`) : "");
   }
 
   function share(g) {
@@ -1718,7 +1763,7 @@
     closeOverlay(true);
     const o = el("div", "ag-over " + (cls || ""));
     o.appendChild(card);
-    (document.getElementById("ag-stage") || document.getElementById("ag-phone") || app()).appendChild(o);
+    (document.getElementById("ag-stage") || document.getElementById("ag-phone") || document.querySelector(".ag-screen") || app()).appendChild(o);
     S.overlay = o;
     setTimeout(() => o.classList.add("show"), 20);
     return o;
@@ -1759,17 +1804,26 @@
   function showHowTo() {
     const c = el("div", "ag-dialog how");
     c.innerHTML = `<h3>How the show works</h3>` +
+      `<div class="ag-how-qr"><span>📺</span><span>On the screen everyone can see, tap <b>Host a show</b>, choose how many players, then <b>Open the show</b>. ` +
+      `The <b>QR code</b> appears in big, with a short code and a link.</span></div>` +
       `<ol>` +
-      `<li><b>📺 One big screen hosts.</b> Choose 2 to 5 contestants and open a show. It gets its own code, link and QR code.</li>` +
-      `<li><b>📱 Everyone scans with their phone,</b> types a name and picks an avatar. When the last seat is taken, the show begins.</li>` +
-      `<li><b>🤫 Answer in secret.</b> Each question shows on the big screen and on every phone. You have 10 seconds: tap an answer, then lock it in. Nobody sees your pick.</li>` +
-      `<li><b>⏳ Five seconds of suspense,</b> then the right answer lights up, with a fact and its official source.</li>` +
-      `<li><b>🏆 Ten questions, each harder than the last.</b> Most right answers wins. A tie goes to the quickest on their right answers.</li>` +
-      `<li><b>½ One 50:50 each,</b> to take away two wrong answers once per show.</li>` +
+      `<li><i>📱</i><span><b>Everyone scans the QR code with their phone</b> (or opens the link and types the code), types a name and picks an avatar. When the last seat is taken, the show begins.</span></li>` +
+      `<li><i>🤫</i><span><b>Answer in secret.</b> Each question shows on the big screen and on every phone. You have 30 seconds: tap A, B, C or D, then lock it in. Nobody sees your pick.</span></li>` +
+      `<li><i>⏳</i><span><b>Five seconds of suspense,</b> then the right answer lights up, with a fact and its official source.</span></li>` +
+      `<li><i>🏆</i><span><b>Ten questions, each harder than the last.</b> Most right answers wins. A tie goes to the quickest on their right answers.</span></li>` +
+      `<li><i>½</i><span><b>One 50:50 each,</b> to take away two wrong answers once per show.</span></li>` +
+      `<li><i>🚪</i><span><b>Late?</b> A small QR code stays in the corner during the show: scan it to watch, or to take a seat if one is open.</span></li>` +
       `</ol>`;
-    const ok = el("button", "ag-btn gold", "Got it");
+    const row = el("div", "ag-dialog-acts");
+    const ok = el("button", "ag-btn ghost", "Got it");
     ok.onclick = () => closeOverlay();
-    c.appendChild(ok);
+    row.appendChild(ok);
+    if (!S.g) {
+      const host = el("button", "ag-btn gold", "📺 Host a show now ▸");
+      host.onclick = () => { closeOverlay(true); renderHostSetup(); };
+      row.appendChild(host);
+    }
+    c.appendChild(row);
     openOverlay(c, "ag-over-dialog");
   }
 

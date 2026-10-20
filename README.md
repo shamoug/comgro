@@ -83,8 +83,8 @@ resolutions and agency sites). The answers are shuffled every show.
   onto the stage. **When the last seat is taken, the show starts by itself**
   (or the host starts early). Seats can be added or removed while people join.
 - **Phones are private answer pads.** Each question shows on the big screen and on
-  every phone. You have **10 seconds**, under a countdown score that builds to
-  the buzzer: tap an answer, then lock it in. Nobody sees anybody's pick.
+  every phone. You have **30 seconds**; for the last ten a countdown score
+  builds to the buzzer: tap an answer, then lock it in. Nobody sees anybody's pick.
 - **Five seconds of suspense**, lights down, then the right answer lights up, the
   avatars show who picked what, and a fact appears with its official source.
 - **Most right answers wins**; a tie goes to whoever was quicker on their right

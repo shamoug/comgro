@@ -23,7 +23,7 @@
     "styles/styles.css?v=45",
     "styles/sitrep.css?v=2",
     "styles/parley.css?v=1",
-    "styles/agenda.css?v=2",
+    "styles/agenda.css?v=4",
   ];
   var JS = [
     // DATA: all flavour text, board layout, decks and the dictionary
@@ -39,7 +39,7 @@
     // LOGIC + RENDER: audio, narration, networking, the games, the lobby,
     // then the launcher. net.js loads before the games that use it.
     "src/audio.js?v=8",
-    "src/narrate.js?v=4",
+    "src/narrate.js?v=5",
     "src/setup.js?v=6",
     "src/net.js?v=9",
     "src/game.js?v=53",
@@ -47,7 +47,7 @@
     "src/td.js?v=11",
     "src/sitrep.js?v=2",
     "src/parley.js?v=1",
-    "src/agenda.js?v=2",
+    "src/agenda.js?v=4",
     "src/platform.js?v=17",
   ];
 
