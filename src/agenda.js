@@ -93,9 +93,41 @@
   const TALK_CAP = 75000;    // never wait longer than this for a voice that went quiet
   const talkOver = () => {
     if (S.talking) return now() - S.talkStart > TALK_CAP;
-    if (settings.voice && CG.Narrate && CG.Narrate.speaking && CG.Narrate.speaking()) return false;   // the voice is still finishing
+    // the voice is still finishing its last words (a few seconds at most:
+    // a browser that wrongly reports "speaking" forever must not stall the show)
+    if (settings.voice && CG.Narrate && CG.Narrate.speaking && CG.Narrate.speaking() && now() - (S.talkEnd || 0) < 4000) return false;
     return now() - (S.talkEnd || 0) >= TALK_GAP;
   };
+  // ---- a steady clock --------------------------------------------------
+  // Browsers slow ordinary timers to once a second (or less) in a tab that is
+  // in the background or a window that is covered, which made the music and
+  // the show stutter. A tiny Web Worker keeps ticking every 25 ms regardless,
+  // and drives the music scheduler, the show and the heartbeats. Falls back
+  // to setInterval where workers are unavailable.
+  const Ticker = (function () {
+    const subs = new Set();
+    let started = false;
+    const run = () => subs.forEach((f) => { try { f(); } catch (e) { if (window.console) console.error(e); } });
+    function start() {
+      if (started) return;
+      started = true;
+      try {
+        const url = URL.createObjectURL(new Blob(["setInterval(function(){postMessage(0)},25);"], { type: "text/javascript" }));
+        const w = new Worker(url);
+        w.onmessage = run;
+        w.onerror = () => { setInterval(run, 25); };
+      } catch (e) { setInterval(run, 25); }
+    }
+    return { add(f) { subs.add(f); start(); }, remove(f) { subs.delete(f); } };
+  })();
+  // Run fn every ms on the steady clock; returns a handle for stopEvery.
+  function every(ms, fn) {
+    let last = Date.now();
+    const f = () => { const t = Date.now(); if (t - last >= ms) { last = t; fn(); } };
+    Ticker.add(f);
+    return f;
+  }
+  function stopEvery(f) { if (f) Ticker.remove(f); }
   const buzz = (p) => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
 
   // =======================================================================
@@ -170,13 +202,14 @@
       sfxBus = ctx.createGain(); sfxBus.gain.value = 0.8; sfxBus.connect(master);
       // a warm hall: decaying stereo noise, gently low-passed so the tail is soft
       verb = ctx.createConvolver();
-      const len = Math.floor(ctx.sampleRate * 3), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      const len = Math.floor(ctx.sampleRate * 2.2), ir = ctx.createBuffer(2, len, ctx.sampleRate);
       for (let ch = 0; ch < 2; ch++) {
         const d = ir.getChannelData(ch); let lp = 0;
         for (let i = 0; i < len; i++) { lp += ((Math.random() * 2 - 1) - lp) * 0.35; d[i] = lp * Math.pow(1 - i / len, 3.2) * 1.6; }
       }
       verb.buffer = ir;
       const vg = ctx.createGain(); vg.gain.value = 0.45; verb.connect(vg); vg.connect(master);
+      setTimeout(() => { try { clapBuffer(); noise({ t: ctx.currentTime, dur: 0.01, v: 0.0001 }); } catch (e) {} }, 600);
       return ctx;
     }
     function unlock() { if (!ensure()) return; if (ctx.state === "suspended") ctx.resume(); }
@@ -221,10 +254,14 @@
     function noise(o) {
       if (!ctx) return;
       const t = o.t, dur = o.dur;
-      const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
-      const buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-      const src = ctx.createBufferSource(); src.buffer = buf;
+      // One shared 4-second noise buffer, read from a random point: no new
+      // buffer (and no million random numbers) for every hat and clap.
+      if (!NOISE) {
+        NOISE = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
+        const d = NOISE.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      const src = ctx.createBufferSource(); src.buffer = NOISE; src.loop = dur > 3.5;
       const f = ctx.createBiquadFilter(); f.type = o.ft || "highpass"; f.frequency.value = o.ff || 6000; f.Q.value = o.q || 0.8;
       f.frequency.setValueAtTime(o.ff || 6000, t);
       if (o.ffTo) f.frequency.exponentialRampToValueAtTime(o.ffTo, t + dur);
@@ -235,7 +272,26 @@
       src.connect(f); f.connect(g);
       const out = route(g, o.bus || musicBus, o.pan);
       if (o.wet) { const w = ctx.createGain(); w.gain.value = o.wet; out.connect(w); w.connect(verb); }
-      src.start(t); src.stop(t + dur + 0.05);
+      src.start(t, Math.random() * Math.max(0, 3.9 - Math.min(dur, 3.5))); src.stop(t + dur + 0.05);
+    }
+    let NOISE = null, CLAPS = null;
+    // Four seconds of a crowd clapping, built once: short filtered noise
+    // bursts at random over a soft murmur, a little different in each ear.
+    function clapBuffer() {
+      if (CLAPS) return CLAPS;
+      const sr = ctx.sampleRate, len = sr * 4;
+      CLAPS = ctx.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = CLAPS.getChannelData(ch);
+        let m = 0;
+        for (let i = 0; i < len; i++) { m += ((Math.random() * 2 - 1) - m) * 0.08; d[i] = m * 0.22; }
+        for (let c = 0; c < 140; c++) {
+          const st = Math.floor(Math.random() * (len - sr * 0.04)), L = Math.floor(sr * (0.008 + Math.random() * 0.02)), a = 0.25 + Math.random() * 0.6;
+          let hp = 0, lp = 0;
+          for (let i = 0; i < L; i++) { const w = Math.random() * 2 - 1, x = w - hp; hp = w; lp += (x - lp) * 0.55; d[st + i] += lp * a * (1 - i / L) * (1 - i / L); }
+        }
+      }
+      return CLAPS;
     }
 
     // ---- the band ---------------------------------------------------------
@@ -257,10 +313,10 @@
       ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v / ms.length * 2, type: "sawtooth", detune: 9, a: 0.06, cut: 500, cutTo: 2600, cutT: Math.min(dur, 0.5), bus, wet: 0.45, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.6 : 0 }));
     }
     function crash(t, v, bus) { noise({ t, dur: 2.2, v: v || 0.12, ft: "highpass", ff: 4000, a: 0.002, bus, wet: 0.5, pan: -0.3 }); }
-    // the string section: five players a part, spread left to right
+    // the string section: three players a part, spread left to right
     function strings(t, ms, dur, v, o) {
       o = o || {};
-      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v, type: "sawtooth", dets: [-15, -6, 0, 7, 14], a: o.a || 0.35, hold: dur * 0.6,
+      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v * 1.15, type: "sawtooth", dets: [-13, 0, 12], a: o.a || 0.35, hold: dur * 0.6,
         cut: o.cut || 1500, vib: 9, vibR: 5 + i * 0.3, bus: o.bus, wet: 0.5, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.9 : 0 }));
     }
     // a felt piano: a soft hammer, a body that darkens as it rings
@@ -276,13 +332,14 @@
         g.gain.exponentialRampToValueAtTime(v, t + 0.6);
         g.gain.setValueAtTime(v, t + dur * 0.7);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        const mix = ctx.createGain(); mix.gain.value = 1;
+        [-10, 11].forEach((d) => {
+          const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = mtof(m); o.detune.value = d;
+          o.connect(mix); o.start(t); o.stop(t + dur + 0.1);
+        });
         [[720, 7], [1150, 9]].forEach(([fq, q]) => {
           const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = fq; bp.Q.value = q;
-          [-10, 0, 11].forEach((d) => {
-            const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = mtof(m); o.detune.value = d;
-            o.connect(bp); o.start(t); o.stop(t + dur + 0.1);
-          });
-          bp.connect(g);
+          mix.connect(bp); bp.connect(g);
         });
         const out = route(g, bus || musicBus, (i % 2 ? 0.35 : -0.35));
         const w = ctx.createGain(); w.gain.value = 0.7; out.connect(w); w.connect(verb);
@@ -481,11 +538,11 @@
       if (lvl != null) level = lvl;
       if (m === mode) return;
       mode = m;
-      if (timer) { clearInterval(timer); timer = null; }
+      if (timer) { Ticker.remove(timer); timer = null; }
       if (!ensure() || m === "off") return;
       unlock();
       step = 0; nextT = ctx.currentTime + (delay || 0.06);
-      timer = setInterval(pump, 40);
+      timer = pump; Ticker.add(pump);
     }
     function setMusic(on) {
       musicOn = !!on;
@@ -516,17 +573,29 @@
     //    8 left    snare on the backbeat, high strings tremolo
     //    3 left    a snare roll into the buzzer and a full-band hit
     // It plays through its own gain so a lock-in or a pause can fade it.
-    let cdBus = null;
+    // It is streamed: each beat is built a quarter of a second before it
+    // sounds, so starting the clock never stalls the page or the voice.
+    let cdBus = null, cdTimer = null, cdEnd = 0, cdN = 0;
+    const CPROG = [[0, 0], [-4, 1], [-2, 1], [-5, 1]];
     function countdown(sec) {
       if (!musicOn || !ensure()) return;
       unlock(); stopCountdown();
       setMode("off");
-      const t0 = ctx.currentTime + 0.03, d = Math.max(0.5, sec), end = t0 + d, B = 0.5;
+      const d = Math.max(0.5, sec);
+      cdEnd = ctx.currentTime + 0.05 + d; cdN = Math.floor(d / 0.5);
       cdBus = ctx.createGain(); cdBus.gain.value = 1; cdBus.connect(duckG);
-      const bus = cdBus, base = 45 + Math.min(level, 9);
-      const CPROG = [[0, 0], [-4, 1], [-2, 1], [-5, 1]];
-      const N = Math.floor(d / B);
-      for (let b = N; b >= 1; b--) {
+      const bus = cdBus;
+      const pumpCd = () => {
+        if (cdBus !== bus) return;
+        while (cdN >= 1 && cdEnd - cdN * 0.5 < ctx.currentTime + 0.25) { clockBeat(cdN, bus); cdN--; }
+        if (cdN < 1) { Ticker.remove(pumpCd); if (cdTimer === pumpCd) cdTimer = null; }
+      };
+      cdTimer = pumpCd; Ticker.add(pumpCd);
+      pumpCd();
+    }
+    function clockBeat(b, bus) {
+      const B = 0.5, end = cdEnd, base = 45 + Math.min(level, 9);
+      {
         const at = end - b * B, L = b * B;
         const p = Math.max(0, Math.min(1, 1 - L / 30));
         const pos = (b - 1) % 4, down = pos === 3;            // 3 = first beat of the bar
@@ -534,37 +603,54 @@
         const [off, maj] = CPROG[(3 - (be % 4) + 4) % 4];     // the last bar is always V
         const k = base + (L <= 10 ? 1 : 0);
         const r = k + off, third = r + (maj ? 4 : 3), fifth = r + 7;
+        // A full groove from the very first second (nobody waits in silence),
+        // then more on top as the clock runs down.
         // the ostinato
         const pat = [r, fifth, r + 12, fifth];
         for (let e = 0; e < 2; e++) {
-          tone({ t: at + e * B / 2, dur: 0.22, f: mtof(pat[((3 - pos) * 2 + e) % 4] - 12), v: 0.06 + p * 0.05, type: "sawtooth", dets: [-7, 7], a: 0.005,
-            cut: 700 + p * 2600, bus, pan: e ? 0.35 : -0.35 });
+          tone({ t: at + e * B / 2, dur: 0.22, f: mtof(pat[((3 - pos) * 2 + e) % 4] - 12), v: 0.09 + p * 0.05, type: "sawtooth", dets: [-7, 7], a: 0.005,
+            cut: 1300 + p * 2400, bus, pan: e ? 0.35 : -0.35 });
         }
+        // the pulsing synth sequence, in sixteenths
+        const seq = [r + 12, fifth + 12, third + 12, fifth + 12];
+        for (let q = 0; q < 4; q++) tone({ t: at + q * B / 4, dur: B / 4 * 0.9, f: mtof(seq[q]), v: q === 0 ? 0.045 : 0.03, type: "square", a: 0.003,
+          cut: 1500 + p * 1500, cutTo: 500, bus, wet: 0.25, pan: q % 2 ? 0.3 : -0.3 });
         // the clock: tick on the whole second, tock on the half
         const whole = b % 2 === 0;
         tone({ t: at, dur: 0.06, f: whole ? 1568 : 1175, v: (whole ? 0.05 : 0.03) + p * 0.05, type: "sine", cut: 7000, bus, pan: whole ? -0.2 : 0.2 });
-        // bass
-        bassNote(at, r - 12, 0.28, 0.08 + p * 0.04, bus);
-        if (L <= 10) bassNote(at + B / 2, r - 12, 0.2, 0.08, bus);
+        // bass on every beat, doubled at the end
+        bassNote(at, r - 12, 0.3, 0.1 + p * 0.04, bus);
+        if (L <= 10) bassNote(at + B / 2, r - 12, 0.2, 0.09, bus);
         if (down) {
-          strings(at, [r, third, fifth], 2.05, 0.03 + p * 0.035, { bus, cut: 600 + p * 2800, a: 0.25 });
+          strings(at, [r, third, fifth, r + 12], 2.05, 0.045 + p * 0.03, { bus, cut: 1000 + p * 2400, a: 0.2 });
           const pc = ((r - 33) % 12 + 12) % 12;
-          timp(at, 33 + (pc > 6 ? pc - 12 : pc), 0.12 + p * 0.25, bus);
+          timp(at, 33 + (pc > 6 ? pc - 12 : pc), 0.16 + p * 0.22, bus);
           if (L <= 12) brass(at, [r - 12, r, third, fifth], 0.5, 0.12 + p * 0.1, bus);
         }
-        if ((L <= 20 && (down || pos === 1)) || L <= 10) kick(at, 0.3 + p * 0.25, bus);
-        if (L <= 16) { hat(at + B / 2, 0.03, bus); if (L <= 10) hat(at, 0.025, bus); }
-        if (L <= 8 && (pos === 2 || pos === 0)) snare(at, 0.08 + p * 0.04, bus);
+        // drums: a heartbeat kick from the start, then the full kit
+        if (down || pos === 1 || L <= 10) kick(at, 0.32 + p * 0.25, bus);
+        hat(at + B / 2, 0.022 + p * 0.015, bus);
+        if (L <= 20) hat(at, 0.02, bus);
+        if ((L <= 20 && pos === 0) || (L <= 8 && pos === 2)) snare(at, 0.07 + p * 0.05, bus);
         if (L <= 8) for (let q = 0; q < 4; q++) tone({ t: at + q * B / 4, dur: 0.11, f: mtof(fifth + 12), v: 0.02 + p * 0.015, type: "sawtooth", dets: [-9, 9], a: 0.004, cut: 4200, bus, pan: 0.4 });
       }
-      // the snare roll into zero
-      let x = Math.max(t0, end - 3), gap = 0.12;
-      while (x < end) { noise({ t: x, dur: 0.06, v: 0.03 + 0.08 * (1 - (end - x) / 3), ft: "bandpass", ff: 2400, q: 0.7, bus }); gap = Math.max(0.03, gap * 0.92); x += gap; }
+      // the snare roll into zero, a beat at a time, getting tighter
+      const at = end - b * B, L = b * B;
+      if (L <= 3) {
+        for (let x = at; x < at + B; ) {
+          const left = end - x;
+          noise({ t: x, dur: 0.06, v: 0.03 + 0.08 * (1 - left / 3), ft: "bandpass", ff: 2400, q: 0.7, bus });
+          x += Math.max(0.03, 0.12 * (left / 3));
+        }
+      }
       // time's up
-      const kk = base + 1;
-      brass(end, [kk - 12, kk - 5, kk, kk + 3], 1.6, 0.26, bus); kick(end, 0.65, bus); crash(end, 0.12, bus); timp(end, 33 + 1, 0.4, bus);
+      if (b === 1) {
+        const kk = base + 1;
+        brass(end, [kk - 12, kk - 5, kk, kk + 3], 1.6, 0.26, bus); kick(end, 0.65, bus); crash(end, 0.12, bus); timp(end, 33 + 1, 0.4, bus);
+      }
     }
     function stopCountdown() {
+      if (cdTimer) { Ticker.remove(cdTimer); cdTimer = null; }
       if (!cdBus || !ctx) return;
       const b = cdBus; cdBus = null;
       b.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.08);
@@ -582,15 +668,19 @@
         [[0, 74], [0.3, 69], [0.45, 74], [0.6, 76], [0.9, 77]].forEach(([dt, m]) => bell(h + 0.2 + dt, m + 12, 0.07, sfxBus, 1.6));
       }),
       // A studio audience: hundreds of claps that swell and fade, a cheer under them
+      // A studio audience. The claps are rendered once into a stereo buffer
+      // and replayed, so applause costs a handful of nodes, not hundreds.
       applause: (sec) => fx((t) => {
-        const d = sec || 4;
-        noise({ t, dur: d, v: 0.035, ft: "bandpass", ff: 900, q: 0.5, a: 0.4, bus: sfxBus, wet: 0.4 });
-        const n = Math.floor(d * 55);
-        for (let i = 0; i < n; i++) {
-          const x = Math.random() * d, env = Math.sin(Math.PI * Math.min(1, x / d)) * 0.8 + 0.2;
-          noise({ t: t + x, dur: 0.02 + Math.random() * 0.03, v: 0.03 * env * (0.5 + Math.random()), ft: "bandpass", ff: 900 + Math.random() * 1800, q: 1.5,
-            bus: sfxBus, pan: Math.random() * 1.6 - 0.8, wet: 0.2 });
-        }
+        const d = sec || 4, src = ctx.createBufferSource();
+        src.buffer = clapBuffer(); src.loop = true;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.55, t + 0.35);
+        g.gain.setValueAtTime(0.55, t + Math.max(0.4, d - 1.2));
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+        src.connect(g); g.connect(sfxBus);
+        const w = ctx.createGain(); w.gain.value = 0.25; g.connect(w); w.connect(verb);
+        src.start(t, Math.random() * 3); src.stop(t + d + 0.05);
       }),
       // "Let's play": a rising sweep into a big minor chord for each new question
       letsPlay: () => mus((t) => {
@@ -610,6 +700,11 @@
         bell(t + 0.02, 88 + level, 0.06, sfxBus, 1.2);
       }),
       tick: (last) => fx((t) => tone({ t, dur: 0.06, f: last ? 1760 : 1320, v: last ? 0.1 : 0.06, type: "sine", cut: 6000, bus: sfxBus })),
+      // lights down: one deep hit and a rising drone (the suspense loop carries on)
+      lightsDown: () => mus((t) => {
+        kick(t, 0.6, sfxBus); timp(t, 33 + Math.min(level, 9) % 12, 0.35, sfxBus);
+        tone({ t, dur: 5.4, f: mtof(33 + level), glide: mtof(45 + level), glideT: 5, v: 0.1, type: "sawtooth", dets: [-14, 14], a: 0.8, hold: 3.8, cut: 300, cutTo: 2200, bus: sfxBus });
+      }),
       // five seconds of suspense: a heartbeat, a rising drone, a snare roll
       suspense: (sec) => mus((t) => {
         const d = sec || 5;
@@ -739,9 +834,9 @@
   }
   function saveDeck() { if (S.role === "host" && S.g && S.g.id) ls("cg_agenda_deck_" + S.g.id, { deck: S.deck, picks: S.picks }); }
 
-  function setPhase(phase, len) {
+  function setPhase(phase, len, reading) {
     const g = S.g;
-    g.paused = false; g.left = 0;
+    g.paused = false; g.left = 0; g.reading = !!reading;
     g.phase = phase; g.phaseLen = len || 0; g.pk = (g.pk || 0) + 1;
     S.t0 = now(); S.pk = g.pk;
     publish({ summary: phase === "lobby" || phase === "countdown" || phase === "final" });
@@ -749,7 +844,13 @@
   }
   // While the host has paused the show, the clock stands still at the time
   // that was left; on resume every screen restarts it from there.
-  function elapsed() { const g = S.g; return g && g.paused ? Math.max(0, g.phaseLen - (g.left || 0)) : now() - S.t0; }
+  // While the host reads the question out, the clock waits at its start line.
+  function elapsed() {
+    const g = S.g;
+    if (g && g.paused) return Math.max(0, g.phaseLen - (g.left || 0));
+    if (g && g.reading) return Math.min(now() - S.t0, INTRO_MS - 1);
+    return now() - S.t0;
+  }
   const canPause = (g) => !!g && ["question", "suspense", "reveal"].indexOf(g.phase) >= 0;
 
   function pauseShow() {
@@ -771,10 +872,12 @@
     g.paused = false; g.pz = (g.pz || 0) + 1;
     S.t0 = now() - (g.phaseLen - left);
     S.cdStarted = false; S.lastTick = -1;
-    if (g.phase === "question" && S.role === "solo") scheduleAI(g.qi, left);
+    if (g.phase === "question" && S.role === "solo" && !g.reading) scheduleAI(g.qi, left);
     SA.select();
     publish();
     musicForPhase();
+    // the answer clock's music picks up with exactly the time that was left
+    if (g.phase === "question" && !g.reading && left > 600) { S.cdStarted = true; SA.countdown(left / 1000); }
     paintPause();
   }
   function togglePause() { const g = S.g; if (g && g.paused) resumeShow(); else pauseShow(); }
@@ -822,12 +925,12 @@
     S.revealAsked = false;
     document.querySelectorAll(".ag-pod.score-pop").forEach((n) => n.classList.remove("score-pop"));
     saveDeck();
-    setPhase("question", INTRO_MS + g.timer * 1000);
-    if (S.role === "solo") scheduleAI(qi);
+    // The 30 seconds start only once the host has read the question out.
+    setPhase("question", INTRO_MS + g.timer * 1000, true);
   }
   function recordPick(qi, p, c, ms, fifty) {
     const g = S.g;
-    if (g.phase !== "question" || g.paused || g.qi !== qi || !g.players[p] || g.locked[p]) return false;
+    if (g.phase !== "question" || g.paused || g.reading || g.qi !== qi || !g.players[p] || g.locked[p]) return false;
     if (elapsed() > g.phaseLen + 400 || S.revealAsked) return false;   // the clock has run out
     S.picks[qi][p] = { c, ms: Math.max(0, Math.min(ms | 0, g.timer * 1000)) };
     if (fifty) g.players[p].fifty = true;
@@ -875,11 +978,14 @@
   function hostLoop() {
     const g = S.g;
     if (!g || !isStage() || g.paused) return;
+    runAI();
     const t = elapsed();
     if (g.phase === "lobby") {
       if (filled(g).length === g.seats) startCountdown();
     } else if (g.phase === "countdown") {
       if (t >= g.phaseLen && talkOver()) startQuestion(0);
+    } else if (g.phase === "question" && g.reading) {
+      if (t >= INTRO_MS - 1 && talkOver()) startClock();
     } else if (g.phase === "question") {
       // Players always get the full answer time. When everyone has locked
       // in, the host may choose to reveal early (see revealNow).
@@ -896,6 +1002,17 @@
     }
   }
 
+  // The question has been read: the clock starts on every screen.
+  function startClock() {
+    const g = S.g;
+    g.reading = false; g.rz = (g.rz || 0) + 1;
+    S.t0 = now() - INTRO_MS; S.lastTick = -1;
+    S.cdStarted = true; SA.countdown(g.timer);
+    if (S.role === "solo") scheduleAI(g.qi, g.timer * 1000);
+    SA.select();
+    publish();
+    updateBoard(); paintPods();
+  }
   function allLocked(g) {
     const act = g.players.map((p, i) => i).filter((i) => !g.players[i].vacant && !g.players[i].away);
     return act.length > 0 && act.every((i) => g.locked[i]);
@@ -910,7 +1027,16 @@
   }
 
   // ---- AI contestants (solo) ---------------------------------------------
-  function clearAI() { S.aiTimers.forEach(clearTimeout); S.aiTimers = []; }
+  // AI answers wait on the steady clock (not setTimeout, which a background
+  // tab slows down), so they always land inside the 30 seconds.
+  function clearAI() { S.aiTimers = []; }
+  function runAI() {
+    if (!S.aiTimers.length) return;
+    const t = now(), due = S.aiTimers.filter((a) => a.at <= t);
+    if (!due.length) return;
+    S.aiTimers = S.aiTimers.filter((a) => a.at > t);
+    due.forEach((a) => a.fn());
+  }
   function scheduleAI(qi, leftMs) {
     clearAI();
     const g = S.g, d = S.deck[qi], lv = LEVELS[g.level] || LEVELS.sharp;
@@ -920,7 +1046,7 @@
       // AI contestants take their time like anyone else, in AI vs AI too.
       const wait = leftMs != null ? randInt(600, Math.max(900, leftMs - 1200))
         : INTRO_MS + randInt(1800, Math.max(2500, g.timer * 1000 - 1200));
-      S.aiTimers.push(setTimeout(() => {
+      S.aiTimers.push({ at: now() + wait, fn: () => {
         if (S.g !== g || g.phase !== "question" || g.qi !== qi) return;
         // When watching AIs, one may spend their 50:50 on a hard question.
         let boost = 0;
@@ -928,7 +1054,7 @@
         const right = Math.random() < lv.acc[d.t - 1] + (p.skill || 0) + boost;
         const c = right ? d.c : rand([0, 1, 2, 3].filter((k) => k !== d.c));
         if (recordPick(qi, i, c, Math.max(0, elapsed() - INTRO_MS), false)) { SA.pop(); paintPods(); updateBoard(); }
-      }, wait));
+      } });
     });
   }
 
@@ -1040,8 +1166,13 @@
     S.net.hostSeen = now();
     const seat = mySeat();
     if (S.net.joining && seat >= 0) { S.net.joining = null; S.role = "phone"; SA.join(); buzz(30); }
-    if (!was || ng.pk !== S.pk) { S.pk = ng.pk; S.t0 = now(); S.pz = ng.pz; onPhase(false); }
-    else paintPhone(false);
+    if (!was || ng.pk !== S.pk) { S.pk = ng.pk; S.t0 = now(); S.pz = ng.pz; S.rz = ng.rz; if (!ng.reading && ng.phase === "question" && was) S.t0 = now() - INTRO_MS; onPhase(false); }
+    else if (ng.rz !== S.rz) {
+      // the host finished reading: the clock starts now
+      S.rz = ng.rz;
+      if (ng.phase === "question" && !ng.reading && !ng.paused) { S.t0 = now() - INTRO_MS; S.lastTick = -1; buzz(30); }
+      paintPhone(false);
+    } else paintPhone(false);
     if (ng.pz !== S.pz) {
       S.pz = ng.pz;
       if (!ng.paused) S.t0 = now() - (ng.phaseLen - (ng.left || 0));
@@ -1069,12 +1200,12 @@
     clearAI();
     stopAutoNext();
     stopList();
-    if (S.loop) { clearInterval(S.loop); S.loop = null; }
-    if (S.net.tick) { clearInterval(S.net.tick); S.net.tick = null; }
+    if (S.loop) { stopEvery(S.loop); S.loop = null; }
+    if (S.net.tick) { stopEvery(S.net.tick); S.net.tick = null; }
     if (S.raf) { cancelAnimationFrame(S.raf); S.raf = 0; }
     if (room() && S.g && S.g.id) { room().unwatch(); room().offLive(); }
     closeOverlay(true);
-    SA.setMode("off");
+    SA.stopCountdown();   // the music itself plays on into the next screen
     S.mounted = false; S.role = null; S.g = null; S.deck = null; S.picks = {}; S.net.joining = null;
     hush();
     window.removeEventListener("resize", fitStage);
@@ -1177,7 +1308,7 @@
   function renderTitle() {
     teardown(); setQuery(null);
     const w = screen("ag-title");
-    w.appendChild(backBtn("← Games", () => CG.Platform.show()));
+    w.appendChild(backBtn("← Games", () => { SA.setMode("off"); CG.Platform.show(); }));
     const logo = el("div", "ag-logo");
     logo.innerHTML = wheelSvg("ag-logo-wheel", `<text x="60" y="57" class="ag-logo-y">2030</text><text x="60" y="72" class="ag-logo-s">AGENDA</text>`);
     w.appendChild(logo);
@@ -1215,6 +1346,7 @@
     if (st.shows) w.appendChild(el("p", "ag-record", `<b>Your record</b> · ${st.shows} show${st.shows === 1 ? "" : "s"} · ${st.wins} won · ${st.right} of ${st.asked} right · best ${st.best}/10`));
     const n = (CG.AGENDA_QS || []).length;
     w.appendChild(el("p", "ag-credit", `${n} questions, each checked against official UN sources. Music is generated live in your browser.`));
+    SA.setMusic(settings.music); SA.setSfx(settings.sfx);
     SA.setMode(settings.music ? "theme" : "off");
   }
 
@@ -1445,7 +1577,7 @@
     mountPhone();
     room().watch(code, applyRemote);
     room().onLive(code, phoneLive);
-    S.net.tick = setInterval(phoneTick, 1500);
+    S.net.tick = every(1500, phoneTick);
     if (S.net.joining) sendLive({ t: "join", name: nm, icon });
     if (S.role === "watch") toast("Every seat is taken. You're watching; if a seat opens, you can jump in.");
   }
@@ -1457,7 +1589,7 @@
     teardown();
     S.role = "solo"; S.g = g; S.deck = null; S.picks = {};
     mountStage();
-    S.loop = setInterval(hostLoop, 200);
+    S.loop = every(200, hostLoop);
     startCountdown();
   }
   function enterHost(g) {
@@ -1469,8 +1601,8 @@
     mountStage();
     room().watch(g.id, (ng) => { if (!ng && S.role === "host") { toast("The show was closed"); setTimeout(renderTitle, 1200); } });
     room().onLive(g.id, onHostLive);
-    S.loop = setInterval(hostLoop, 200);
-    S.net.tick = setInterval(hostTick, 2500);
+    S.loop = every(200, hostLoop);
+    S.net.tick = every(2500, hostTick);
     S.net.lastPut = now();
     S.t0 = now(); S.pk = g.pk;
     stagePhase();
@@ -1553,8 +1685,8 @@
     if (g.phase === "lobby") SA.setMode("theme");
     else if (g.phase === "final") SA.setMode("win", 0, 2.4);
     else if (g.phase === "countdown") SA.setMode("theme", lvl, 3.6);          // after the opening sting
-    else if (g.phase === "question") SA.setMode(elapsed() >= g.phaseLen ? "suspense" : "off", lvl);   // the clock cue plays itself
-    else if (g.phase === "suspense") SA.setMode("suspense", lvl, SUSPENSE_MS / 1000);   // after the suspense sting
+    else if (g.phase === "question") SA.setMode(elapsed() >= g.phaseLen ? "suspense" : g.reading ? "question" : "off", lvl, g.reading ? 2.2 : 0);   // a bed under the reading; then the clock cue plays itself
+    else if (g.phase === "suspense") SA.setMode("suspense", lvl);
     else if (g.phase === "reveal") SA.setMode("bed", lvl + 1, 2.2);          // after the right-or-wrong sting
     else SA.setMode("off", lvl);
   }
@@ -1574,8 +1706,8 @@
       [0, 1, 2, 3].forEach((i) => setTimeout(() => { if (S.g === g && g.phase === "question") SA.plate(i); }, 900 + i * 260));
       say(`${questionIntro(g.qi, d.t)} ${d.q}`);
     } else if (g.phase === "suspense") {
-      SA.suspense(SUSPENSE_MS / 1000);
-      say(rand(["Final answers are in.", "Everyone's locked in. Let's see…", "No more changes now. Here it comes…", "The answers are in. Lights down…"]));
+      SA.lightsDown();
+      say(rand(["Final answers are in.", "Everyone's locked in. Let's see…", "No more changes now. Here it comes…", "The answers are in. Let's find out…"]));
     } else if (g.phase === "reveal") {
       revealFx();
     } else if (g.phase === "final") {
@@ -1652,7 +1784,7 @@
       p.classList.toggle("right", reveal && d.c === i);
       p.classList.toggle("wrong", reveal && d.c !== i && mine >= 0 && g.answers[g.qi] && g.answers[g.qi][mine] === i);
       p.classList.toggle("dim", reveal && d.c !== i);
-      p.disabled = mine < 0 || g.phase !== "question" || S.me.locked || !!gone;
+      p.disabled = mine < 0 || g.phase !== "question" || !!g.reading || S.me.locked || !!gone;
       const who = $("ag-who" + i);
       if (who) who.innerHTML = reveal && g.answers[g.qi]
         ? g.players.map((pl, k) => (g.answers[g.qi][k] === i ? `<i style="--c:${pl.color}"><span>${pl.icon}</span><em>${esc(pl.name)}</em></i>` : "")).join("")
@@ -1669,6 +1801,8 @@
         `<small>${right} of ${n} got it right${d.s ? ` · <a href="${esc(d.s)}" target="_blank" rel="noopener">source</a>` : ""}</small></div>`;
     } else if (g.phase === "suspense") {
       u.innerHTML = `<div class="ag-status hush">Final answers are in…</div>`;
+    } else if (g.phase === "question" && g.reading) {
+      u.innerHTML = `<div class="ag-status listen">🎧 Listen to the question. The 30 seconds start when it has been read.</div>`;
     } else if (mine === 0 && g.phase === "question") {
       const me = g.players[0];
       u.innerHTML = "";
@@ -1929,7 +2063,7 @@
   // ---- solo: choosing and locking ----------------------------------------
   function soloSelect(i) {
     const g = S.g;
-    if (meSeat() !== 0 || g.phase !== "question" || S.me.locked || g.paused) return;
+    if (meSeat() !== 0 || g.phase !== "question" || S.me.locked || g.paused || g.reading) return;
     if (S.me.fifty && S.me.fifty.indexOf(i) >= 0) return;
     if (elapsed() < INTRO_MS - 400 || elapsed() >= g.phaseLen) return;
     S.me.sel = i; SA.select(); updateBoard();
@@ -2081,19 +2215,19 @@
       let left = AUTO_NEXT_S;
       const paint = () => { note.innerHTML = `Next show starts in <b>${left}</b> s`; };
       paint();
-      S.autoNext = setInterval(() => {
+      S.autoNext = every(1000, () => {
         if (S.g !== g || g.phase !== "final") return stopAutoNext();
         if (g.paused) return;
         if (S.talking && left <= 1) return;   // let the host finish the send-off
         left--; paint();
         if (left <= 0) { stopAutoNext(); playAgain(); }
-      }, 1000);
+      });
     }
     say(top ? (tie ? `What a finish… it's a dead heat, at ${top.score} out of ten!` : `Ladies and gentlemen… the winner of tonight's show is… ${top.name}! With ${top.score} out of ten. Congratulations!`) : "");
   }
 
   const AUTO_NEXT_S = 25;
-  function stopAutoNext() { if (S.autoNext) { clearInterval(S.autoNext); S.autoNext = null; } }
+  function stopAutoNext() { if (S.autoNext) { stopEvery(S.autoNext); S.autoNext = null; } }
 
   function share(g) {
     const order = rank(g);
@@ -2126,7 +2260,7 @@
       `<div class="ag-fx" id="ag-fx"></div><div class="ag-toasts" id="ag-toasts"></div>`;
     root.appendChild(st);
     S.mounted = true;
-    SA.setMusic(false); SA.setSfx(settings.sfx);
+    SA.setMode("off"); SA.setMusic(false); SA.setSfx(settings.sfx);   // the big screen carries the music
     startRaf();
     paintPhone(true);
   }
@@ -2287,12 +2421,13 @@
       p.classList.toggle("sel", S.me.sel === i && !S.me.locked);
       p.classList.toggle("locked", S.me.sel === i && S.me.locked);
       p.classList.toggle("dim", S.me.locked && S.me.sel !== i);
-      p.disabled = !me || S.me.locked || !!gone;
+      p.disabled = !me || S.me.locked || !!gone || !!g.reading;
     }
     const act = $("ag-ph-act");
     if (!act) return;
     act.innerHTML = "";
     if (!me) { act.innerHTML = `<div class="ag-ph-verdict">👀 Watching</div>`; return; }
+    if (g.reading) { act.innerHTML = `<div class="ag-ph-verdict listen">🎧 Listen to the question<small>Your 30 seconds start when it has been read</small></div>`; return; }
     if (S.me.locked) {
       const n = active(g).length, k = g.players.filter((p, i) => !p.vacant && g.locked[i]).length;
       act.innerHTML = `<div class="ag-ph-verdict lock">🔒 Locked in: <b>${LETTERS[S.me.sel]}</b><small>${confirmed ? `${k} of ${n} in · keep it secret` : "sending…"}</small></div>`;
@@ -2323,13 +2458,13 @@
     } else if (cur) cur.remove();
   }
   function phoneSelect(i) {
-    if (S.me.locked || mySeat() < 0 || S.g.phase !== "question" || S.g.paused || elapsed() >= S.g.phaseLen) return;
+    if (S.me.locked || mySeat() < 0 || S.g.phase !== "question" || S.g.paused || S.g.reading || elapsed() >= S.g.phaseLen) return;
     if (S.me.fifty && S.me.fifty.indexOf(i) >= 0) return;
     S.me.sel = i; SA.select(); buzz(8); phoneLight();
   }
   function phoneLock() {
     const g = S.g;
-    if (S.me.sel < 0 || S.me.locked || g.phase !== "question" || g.paused || elapsed() >= g.phaseLen) return;
+    if (S.me.sel < 0 || S.me.locked || g.phase !== "question" || g.paused || g.reading || elapsed() >= g.phaseLen) return;
     S.me.locked = true; S.me.qi = g.qi;
     S.me.ms = Math.max(0, now() - S.t0 - INTRO_MS);
     saveMe();
@@ -2369,7 +2504,7 @@
     b.onclick = () => { setQuery(null); renderTitle(); };
     body.firstChild.appendChild(b);
     if (room()) { room().unwatch(); room().offLive(); }
-    if (S.net.tick) { clearInterval(S.net.tick); S.net.tick = null; }
+    if (S.net.tick) { stopEvery(S.net.tick); S.net.tick = null; }
   }
 
   // =======================================================================

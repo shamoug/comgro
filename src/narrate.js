@@ -133,10 +133,11 @@
     if (!t) { fire(); return; }
     const my = ++gen;
     const ss = window.speechSynthesis;
-    // Chrome drops an utterance spoken straight after cancel(), so only
-    // cancel when something is actually playing, and give it a moment.
-    let busy = false;
-    try { busy = ss.speaking || ss.pending; if (busy) ss.cancel(); } catch (e) {}
+    // Never talk over a line that is still finishing: wait up to 2.5 s for
+    // the voice to go quiet, and only then clear a stuck engine. (Chrome
+    // also drops an utterance spoken straight after cancel(), hence the
+    // short pause after it.)
+    const isBusy = () => { try { return ss.speaking || ss.pending; } catch (e) { return false; } };
     if (!chosen) loadVoices();
     const list = phrases(t);
     const baseRate = (opts && opts.rate) || (natural() ? 1.0 : 0.95);
@@ -176,13 +177,22 @@
         const watch = () => {
           if (done || my !== gen) return;
           const quiet = !ss.speaking && !ss.pending;
-          if ((Date.now() - t0 > fair && quiet) || Date.now() - t0 > 45000) after();
+          // a voice that claims to speak far longer than the phrase needs is stuck
+          if ((Date.now() - t0 > fair && quiet) || Date.now() - t0 > fair * 1.6 + 1500) after();
           else setTimeout(watch, 400);
         };
         setTimeout(watch, fair);
       } catch (e) { fire(); }
     };
-    if (busy) setTimeout(next, 80); else next();
+    const waitStart = Date.now();
+    const go = () => {
+      if (my !== gen) return;
+      if (!isBusy()) return next();
+      if (Date.now() - waitStart < 2500) return setTimeout(go, 100);
+      try { ss.cancel(); } catch (e) {}
+      setTimeout(next, 80);
+    };
+    go();
   };
   const live = [];
   // True while a line is still being spoken (for callers that must wait).

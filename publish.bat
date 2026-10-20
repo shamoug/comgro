@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v13, agenda.css v11, narrate.js v7, boot.js v15): SMOOTH
+REM              AND STEADY. The 30-second clock starts only after the host has read the
+REM              question (answers show but wait, "Listen to the question"), with a music
+REM              bed under the reading. A Web Worker clock drives the music, the show, AI
+REM              answers and heartbeats, so nothing stutters when the tab is in the
+REM              background. The answer music is streamed beat by beat (it used to build
+REM              thousands of sound nodes at once); one shared noise buffer, a pre-rendered
+REM              applause, lighter strings and choir, a shorter reverb; no blur effects over
+REM              the moving lights. narrate.js: never talks over a line still finishing,
+REM              and a browser stuck on "speaking" can no longer stall the show. Music plays
+REM              behind every screen, low under the host. The host no longer says "Lights
+REM              down".
 REM  2026-10-20  AGENDA 2030 (agenda.js v10, agenda.css v9, boot.js v12): STANDINGS AND STREAKS.
 REM              The leader wears a crown on the podiums, every podium shows its rank on
 REM              the reveal, and 2 or more right in a row shows a fire streak. The host

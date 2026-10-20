@@ -85,7 +85,7 @@ resolutions and agency sites). The answers are shuffled every show.
 - **Phones are private answer pads.** Each question shows on the big screen and on
   every phone. You always get the full **30 seconds**, under a countdown score that
   builds to the buzzer (once everyone is in, the host can reveal early): tap an answer, then lock it in. Nobody sees anybody's pick.
-- **Five seconds of suspense**, lights down, then the right answer lights up, the
+- **Five seconds of suspense**, the stage darkens, then the right answer lights up, the
   avatars and names show who picked what, and a fact appears with its official
   source. The show never moves on while the host is still explaining the answer.
 - **Every phone shows its verdict** in a big card: a green tick and the new
@@ -108,7 +108,8 @@ resolutions and agency sites). The answers are shuffled every show.
   normal contestants; when a show ends the next one starts by itself (good for a
   screen in a hall).
 - **The host is never interrupted.** Lines queue up, and the show waits for the
-  host to finish before every step.
+  host to finish before every step. The 30 seconds start only once the question
+  has been read out.
 - **An original score that never stops**, synthesised live: a theme with strings,
   piano, brass, choir and drums, a "let's play" sting for each question, a
   30-second answer clock that lifts a key for the last ten seconds, a pulsing
