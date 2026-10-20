@@ -202,7 +202,7 @@
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
-      comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 3.5;
+      comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 14; comp.ratio.value = 2.5;
       master = ctx.createGain(); master.gain.value = 0.85;
       master.connect(comp); comp.connect(ctx.destination);
       duckG = ctx.createGain(); duckG.gain.value = 1; duckG.connect(master);
@@ -309,27 +309,28 @@
     // ---- the band ---------------------------------------------------------
     function kick(t, v, bus) { tone({ t, dur: 0.35, f: 130, glide: 38, glideT: 0.22, v: v || 0.5, type: "sine", cut: 900, bus }); }
     function snare(t, v, bus) {
-      noise({ t, dur: 0.2, v: v || 0.12, ft: "bandpass", ff: 1900, q: 0.6, bus, wet: 0.2 });
-      tone({ t, dur: 0.11, f: 200, glide: 150, v: (v || 0.12) * 0.9, type: "triangle", cut: 1200, bus });
+      noise({ t, dur: 0.14, v: (v || 0.12) * 0.45, ft: "bandpass", ff: 1500, q: 0.8, bus, wet: 0.15 });
+      tone({ t, dur: 0.12, f: 190, glide: 150, v: (v || 0.12) * 0.9, type: "triangle", cut: 1000, bus });
     }
     function timp(t, m, v, bus) {
       tone({ t, dur: 1.1, f: mtof(m) * 1.04, glide: mtof(m), glideT: 0.08, v: v || 0.35, type: "sine", cut: 700, bus, wet: 0.35 });
       noise({ t, dur: 0.08, v: (v || 0.35) * 0.25, ft: "lowpass", ff: 900, bus });
     }
-    function hat(t, v, bus, open) { noise({ t, dur: open ? 0.22 : 0.05, v: v || 0.05, ft: "highpass", ff: 7500, bus, pan: 0.25 }); }
+    // hats are a whisper, not a hiss
+    function hat(t, v, bus, open) { noise({ t, dur: open ? 0.12 : 0.035, v: (v || 0.05) * 0.4, ft: "bandpass", ff: 8000, q: 1, bus, pan: 0.25 }); }
     function bell(t, m, v, bus, dur) {
       tone({ t, dur: dur || 1.4, f: mtof(m), v: v || 0.12, type: "sine", cut: 6000, bus, wet: 0.6 });
       tone({ t, dur: (dur || 1.4) * 0.5, f: mtof(m) * 2.76, v: (v || 0.12) * 0.25, type: "sine", cut: 9000, bus, wet: 0.6 });
     }
     function brass(t, ms, dur, v, bus) {
-      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v / ms.length * 2, type: "sawtooth", detune: 9, a: 0.06, cut: 500, cutTo: 2600, cutT: Math.min(dur, 0.5), bus, wet: 0.45, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.6 : 0 }));
+      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v / ms.length * 2, type: "sawtooth", detune: 9, a: 0.06, cut: 450, cutTo: 1700, cutT: Math.min(dur, 0.5), bus, wet: 0.45, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.6 : 0 }));
     }
-    function crash(t, v, bus) { noise({ t, dur: 2.2, v: v || 0.12, ft: "highpass", ff: 4000, a: 0.002, bus, wet: 0.5, pan: -0.3 }); }
+    function crash(t, v, bus) { noise({ t, dur: 1.8, v: (v || 0.12) * 0.45, ft: "bandpass", ff: 6000, q: 0.7, a: 0.004, bus, wet: 0.5, pan: -0.3 }); }
     // the string section: three players a part, spread left to right
     function strings(t, ms, dur, v, o) {
       o = o || {};
-      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v * 1.15, type: "sawtooth", dets: [-13, 0, 12], a: o.a || 0.35, hold: dur * 0.6,
-        cut: o.cut || 1500, vib: 9, vibR: 5 + i * 0.3, bus: o.bus, wet: 0.5, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.9 : 0 }));
+      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v * 1.05, type: "sawtooth", dets: [-13, 0, 12], a: o.a || 0.35, hold: dur * 0.6,
+        cut: Math.min(o.cut || 1400, 1800), vib: 9, vibR: 5 + i * 0.3, bus: o.bus, wet: 0.5, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.9 : 0 }));
     }
     // a felt piano: a soft hammer, a body that darkens as it rings
     function piano(t, m, v, dur, bus, pan) {
@@ -430,7 +431,7 @@
         if (lv === 0) bell(t, m, 0.06, null, Math.max(1, dur * 1.4));
         else if (lv === 1) tone({ t, dur: dur * 1.05, f: mtof(m - 12), v: 0.07, type: "sawtooth", detune: 6, a: 0.05, hold: dur * 0.6, cut: 1300, vib: 10, wet: 0.45 });
         else {
-          tone({ t, dur: dur * 1.05, f: mtof(m), v: 0.06, type: "sawtooth", detune: 8, a: 0.03, hold: dur * 0.65, cut: 900, cutTo: 2800, cutT: Math.min(dur, 0.25), vib: 12, wet: 0.4, pan: -0.15 });
+          tone({ t, dur: dur * 1.05, f: mtof(m), v: 0.055, type: "sawtooth", detune: 8, a: 0.03, hold: dur * 0.65, cut: 800, cutTo: 1800, cutT: Math.min(dur, 0.25), vib: 12, wet: 0.4, pan: -0.15 });
           tone({ t, dur: dur * 1.05, f: mtof(m - 12), v: 0.045, type: "sawtooth", detune: 10, a: 0.04, hold: dur * 0.65, cut: 1100, vib: 10, wet: 0.4, pan: 0.15 });
         }
       }
@@ -466,11 +467,11 @@
         [r, third, fifth, r + 12].forEach((m, j) => tone({ t, dur: sd * 16 * 1.06, f: mtof(m), v: 0.032, type: "sawtooth", dets: [-12, 0, 12],
           a: 0.5, hold: sd * 9, cut: 500, cutTo: 1800, cutT: sd * 10, vib: 6, wet: 0.5, pan: (j - 1.5) * 0.3 }));
         bassNote(t, r - 12, sd * 15, 0.09);
-        if (bar % 4 === 0) { timp(t, 33 + ((k - 33) % 12), 0.16); noise({ t, dur: 2.4, v: 0.03, ft: "highpass", ff: 5000, a: 1.2, wet: 0.6 }); }
+        if (bar % 4 === 0) timp(t, 33 + ((k - 33) % 12), 0.16);
       }
       // the sequence: a pulsing synth arpeggio in sixteenths
       const seq = [r + 12, fifth + 12, third + 12, fifth + 12, r + 24, fifth + 12, third + 12, fifth];
-      tone({ t, dur: sd * 0.9, f: mtof(seq[i % 8]), v: i % 4 === 0 ? 0.05 : 0.032, type: "square", a: 0.003, cut: 1400 + (i % 4 === 0 ? 900 : 0), cutTo: 500, wet: 0.3, pan: i % 2 ? 0.35 : -0.35 });
+      tone({ t, dur: sd * 0.9, f: mtof(seq[i % 8]), v: i % 4 === 0 ? 0.06 : 0.04, type: "triangle", a: 0.004, cut: 2200, cutTo: 700, wet: 0.3, pan: i % 2 ? 0.35 : -0.35 });
       // the heartbeat
       if (i === 0) kick(t, 0.34);
       if (i === 3) kick(t, 0.22);
@@ -488,7 +489,7 @@
         strings(t, [k, k + 3, k + 7 + (bar % 2)], 4.2, 0.03, { cut: 1000, a: 1 });
       }
       if (i % 4 === 0) { kick(t, 0.38); kick(t + 0.24, 0.26); }
-      if (i % 2 === 1) tone({ t, dur: 0.12, f: mtof(k + 19 + (bar % 2)), v: 0.012, type: "sawtooth", dets: [-8, 8], cut: 3500, pan: 0.4 });
+      if (i === 8 && bar % 2 === 1) bell(t, k + 19 + (bar % 4 === 3 ? 1 : 0), 0.025, null, 2.5);
     }
 
     // ---- the winner: a celebration that never lets up ---------------------
@@ -517,14 +518,14 @@
         if (b === 0) crash(t, 0.1);
       }
       if (i % 4 === 0) kick(t, 0.48);
-      if (i === 4 || i === 12) { snare(t, 0.1); noise({ t: t + 0.012, dur: 0.12, v: 0.06, ft: "bandpass", ff: 1300, q: 1.2, wet: 0.25 }); }
-      if (i % 4 === 2) hat(t, 0.045, null, true); else hat(t, 0.018);
+      if (i === 4 || i === 12) snare(t, 0.11);
+      if (i % 4 === 2) hat(t, 0.04, null, true);
       if (i % 2 === 0) bassNote(t, root + (i % 4 === 2 ? 12 : 0), sd * 1.8, 0.085);
       if (i % 4 === 2) ch.forEach((m, j) => piano(t, m, 0.03, 0.4, null, (j - 1) * 0.3));
       for (const [st, m, len] of WMEL[b]) {
         if (st !== i) continue;
         const dur = len * sd;
-        tone({ t, dur: dur * 1.05, f: mtof(m), v: 0.065, type: "sawtooth", detune: 8, a: 0.02, hold: dur * 0.6, cut: 1200, cutTo: 3200, cutT: Math.min(dur, 0.2), vib: 12, wet: 0.35, pan: -0.15 });
+        tone({ t, dur: dur * 1.05, f: mtof(m), v: 0.06, type: "sawtooth", detune: 8, a: 0.02, hold: dur * 0.6, cut: 900, cutTo: 2000, cutT: Math.min(dur, 0.2), vib: 12, wet: 0.35, pan: -0.15 });
         tone({ t, dur: dur * 1.05, f: mtof(m - 12), v: 0.04, type: "sawtooth", detune: 10, a: 0.03, hold: dur * 0.6, cut: 1500, wet: 0.35, pan: 0.15 });
         bell(t, m + 12, 0.035, null, 1.2);
       }
@@ -620,12 +621,12 @@
         // the ostinato
         const pat = [r, fifth, r + 12, fifth];
         for (let e = 0; e < 2; e++) {
-          tone({ t: at + e * B / 2, dur: 0.22, f: mtof(pat[((3 - pos) * 2 + e) % 4] - 12), v: 0.09 + p * 0.05, type: "sawtooth", dets: [-7, 7], a: 0.005,
-            cut: 1300 + p * 2400, bus, pan: e ? 0.35 : -0.35 });
+          tone({ t: at + e * B / 2, dur: 0.22, f: mtof(pat[((3 - pos) * 2 + e) % 4] - 12), v: 0.08 + p * 0.04, type: "sawtooth", dets: [-7, 7], a: 0.005,
+            cut: 800 + p * 1100, bus, pan: e ? 0.35 : -0.35 });
         }
         // the pulsing synth sequence, in sixteenths
         const seq = [r + 12, fifth + 12, third + 12, fifth + 12];
-        for (let q = 0; q < 4; q++) tone({ t: at + q * B / 4, dur: B / 4 * 0.9, f: mtof(seq[q]), v: q === 0 ? 0.045 : 0.03, type: "square", a: 0.003,
+        for (let q = 0; q < 4; q++) tone({ t: at + q * B / 4, dur: B / 4 * 0.9, f: mtof(seq[q]), v: q === 0 ? 0.05 : 0.034, type: "triangle", a: 0.004,
           cut: 1500 + p * 1500, cutTo: 500, bus, wet: 0.25, pan: q % 2 ? 0.3 : -0.3 });
         // the clock: tick on the whole second, tock on the half
         const whole = b % 2 === 0;
@@ -641,17 +642,16 @@
         }
         // drums: a heartbeat kick from the start, then the full kit
         if (down || pos === 1 || L <= 10) kick(at, 0.32 + p * 0.25, bus);
-        hat(at + B / 2, 0.022 + p * 0.015, bus);
-        if (L <= 20) hat(at, 0.02, bus);
+        if (L <= 20) hat(at + B / 2, 0.03 + p * 0.02, bus);
         if ((L <= 20 && pos === 0) || (L <= 8 && pos === 2)) snare(at, 0.07 + p * 0.05, bus);
-        if (L <= 8) for (let q = 0; q < 4; q++) tone({ t: at + q * B / 4, dur: 0.11, f: mtof(fifth + 12), v: 0.02 + p * 0.015, type: "sawtooth", dets: [-9, 9], a: 0.004, cut: 4200, bus, pan: 0.4 });
+        if (L <= 8 && pos % 2 === 1) bell(at, fifth + 24, 0.03, bus, 0.8);
       }
       // the snare roll into zero, a beat at a time, getting tighter
       const at = end - b * B, L = b * B;
       if (L <= 3) {
         for (let x = at; x < at + B; ) {
           const left = end - x;
-          noise({ t: x, dur: 0.06, v: 0.03 + 0.08 * (1 - left / 3), ft: "bandpass", ff: 2400, q: 0.7, bus });
+          noise({ t: x, dur: 0.05, v: 0.015 + 0.035 * (1 - left / 3), ft: "bandpass", ff: 1800, q: 0.8, bus });
           x += Math.max(0.03, 0.12 * (left / 3));
         }
       }
@@ -687,8 +687,8 @@
         src.buffer = clapBuffer(); src.loop = true;
         const g = ctx.createGain();
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.55, t + 0.35);
-        g.gain.setValueAtTime(0.55, t + Math.max(0.4, d - 1.2));
+        g.gain.exponentialRampToValueAtTime(0.3, t + 0.35);
+        g.gain.setValueAtTime(0.3, t + Math.max(0.4, d - 1.2));
         g.gain.exponentialRampToValueAtTime(0.0001, t + d);
         src.connect(g); g.connect(sfxBus);
         const w = ctx.createGain(); w.gain.value = 0.25; g.connect(w); w.connect(verb);
@@ -697,15 +697,15 @@
       // "Let's play": a rising sweep into a big minor chord for each new question
       letsPlay: () => mus((t) => {
         const k = 45 + Math.min(level, 9), h = t + 1.1;
-        noise({ t, dur: 1.15, v: 0.1, ft: "bandpass", ff: 250, ffTo: 5000, q: 1.4, a: 0.9, bus: sfxBus, wet: 0.4 });
+        noise({ t, dur: 1.15, v: 0.04, ft: "bandpass", ff: 250, ffTo: 2500, q: 1.6, a: 0.9, bus: sfxBus, wet: 0.4 });
         tone({ t, dur: 1.15, f: mtof(k - 12), glide: mtof(k + 12), glideT: 1.1, v: 0.06, type: "sawtooth", dets: [-10, 10], a: 0.8, cut: 600, cutTo: 3000, bus: sfxBus });
         brass(h, [k - 12, k, k + 3, k + 7, k + 12], 1.8, 0.24, sfxBus); kick(h, 0.6, sfxBus); crash(h, 0.12, sfxBus); timp(h, 33 + ((k - 33) % 12), 0.4, sfxBus);
         strings(h, [k, k + 3, k + 7, k + 12], 2, 0.045, { bus: sfxBus, cut: 2800, a: 0.04 });
         bell(h + 0.05, k + 31, 0.06, sfxBus, 1.8);
       }),
-      whoosh: () => fx((t) => noise({ t, dur: 0.55, v: 0.12, ft: "bandpass", ff: 300, ffTo: 3200, q: 1.2, a: 0.2, bus: sfxBus, wet: 0.3 })),
+      whoosh: () => fx((t) => noise({ t, dur: 0.55, v: 0.06, ft: "bandpass", ff: 300, ffTo: 3200, q: 1.2, a: 0.2, bus: sfxBus, wet: 0.3 })),
       plate: (i) => fx((t) => tone({ t, dur: 0.35, f: mtof(69 + [0, 3, 7, 12][i % 4] + level), v: 0.08, type: "triangle", cut: 4000, bus: sfxBus, wet: 0.3, pan: (i - 1.5) * 0.3 })),
-      select: () => fx((t) => { tone({ t, dur: 0.12, f: 660, v: 0.08, type: "square", cut: 2400, bus: sfxBus }); tone({ t: t + 0.06, dur: 0.16, f: 990, v: 0.07, type: "square", cut: 2600, bus: sfxBus }); }),
+      select: () => fx((t) => { tone({ t, dur: 0.12, f: 660, v: 0.08, type: "triangle", cut: 3000, bus: sfxBus }); tone({ t: t + 0.06, dur: 0.16, f: 990, v: 0.07, type: "triangle", cut: 3000, bus: sfxBus }); }),
       lock: () => fx((t) => {
         kick(t, 0.55, sfxBus);
         [45, 52, 57, 64].forEach((m) => tone({ t, dur: 1.3, f: mtof(m + level), v: 0.07, type: "sawtooth", detune: 8, a: 0.008, cut: 1800, cutTo: 300, bus: sfxBus, wet: 0.5 }));

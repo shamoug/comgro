@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v15, boot.js v17): A CLEANER, CALMER SOUND. No square-wave
+REM              buzz (soft triangle plucks instead), hats a whisper, a lighter snare and
+REM              cymbal, warmer strings and brass (lower filters), no hiss swells or buzzy
+REM              tremolos (soft bells instead), a gentler snare roll, softer applause and
+REM              stings, and a gentler master compressor.
 REM  2026-10-20  AGENDA 2030 (agenda.js v14, agenda.css v12, boot.js v16): THE MUSIC ALWAYS PLAYS.
 REM              Browsers keep sound off until the page is touched: now the first tap,
 REM              click or key anywhere turns it on, and the stage shows a gold "Tap for
