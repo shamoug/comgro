@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v14, agenda.css v12, boot.js v16): THE MUSIC ALWAYS PLAYS.
+REM              Browsers keep sound off until the page is touched: now the first tap,
+REM              click or key anywhere turns it on, and the stage shows a gold "Tap for
+REM              sound" button whenever the browser is holding the sound back (a host
+REM              screen opened from a link or after a refresh). The music scheduler reads
+REM              how slowly its clock is ticking and schedules further ahead, so a
+REM              throttled tab never leaves holes. Music under the host's voice is a
+REM              little louder (45 percent, 60 percent for the winner).
 REM  2026-10-20  AGENDA 2030 (agenda.js v13, agenda.css v11, narrate.js v7, boot.js v15): SMOOTH
 REM              AND STEADY. The 30-second clock starts only after the host has read the
 REM              question (answers show but wait, "Listen to the question"), with a music

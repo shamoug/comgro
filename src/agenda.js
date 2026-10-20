@@ -106,8 +106,13 @@
   // to setInterval where workers are unavailable.
   const Ticker = (function () {
     const subs = new Set();
-    let started = false;
-    const run = () => subs.forEach((f) => { try { f(); } catch (e) { if (window.console) console.error(e); } });
+    let started = false, lastRun = 0, gap = 25;
+    const run = () => {
+      const t = Date.now();
+      if (lastRun) gap = Math.max(gap * 0.9, t - lastRun);   // remembers a slow spell for a while
+      lastRun = t;
+      subs.forEach((f) => { try { f(); } catch (e) { if (window.console) console.error(e); } });
+    };
     function start() {
       if (started) return;
       started = true;
@@ -118,7 +123,10 @@
         w.onerror = () => { setInterval(run, 25); };
       } catch (e) { setInterval(run, 25); }
     }
-    return { add(f) { subs.add(f); start(); }, remove(f) { subs.delete(f); } };
+    // How far ahead (seconds) the music must be scheduled to ride out the
+    // current gap between ticks without a hole.
+    const ahead = () => Math.max(0.25, Math.min(2, (gap * 2.5) / 1000));
+    return { add(f) { subs.add(f); start(); }, remove(f) { subs.delete(f); }, ahead };
   })();
   // Run fn every ms on the steady clock; returns a handle for stopEvery.
   function every(ms, fn) {
@@ -212,7 +220,11 @@
       setTimeout(() => { try { clapBuffer(); noise({ t: ctx.currentTime, dur: 0.01, v: 0.0001 }); } catch (e) {} }, 600);
       return ctx;
     }
-    function unlock() { if (!ensure()) return; if (ctx.state === "suspended") ctx.resume(); }
+    function unlock() { if (!ensure()) return; if (ctx.state === "suspended") { try { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} } }
+    // Browsers keep sound off until the page is touched: the first tap, click
+    // or key anywhere turns it on.
+    ["pointerdown", "keydown", "touchend"].forEach((ev) => document.addEventListener(ev, () => { if (ctx && ctx.state !== "running") unlock(); }, true));
+    const blocked = () => !!ctx && ctx.state !== "running" && ctx.state !== "closed";
 
     // Route a voice to its bus, through a stereo panner when asked.
     function route(node, dest, pan) {
@@ -531,7 +543,7 @@
     }
     function pump() {
       if (!ctx || mode === "off") return;
-      while (nextT < ctx.currentTime + 0.2) { scheduleStep(nextT, step); nextT += stepDur(); step++; }
+      while (nextT < ctx.currentTime + Ticker.ahead()) { scheduleStep(nextT, step); nextT += stepDur(); step++; }
     }
     // delay: seconds before the loop starts, so a sting can ring out first
     function setMode(m, lvl, delay) {
@@ -552,7 +564,7 @@
     function setSfx(on) { sfxOn = !!on; }
     // The music is always there: low while the host speaks, full otherwise.
     // The celebration only dips a little, so the winner's moment stays loud.
-    function duck(on) { if (ctx && duckG) duckG.gain.setTargetAtTime(on ? (mode === "win" ? 0.55 : 0.3) : 1, ctx.currentTime, on ? 0.12 : 0.5); }
+    function duck(on) { if (ctx && duckG) duckG.gain.setTargetAtTime(on ? (mode === "win" ? 0.6 : 0.45) : 1, ctx.currentTime, on ? 0.12 : 0.5); }
     const T = () => (ensure() ? (unlock(), ctx.currentTime + 0.02) : null);
     const fx = (fn) => { if (!sfxOn) return; const t = T(); if (t != null) fn(t); };
     const mus = (fn) => { if (!musicOn) return; const t = T(); if (t != null) fn(t); };
@@ -587,7 +599,7 @@
       const bus = cdBus;
       const pumpCd = () => {
         if (cdBus !== bus) return;
-        while (cdN >= 1 && cdEnd - cdN * 0.5 < ctx.currentTime + 0.25) { clockBeat(cdN, bus); cdN--; }
+        while (cdN >= 1 && cdEnd - cdN * 0.5 < ctx.currentTime + Ticker.ahead()) { clockBeat(cdN, bus); cdN--; }
         if (cdN < 1) { Ticker.remove(pumpCd); if (cdTimer === pumpCd) cdTimer = null; }
       };
       cdTimer = pumpCd; Ticker.add(pumpCd);
@@ -658,7 +670,7 @@
     }
 
     return {
-      unlock, setMode, setMusic, setSfx, duck, mode: () => mode, countdown, stopCountdown,
+      unlock, setMode, setMusic, setSfx, duck, blocked, mode: () => mode, countdown, stopCountdown,
       // the opening sting: a timpani roll into the theme's first phrase
       intro: () => mus((t) => {
         for (let i = 0; i < 14; i++) timp(t + i * (0.11 - i * 0.004), 33, 0.08 + i * 0.016, sfxBus);
@@ -1642,6 +1654,7 @@
         `<div class="ag-top-r">` +
           (S.role === "host" ? `<span class="ag-codechip" id="ag-codechip"></span>` : "") +
           (isAuto() ? `<span class="ag-codechip">🤖 <b>AI vs AI</b></span>` : "") +
+          `<button class="ag-sound" id="ag-sound" title="The browser is holding the sound back">🔊 Tap for sound</button>` +
           `<button class="ag-ic ag-pause" id="ag-pause" title="Pause the show (space)">⏸</button>` +
           `<button class="ag-ic${settings.music ? " on" : ""}" id="ag-music" title="Music">🎵</button>` +
           `<button class="ag-ic${settings.voice ? " on" : ""}" id="ag-voice" title="Host voice">🎙️</button>` +
@@ -1658,6 +1671,10 @@
     S.mounted = true;
     $("ag-quit").onclick = confirmLeave;
     $("ag-pause").onclick = togglePause;
+    $("ag-sound").onclick = () => { SA.unlock(); setTimeout(paintSound, 300); };
+    if (S.soundTick) stopEvery(S.soundTick);
+    S.soundTick = every(1000, paintSound);
+    paintSound();
     if (!keyHooked) {
       keyHooked = true;
       document.addEventListener("keydown", (e) => {
@@ -1674,6 +1691,12 @@
     startRaf();
   }
   let keyHooked = false;
+  // The "Tap for sound" chip shows only while the browser blocks audio.
+  function paintSound() {
+    const b = $("ag-sound");
+    if (!b) { if (S.soundTick) { stopEvery(S.soundTick); S.soundTick = null; } return; }
+    b.classList.toggle("on", SA.blocked() && (settings.music || settings.sfx));
+  }
   function fitStage() { /* layout is pure CSS; kept for symmetry with other games */ }
 
   function musicForPhase() {
