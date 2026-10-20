@@ -86,7 +86,10 @@ resolutions and agency sites). The answers are shuffled every show.
   every phone. You always get the full **30 seconds**, under a countdown score that
   builds to the buzzer (once everyone is in, the host can reveal early): tap an answer, then lock it in. Nobody sees anybody's pick.
 - **Five seconds of suspense**, lights down, then the right answer lights up, the
-  avatars show who picked what, and a fact appears with its official source.
+  avatars and names show who picked what, and a fact appears with its official
+  source. The show never moves on while the host is still explaining the answer.
+- **Every phone shows its verdict** full screen for a moment: a big green tick and
+  the new score, or the right answer.
 - **Most right answers wins**; a tie goes to whoever was quicker on their right
   answers. Everyone has one **50:50** per show.
 - **Come in late.** A small QR code stays in the corner of the stage during the
@@ -95,6 +98,12 @@ resolutions and agency sites). The answers are shuffled every show.
   with exactly the time that was left.
 - Phones can fire emoji reactions that float up on the big screen.
 - **Play solo** against one to four AI contestants (Casual, Sharp or Expert).
+- **AI vs AI**: watch two to five AI contestants play on their own; when a show
+  ends the next one starts by itself (good for a screen in a hall).
+- **An original score**, synthesised live: a theme that builds pass by pass with
+  strings, piano, brass, choir and drums, a 30-second answer clock in strict time
+  that lifts a key for the last ten seconds, and a soft bed under each fact. The
+  music ducks whenever the host speaks.
 
 It is a static website. No build step, no accounts, no external media. The only
 backend is optional: online play (The Long Road theatres and the Situation Report, Parley

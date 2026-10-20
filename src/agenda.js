@@ -57,7 +57,31 @@
       localStorage.setItem(key, JSON.stringify(val)); return val;
     } catch (e) { return val === undefined ? null : val; }
   }
-  const say = (text) => { if (CG.Narrate && settings.voice && S.role !== "phone") CG.Narrate.auto(text); };
+  // The host speaks. The stage tracks whether a line is still being read
+  // (S.talking) so the show never moves on mid-sentence, and the music ducks
+  // underneath. A line cut off by a newer one, a pause or the voice toggle
+  // counts as finished.
+  let talkDone = null;
+  function finishTalk() { const f = talkDone; talkDone = null; if (f) f(); }
+  function say(text, onend) {
+    finishTalk();
+    const speaking = text && CG.Narrate && settings.voice && S.role !== "phone" && S.role !== "watch" && CG.Narrate.supported();
+    const fin = () => {
+      if (talkDone !== fin) return;
+      talkDone = null; S.talking = false; S.talkEnd = now();
+      SA.duck(false);
+      if (onend) onend();
+    };
+    talkDone = fin;
+    if (!speaking) { fin(); return; }
+    S.talking = true; S.talkStart = now();
+    SA.duck(true);
+    CG.Narrate.auto(text, { onend: fin });
+  }
+  function hush() { if (CG.Narrate) CG.Narrate.stop(); finishTalk(); }
+  const TALK_GAP = 1400;     // a breath after the host finishes, before the show moves on
+  const TALK_CAP = 75000;    // never wait longer than this for a voice that went quiet
+  const talkOver = () => (S.talking ? now() - S.talkStart > TALK_CAP : now() - (S.talkEnd || 0) >= TALK_GAP);
   const buzz = (p) => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
 
   // =======================================================================
@@ -98,10 +122,24 @@
   }
 
   // =======================================================================
-  // SOUND: an orchestral-ish score synthesised live
+  // SOUND: an original game-show score, synthesised live
   // =======================================================================
+  // Every note is generated in the browser: no files, nothing to license.
+  // The band is built from oscillators and noise: a string section (five
+  // detuned saws with vibrato, spread across the stereo field), brass with a
+  // filter swell, a felt piano, a choir "aah" through vowel formants, bells,
+  // a bass and a drum kit, all in one hall reverb. The cues:
+  //   theme      the title, lobby and results anthem: 16 bars in D minor
+  //              that lift to F major. It builds pass by pass (piano and
+  //              strings, then bass and drums, then the full band with a
+  //              brass melody and choir) and breathes every third pass.
+  //   question   the question landing: a low string pulse that climbs a
+  //              semitone with every question
+  //   countdown  the 30-second answer clock, in time at 120 bpm (see below)
+  //   reveal     a soft piano and strings bed under the host's explanation
+  // The music ducks under the host's voice so every word is clear.
   const SA = (function () {
-    let ctx = null, master, musicBus, sfxBus, verb, comp;
+    let ctx = null, master, musicBus, sfxBus, verb, comp, duckG;
     let mode = "off", level = 0, nextT = 0, step = 0, timer = null, musicOn = true, sfxOn = true;
     const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -110,41 +148,61 @@
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
-      comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
+      comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 3.5;
       master = ctx.createGain(); master.gain.value = 0.85;
       master.connect(comp); comp.connect(ctx.destination);
-      musicBus = ctx.createGain(); musicBus.gain.value = musicOn ? 0.55 : 0; musicBus.connect(master);
+      duckG = ctx.createGain(); duckG.gain.value = 1; duckG.connect(master);
+      musicBus = ctx.createGain(); musicBus.gain.value = musicOn ? 0.55 : 0; musicBus.connect(duckG);
       sfxBus = ctx.createGain(); sfxBus.gain.value = 0.8; sfxBus.connect(master);
+      // a warm hall: decaying stereo noise, gently low-passed so the tail is soft
       verb = ctx.createConvolver();
-      const len = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
+      const len = Math.floor(ctx.sampleRate * 3), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch); let lp = 0;
+        for (let i = 0; i < len; i++) { lp += ((Math.random() * 2 - 1) - lp) * 0.35; d[i] = lp * Math.pow(1 - i / len, 3.2) * 1.6; }
+      }
       verb.buffer = ir;
-      const vg = ctx.createGain(); vg.gain.value = 0.5; verb.connect(vg); vg.connect(master);
+      const vg = ctx.createGain(); vg.gain.value = 0.45; verb.connect(vg); vg.connect(master);
       return ctx;
     }
     function unlock() { if (!ensure()) return; if (ctx.state === "suspended") ctx.resume(); }
 
+    // Route a voice to its bus, through a stereo panner when asked.
+    function route(node, dest, pan) {
+      if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; node.connect(p); p.connect(dest); return p; }
+      node.connect(dest); return node;
+    }
     // One shaped voice: oscillator(s) -> lowpass -> envelope -> bus (+ reverb send)
+    //   dets: detune list in cents (a section, not a soloist); vib: vibrato depth
     function tone(o) {
       if (!ctx) return;
       const t = o.t, dur = o.dur, dest = o.bus || musicBus;
       const g = ctx.createGain();
       const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = o.cut || 2400; lp.Q.value = o.q || 0.7;
-      if (o.cutTo) lp.frequency.exponentialRampToValueAtTime(o.cutTo, t + dur);
-      const det = o.detune ? [-o.detune, o.detune] : [0];
+      lp.frequency.setValueAtTime(o.cut || 2400, t);
+      if (o.cutTo) lp.frequency.exponentialRampToValueAtTime(o.cutTo, t + (o.cutT || dur));
+      const det = o.dets || (o.detune ? [-o.detune, o.detune] : [0]);
+      let lfo = null;
+      if (o.vib) {
+        lfo = ctx.createOscillator(); lfo.frequency.value = o.vibR || 5.4;
+        const lg = ctx.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(o.vib, t + Math.min(0.6, dur * 0.5));
+        lfo.connect(lg); lfo.lg = lg; lfo.start(t); lfo.stop(t + dur + 0.1);
+      }
       det.forEach((d) => {
         const osc = ctx.createOscillator(); osc.type = o.type || "sine"; osc.detune.value = d;
         osc.frequency.setValueAtTime(o.f, t);
         if (o.glide) osc.frequency.exponentialRampToValueAtTime(o.glide, t + (o.glideT || dur));
+        if (lfo) lfo.lg.connect(osc.detune);
         osc.connect(lp); osc.start(t); osc.stop(t + dur + 0.1);
       });
       const a = o.a == null ? 0.01 : o.a;
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(o.v, t + a);
-      if (o.hold) g.gain.setValueAtTime(o.v, t + a + o.hold);
+      g.gain.exponentialRampToValueAtTime(o.v / Math.sqrt(det.length), t + a);
+      if (o.hold) g.gain.setValueAtTime(o.v / Math.sqrt(det.length), t + a + o.hold);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      lp.connect(g); g.connect(dest);
-      if (o.wet) { const w = ctx.createGain(); w.gain.value = o.wet; g.connect(w); w.connect(verb); }
+      lp.connect(g);
+      const out = route(g, dest, o.pan);
+      if (o.wet) { const w = ctx.createGain(); w.gain.value = o.wet; out.connect(w); w.connect(verb); }
     }
     function noise(o) {
       if (!ctx) return;
@@ -154,67 +212,184 @@
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       const src = ctx.createBufferSource(); src.buffer = buf;
       const f = ctx.createBiquadFilter(); f.type = o.ft || "highpass"; f.frequency.value = o.ff || 6000; f.Q.value = o.q || 0.8;
+      f.frequency.setValueAtTime(o.ff || 6000, t);
       if (o.ffTo) f.frequency.exponentialRampToValueAtTime(o.ffTo, t + dur);
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(o.v, t + (o.a || 0.003));
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      src.connect(f); f.connect(g); g.connect(o.bus || musicBus);
-      if (o.wet) { const w = ctx.createGain(); w.gain.value = o.wet; g.connect(w); w.connect(verb); }
+      src.connect(f); f.connect(g);
+      const out = route(g, o.bus || musicBus, o.pan);
+      if (o.wet) { const w = ctx.createGain(); w.gain.value = o.wet; out.connect(w); w.connect(verb); }
       src.start(t); src.stop(t + dur + 0.05);
     }
+
+    // ---- the band ---------------------------------------------------------
     function kick(t, v, bus) { tone({ t, dur: 0.35, f: 130, glide: 38, glideT: 0.22, v: v || 0.5, type: "sine", cut: 900, bus }); }
+    function snare(t, v, bus) {
+      noise({ t, dur: 0.2, v: v || 0.12, ft: "bandpass", ff: 1900, q: 0.6, bus, wet: 0.2 });
+      tone({ t, dur: 0.11, f: 200, glide: 150, v: (v || 0.12) * 0.9, type: "triangle", cut: 1200, bus });
+    }
     function timp(t, m, v, bus) {
       tone({ t, dur: 1.1, f: mtof(m) * 1.04, glide: mtof(m), glideT: 0.08, v: v || 0.35, type: "sine", cut: 700, bus, wet: 0.35 });
       noise({ t, dur: 0.08, v: (v || 0.35) * 0.25, ft: "lowpass", ff: 900, bus });
     }
-    function hat(t, v, bus) { noise({ t, dur: 0.05, v: v || 0.05, ft: "highpass", ff: 7500, bus }); }
+    function hat(t, v, bus, open) { noise({ t, dur: open ? 0.22 : 0.05, v: v || 0.05, ft: "highpass", ff: 7500, bus, pan: 0.25 }); }
     function bell(t, m, v, bus, dur) {
       tone({ t, dur: dur || 1.4, f: mtof(m), v: v || 0.12, type: "sine", cut: 6000, bus, wet: 0.6 });
       tone({ t, dur: (dur || 1.4) * 0.5, f: mtof(m) * 2.76, v: (v || 0.12) * 0.25, type: "sine", cut: 9000, bus, wet: 0.6 });
     }
     function brass(t, ms, dur, v, bus) {
-      ms.forEach((m) => tone({ t, dur, f: mtof(m), v: v / ms.length * 2, type: "sawtooth", detune: 9, a: 0.06, cut: 500, cutTo: 2600, bus, wet: 0.45 }));
+      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v: v / ms.length * 2, type: "sawtooth", detune: 9, a: 0.06, cut: 500, cutTo: 2600, cutT: Math.min(dur, 0.5), bus, wet: 0.45, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.6 : 0 }));
     }
-    function crash(t, v, bus) { noise({ t, dur: 2.2, v: v || 0.12, ft: "highpass", ff: 4000, a: 0.002, bus, wet: 0.5 }); }
+    function crash(t, v, bus) { noise({ t, dur: 2.2, v: v || 0.12, ft: "highpass", ff: 4000, a: 0.002, bus, wet: 0.5, pan: -0.3 }); }
+    // the string section: five players a part, spread left to right
+    function strings(t, ms, dur, v, o) {
+      o = o || {};
+      ms.forEach((m, i) => tone({ t, dur, f: mtof(m), v, type: "sawtooth", dets: [-15, -6, 0, 7, 14], a: o.a || 0.35, hold: dur * 0.6,
+        cut: o.cut || 1500, vib: 9, vibR: 5 + i * 0.3, bus: o.bus, wet: 0.5, pan: ms.length > 1 ? (i / (ms.length - 1) - 0.5) * 0.9 : 0 }));
+    }
+    // a felt piano: a soft hammer, a body that darkens as it rings
+    function piano(t, m, v, dur, bus, pan) {
+      tone({ t, dur: dur || 1.2, f: mtof(m), v, type: "triangle", a: 0.004, cut: 3200, cutTo: 700, bus, wet: 0.35, pan });
+      tone({ t, dur: (dur || 1.2) * 0.4, f: mtof(m) * 2, v: v * 0.3, type: "sine", a: 0.003, cut: 5000, bus, wet: 0.35, pan });
+    }
+    // a choir "aah": breathy saws through two vowel formants
+    function choir(t, ms, dur, v, bus) {
+      ms.forEach((m, i) => {
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(v, t + 0.6);
+        g.gain.setValueAtTime(v, t + dur * 0.7);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        [[720, 7], [1150, 9]].forEach(([fq, q]) => {
+          const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = fq; bp.Q.value = q;
+          [-10, 0, 11].forEach((d) => {
+            const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = mtof(m); o.detune.value = d;
+            o.connect(bp); o.start(t); o.stop(t + dur + 0.1);
+          });
+          bp.connect(g);
+        });
+        const out = route(g, bus || musicBus, (i % 2 ? 0.35 : -0.35));
+        const w = ctx.createGain(); w.gain.value = 0.7; out.connect(w); w.connect(verb);
+      });
+    }
+    function bassNote(t, m, dur, v, bus) {
+      tone({ t, dur, f: mtof(m), v, type: "sawtooth", a: 0.006, cut: 520, cutTo: 180, bus });
+      tone({ t, dur, f: mtof(m), v: v * 0.8, type: "sine", a: 0.006, cut: 400, bus });
+    }
 
-    // ---- the music loops ------------------------------------------------
-    // theme: i, VI, III, VII in A minor, with a plucked arpeggio over a pad.
-    const THEME = [[45, [57, 60, 64]], [41, [57, 60, 65]], [48, [55, 60, 64]], [43, [55, 59, 62]]];
-    // question bed: a 3-3-2 pulse on the root, a ticking clock, a minor pad
-    // that leans to the flat sixth. Every question climbs a semitone.
-    const PULSE = [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0];
-    function stepDur() { return mode === "theme" ? 60 / 104 / 4 : 60 / (96 + level * 3) / 4; }
-    function scheduleStep(t, s) {
-      const bar = Math.floor(s / 16), i = s % 16;
-      if (mode === "theme") {
-        const [root, chord] = THEME[bar % 4];
-        if (i === 0) {
-          chord.forEach((m) => tone({ t, dur: stepDur() * 16 * 1.05, f: mtof(m - 12), v: 0.045, type: "sawtooth", detune: 12, a: 0.4, cut: 1100, wet: 0.4 }));
-          kick(t, 0.32); timp(t, root, 0.16);
-        }
-        if (i === 8) kick(t, 0.22);
-        if (i % 2 === 0) tone({ t, dur: 0.32, f: mtof(root - 12), v: 0.07, type: "sawtooth", cut: 420 });
-        const arp = [0, 1, 2, 1, 0, 2, 1, 2];
-        if (i % 2 === 0) tone({ t, dur: 0.4, f: mtof(chord[arp[(i / 2) % 8]] + 12), v: 0.04, type: "triangle", cut: 3800, wet: 0.35 });
-        if (i % 4 === 2) hat(t, 0.025);
-        if (i === 12 && bar % 2 === 1) bell(t, chord[2] + 24, 0.05);
-      } else if (mode === "question") {
-        const k = 45 + level, flat6 = bar % 4 >= 2;
-        if (i === 0 && bar % 2 === 0) {
-          [0, 3, 7].forEach((d) => tone({ t, dur: stepDur() * 32 * 1.02, f: mtof(k + d + (flat6 ? (d === 7 ? 1 : d === 0 ? -4 + 4 : 0) : 0)), v: 0.035, type: "sawtooth", detune: 10, a: 0.6, cut: 700 + level * 90, wet: 0.35 }));
-        }
-        if (PULSE[i]) tone({ t, dur: 0.22, f: mtof(k - 12 + (flat6 && i >= 8 ? 1 : 0)), v: 0.11, type: "sawtooth", cut: 380 + level * 40, cutTo: 160 });
-        if (i % 4 === 0) tone({ t, dur: 0.05, f: i % 8 === 0 ? 1560 : 1170, v: 0.03, type: "sine", cut: 5000 });
-        if (i === 0) kick(t, 0.25);
-        if (i === 10) kick(t, 0.16);
-        if (i % 2 === 1) hat(t, 0.012 + level * 0.002);
-        if (i === 14 && bar % 2 === 1) tone({ t, dur: 0.9, f: mtof(k + 24 + 7), v: 0.022, type: "triangle", cut: 3000, wet: 0.6 });
+    // ---- the theme ---------------------------------------------------------
+    // Chords: a bass root and an upper voicing.
+    const CH = {
+      Dm: [38, [62, 65, 69]], Bb: [34, [62, 65, 70]], F: [41, [60, 65, 69]], C: [36, [60, 64, 67]],
+      Gm: [43, [62, 67, 70]], A: [45, [61, 64, 69]],
+    };
+    const PROG = ["Dm", "Bb", "F", "C", "Dm", "Bb", "Gm", "A", "Bb", "C", "Dm", "F", "Gm", "C", "F", "A"];
+    // The melody, one bar a line: [16th step, note, length in 16ths].
+    const MEL = [
+      [[0, 74, 4], [4, 69, 2], [6, 74, 2], [8, 76, 4], [12, 77, 4]],
+      [[0, 77, 6], [6, 76, 2], [8, 74, 8]],
+      [[0, 72, 4], [4, 77, 4], [8, 81, 6], [14, 79, 2]],
+      [[0, 79, 12], [12, 76, 2], [14, 77, 2]],
+      [[0, 74, 4], [4, 69, 2], [6, 74, 2], [8, 76, 4], [12, 77, 4]],
+      [[0, 79, 6], [6, 77, 2], [8, 74, 8]],
+      [[0, 82, 4], [4, 81, 4], [8, 79, 4], [12, 77, 4]],
+      [[0, 76, 8], [8, 73, 4], [12, 69, 4]],
+      [[0, 77, 4], [4, 77, 2], [6, 79, 2], [8, 81, 8]],
+      [[0, 79, 4], [4, 76, 4], [8, 72, 8]],
+      [[0, 74, 4], [4, 77, 4], [8, 81, 4], [12, 86, 4]],
+      [[0, 84, 12], [12, 81, 4]],
+      [[0, 82, 6], [6, 81, 2], [8, 79, 4], [12, 74, 4]],
+      [[0, 76, 6], [6, 77, 2], [8, 79, 8]],
+      [[0, 81, 4], [4, 79, 4], [8, 77, 4], [12, 76, 4]],
+      [[0, 76, 8], [8, 73, 4], [12, 76, 4]],
+    ];
+    const ARP = [0, 1, 2, 3, 2, 1, 2, 3];
+    // How full the band is, by pass and bar: 0 piano and strings, 1 with
+    // bass and drums, 2 the full band. Every third pass breathes.
+    function intensity(pass, b) {
+      const k = pass % 3;
+      if (k === 0) return pass === 0 ? (b < 4 ? 0 : b < 8 ? 1 : 2) : (b < 2 ? 1 : 2);
+      if (k === 1) return 2;
+      return b < 12 ? 0 : 1;
+    }
+    function themeStep(t, s) {
+      const sd = stepDur(), bar = Math.floor(s / 16), i = s % 16, b = bar % 16, pass = Math.floor(bar / 16);
+      const [root, ch] = CH[PROG[b]];
+      const lv = intensity(pass, b);
+      if (i === 0) {
+        strings(t, lv === 2 ? [ch[0] - 12, ch[1] - 12, ch[2] - 12, ch[0]] : ch.map((m) => m - 12), sd * 16 * 1.04, lv === 2 ? 0.05 : 0.04, { cut: lv === 2 ? 2200 : 1300 });
+        if (lv === 2) choir(t, [ch[0], ch[2]], sd * 16 * 1.02, 0.05);
+        if (lv >= 1) timp(t, root - 12 + (root < 36 ? 12 : 0), lv === 2 ? 0.2 : 0.12);
+        if (lv === 2 && b % 8 === 0) crash(t, 0.08);
       }
+      // the piano: an eighth-note arpeggio across the chord
+      if (i % 2 === 0) {
+        const notes = [ch[0], ch[1], ch[2], ch[0] + 12];
+        piano(t, notes[ARP[(i / 2) % 8]] + (lv === 0 ? 0 : 12), lv === 2 ? 0.035 : 0.05, 0.9, null, (i % 4 ? 0.3 : -0.3));
+      }
+      // bass: a driving, syncopated root
+      if (lv >= 1 && [0, 3, 6, 8, 11, 14].indexOf(i) >= 0) bassNote(t, root + (i === 6 || i === 14 ? 12 : 0), sd * 2.2, 0.08);
+      // drums
+      if (lv >= 1) {
+        if (i === 0 || i === 8 || (lv === 2 && i === 10)) kick(t, lv === 2 ? 0.42 : 0.3);
+        if (i % 2 === 0) hat(t, i % 4 === 2 ? 0.035 : 0.02, null, lv === 2 && i === 14);
+        if (lv === 2 && (i === 4 || i === 12)) snare(t, 0.09);
+      }
+      // a timpani roll into each half of the tune
+      if (lv >= 1 && (b === 7 || b === 15) && i >= 8) timp(t, 33, 0.05 + (i - 8) * 0.025);
+      // the melody: bells when it is quiet, a horn, then the brass lead
+      const mel = MEL[b];
+      for (const [st, m, len] of mel) {
+        if (st !== i) continue;
+        const dur = len * sd;
+        if (lv === 0) bell(t, m, 0.06, null, Math.max(1, dur * 1.4));
+        else if (lv === 1) tone({ t, dur: dur * 1.05, f: mtof(m - 12), v: 0.07, type: "sawtooth", detune: 6, a: 0.05, hold: dur * 0.6, cut: 1300, vib: 10, wet: 0.45 });
+        else {
+          tone({ t, dur: dur * 1.05, f: mtof(m), v: 0.06, type: "sawtooth", detune: 8, a: 0.03, hold: dur * 0.65, cut: 900, cutTo: 2800, cutT: Math.min(dur, 0.25), vib: 12, wet: 0.4, pan: -0.15 });
+          tone({ t, dur: dur * 1.05, f: mtof(m - 12), v: 0.045, type: "sawtooth", detune: 10, a: 0.04, hold: dur * 0.65, cut: 1100, vib: 10, wet: 0.4, pan: 0.15 });
+        }
+      }
+    }
+
+    // ---- the question landing ------------------------------------------
+    // A 3-3-2 pulse on the root under a minor pad that leans to the flat
+    // sixth, a ticking clock. Every question climbs a semitone.
+    const PULSE = [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0];
+    function questionStep(t, s) {
+      const bar = Math.floor(s / 16), i = s % 16, k = 45 + level, flat6 = bar % 4 >= 2;
+      if (i === 0 && bar % 2 === 0) strings(t, [k, k + 3, k + 7 + (flat6 ? 1 : 0)], stepDur() * 32 * 1.02, 0.035, { cut: 700 + level * 90, a: 0.6 });
+      if (PULSE[i]) bassNote(t, k - 12 + (flat6 && i >= 8 ? 1 : 0), 0.22, 0.1);
+      if (i % 4 === 0) tone({ t, dur: 0.05, f: i % 8 === 0 ? 1560 : 1170, v: 0.03, type: "sine", cut: 5000, pan: i % 8 ? 0.3 : -0.3 });
+      if (i === 0) kick(t, 0.25);
+      if (i === 10) kick(t, 0.16);
+      if (i % 2 === 1) hat(t, 0.012 + level * 0.002);
+    }
+
+    // ---- the reveal bed ---------------------------------------------------
+    // Warm and unhurried, in F major, quiet enough for the host to be heard.
+    const RPROG = [CH.F, CH.C, CH.Dm, CH.Bb];
+    function revealStep(t, s) {
+      const sd = stepDur(), bar = Math.floor(s / 16), i = s % 16;
+      const [root, ch] = RPROG[bar % 4];
+      if (i === 0) {
+        strings(t, ch.map((m) => m - 12), sd * 16 * 1.05, 0.03, { cut: 1000, a: 1.2 });
+        bassNote(t, root, sd * 16, 0.045);
+      }
+      if (i === 0 || i === 6 || i === 10) piano(t, ch[[0, 2, 1][[0, 6, 10].indexOf(i)]] + 12, 0.04, 2.2, null, i === 6 ? 0.3 : -0.2);
+      if (i === 14 && bar % 2 === 1) bell(t, ch[2] + 24, 0.03, null, 2);
+    }
+
+    function stepDur() { return mode === "theme" ? 60 / 100 / 4 : mode === "reveal" ? 60 / 72 / 4 : 60 / (96 + level * 3) / 4; }
+    function scheduleStep(t, s) {
+      if (mode === "theme") themeStep(t, s);
+      else if (mode === "question") questionStep(t, s);
+      else if (mode === "reveal") revealStep(t, s);
     }
     function pump() {
       if (!ctx || mode === "off") return;
-      while (nextT < ctx.currentTime + 0.18) { scheduleStep(nextT, step); nextT += stepDur(); step++; }
+      while (nextT < ctx.currentTime + 0.2) { scheduleStep(nextT, step); nextT += stepDur(); step++; }
     }
     function setMode(m, lvl) {
       if (lvl != null) level = lvl;
@@ -223,53 +398,85 @@
       if (timer) { clearInterval(timer); timer = null; }
       if (!ensure() || m === "off") return;
       unlock();
-      step = 0; nextT = ctx.currentTime + 0.06;
+      // the reveal bed waits for the right-or-wrong sting to ring out
+      step = 0; nextT = ctx.currentTime + (m === "reveal" ? 1.8 : 0.06);
       timer = setInterval(pump, 40);
     }
     function setMusic(on) {
       musicOn = !!on;
       if (ctx) musicBus.gain.setTargetAtTime(musicOn ? 0.55 : 0, ctx.currentTime, 0.15);
+      if (!musicOn) stopCountdown();
     }
     function setSfx(on) { sfxOn = !!on; }
+    // Lower the music while the host speaks.
+    function duck(on) { if (ctx && duckG) duckG.gain.setTargetAtTime(on ? 0.38 : 1, ctx.currentTime, on ? 0.12 : 0.6); }
     const T = () => (ensure() ? (unlock(), ctx.currentTime + 0.02) : null);
     const fx = (fn) => { if (!sfxOn) return; const t = T(); if (t != null) fn(t); };
     const mus = (fn) => { if (!musicOn) return; const t = T(); if (t != null) fn(t); };
 
-    // The answer clock: a cue that builds second by second. Rising strings,
-    // a timpani tick each second that grows louder, staccato stabs that
-    // speed up, a heartbeat and a snare roll in the last three seconds, and a
-    // hit on zero. It plays through its own gain so a lock-in can fade it.
+    // ---- the answer clock ------------------------------------------------
+    // A cue in strict time at 120 bpm, counted back from zero so every
+    // second's tick lands on a beat and the last bar always resolves on the
+    // buzzer, whatever time is left (after a pause it simply starts later in
+    // the cue). Chords move i, VI, VII, V a bar at a time. It builds in
+    // layers by the seconds left:
+    //   always     a string ostinato in eighths, the tick-tock of the clock,
+    //              a bass pulse and a timpani on each bar
+    //   20 left    kick drum on one and three
+    //   16 left    hi-hats
+    //   12 left    brass stabs on each bar
+    //   10 left    the whole cue lifts a semitone, the kick on every beat,
+    //              the bass doubles
+    //    8 left    snare on the backbeat, high strings tremolo
+    //    3 left    a snare roll into the buzzer and a full-band hit
+    // It plays through its own gain so a lock-in or a pause can fade it.
     let cdBus = null;
     function countdown(sec) {
       if (!musicOn || !ensure()) return;
       unlock(); stopCountdown();
       setMode("off");
-      const t = ctx.currentTime + 0.03, d = sec, k = 45 + level;
-      cdBus = ctx.createGain(); cdBus.gain.value = 1; cdBus.connect(sfxBus);
-      const bus = cdBus;
-      // strings: a minor chord climbing a fifth over the whole count
-      [0, 3, 7, 12].forEach((iv, j) => tone({ t, dur: d + 0.3, f: mtof(k - 12 + iv), glide: mtof(k - 5 + iv), glideT: d, v: 0.05 + j * 0.006, type: "sawtooth", detune: 11, a: 0.5, hold: d - 0.7, cut: 500, cutTo: 3200, bus, wet: 0.4 }));
-      tone({ t, dur: d + 0.3, f: mtof(k - 24), v: 0.14, type: "sawtooth", a: 0.3, hold: d - 0.5, cut: 220, cutTo: 520, bus });
-      const n = Math.round(d);
-      for (let s = 0; s < n; s++) {
-        const at = t + s, p = s / Math.max(1, n - 1), left = n - s;
-        // the clock: tick on the second, tock on the half, louder as it goes
-        tone({ t: at, dur: 0.07, f: 1568, v: 0.05 + p * 0.07, type: "sine", cut: 7000, bus });
-        tone({ t: at + 0.5, dur: 0.06, f: 1175, v: 0.03 + p * 0.05, type: "sine", cut: 6000, bus });
-        if (left <= 15 || s % 2 === 0) timp(at, 33 + (s % 2 ? 7 : 0) + level, 0.1 + p * 0.34, bus);
-        // stabs: two, then three, then four a second
-        const per = left <= 3 ? 4 : left <= 6 ? 3 : left <= 15 ? 2 : 1;
-        for (let j = 0; j < per; j++) {
-          const st = at + j / per;
-          [k, k + 3, k + 7].forEach((m) => tone({ t: st, dur: 0.16, f: mtof(m + (left <= 3 ? 12 : 0)), v: 0.022 + p * 0.02, type: "sawtooth", a: 0.004, cut: 2600, bus }));
+      const t0 = ctx.currentTime + 0.03, d = Math.max(0.5, sec), end = t0 + d, B = 0.5;
+      cdBus = ctx.createGain(); cdBus.gain.value = 1; cdBus.connect(duckG);
+      const bus = cdBus, base = 45 + Math.min(level, 9);
+      const CPROG = [[0, 0], [-4, 1], [-2, 1], [-5, 1]];
+      const N = Math.floor(d / B);
+      for (let b = N; b >= 1; b--) {
+        const at = end - b * B, L = b * B;
+        const p = Math.max(0, Math.min(1, 1 - L / 30));
+        const pos = (b - 1) % 4, down = pos === 3;            // 3 = first beat of the bar
+        const be = Math.floor((b - 1) / 4);
+        const [off, maj] = CPROG[(3 - (be % 4) + 4) % 4];     // the last bar is always V
+        const k = base + (L <= 10 ? 1 : 0);
+        const r = k + off, third = r + (maj ? 4 : 3), fifth = r + 7;
+        // the ostinato
+        const pat = [r, fifth, r + 12, fifth];
+        for (let e = 0; e < 2; e++) {
+          tone({ t: at + e * B / 2, dur: 0.22, f: mtof(pat[((3 - pos) * 2 + e) % 4] - 12), v: 0.06 + p * 0.05, type: "sawtooth", dets: [-7, 7], a: 0.005,
+            cut: 700 + p * 2600, bus, pan: e ? 0.35 : -0.35 });
         }
-        if (left <= 3) { kick(at, 0.5, bus); kick(at + 0.24, 0.34, bus); }
+        // the clock: tick on the whole second, tock on the half
+        const whole = b % 2 === 0;
+        tone({ t: at, dur: 0.06, f: whole ? 1568 : 1175, v: (whole ? 0.05 : 0.03) + p * 0.05, type: "sine", cut: 7000, bus, pan: whole ? -0.2 : 0.2 });
+        // bass
+        bassNote(at, r - 12, 0.28, 0.08 + p * 0.04, bus);
+        if (L <= 10) bassNote(at + B / 2, r - 12, 0.2, 0.08, bus);
+        if (down) {
+          strings(at, [r, third, fifth], 2.05, 0.03 + p * 0.035, { bus, cut: 600 + p * 2800, a: 0.25 });
+          const pc = ((r - 33) % 12 + 12) % 12;
+          timp(at, 33 + (pc > 6 ? pc - 12 : pc), 0.12 + p * 0.25, bus);
+          if (L <= 12) brass(at, [r - 12, r, third, fifth], 0.5, 0.12 + p * 0.1, bus);
+        }
+        if ((L <= 20 && (down || pos === 1)) || L <= 10) kick(at, 0.3 + p * 0.25, bus);
+        if (L <= 16) { hat(at + B / 2, 0.03, bus); if (L <= 10) hat(at, 0.025, bus); }
+        if (L <= 8 && (pos === 2 || pos === 0)) snare(at, 0.08 + p * 0.04, bus);
+        if (L <= 8) for (let q = 0; q < 4; q++) tone({ t: at + q * B / 4, dur: 0.11, f: mtof(fifth + 12), v: 0.02 + p * 0.015, type: "sawtooth", dets: [-9, 9], a: 0.004, cut: 4200, bus, pan: 0.4 });
       }
       // the snare roll into zero
-      let x = t + d - 3, gap = 0.12;
-      while (x < t + d) { noise({ t: x, dur: 0.06, v: 0.03 + 0.08 * (1 - (t + d - x) / 3), ft: "bandpass", ff: 2400, q: 0.7, bus }); gap = Math.max(0.03, gap * 0.92); x += gap; }
+      let x = Math.max(t0, end - 3), gap = 0.12;
+      while (x < end) { noise({ t: x, dur: 0.06, v: 0.03 + 0.08 * (1 - (end - x) / 3), ft: "bandpass", ff: 2400, q: 0.7, bus }); gap = Math.max(0.03, gap * 0.92); x += gap; }
       // time's up
-      brass(t + d, [k - 12, k - 5, k, k + 3], 1.6, 0.26, bus); kick(t + d, 0.65, bus); crash(t + d, 0.12, bus);
+      const kk = base + 1;
+      brass(end, [kk - 12, kk - 5, kk, kk + 3], 1.6, 0.26, bus); kick(end, 0.65, bus); crash(end, 0.12, bus); timp(end, 33 + 1, 0.4, bus);
     }
     function stopCountdown() {
       if (!cdBus || !ctx) return;
@@ -279,15 +486,17 @@
     }
 
     return {
-      unlock, setMode, setMusic, setSfx, mode: () => mode, countdown, stopCountdown,
-      // the opening sting: a timpani roll into a big chord and a cymbal
+      unlock, setMode, setMusic, setSfx, duck, mode: () => mode, countdown, stopCountdown,
+      // the opening sting: a timpani roll into the theme's first phrase
       intro: () => mus((t) => {
         for (let i = 0; i < 14; i++) timp(t + i * (0.11 - i * 0.004), 33, 0.08 + i * 0.016, sfxBus);
-        brass(t + 1.3, [45, 52, 57, 60, 64], 2.6, 0.22, sfxBus); kick(t + 1.3, 0.6, sfxBus); crash(t + 1.3, 0.14, sfxBus);
-        bell(t + 1.5, 76, 0.1, sfxBus); bell(t + 1.62, 81, 0.08, sfxBus);
+        const h = t + 1.3;
+        brass(h, [38, 50, 57, 62, 65], 2.6, 0.22, sfxBus); kick(h, 0.6, sfxBus); crash(h, 0.14, sfxBus);
+        strings(h, [50, 57, 62, 65, 69], 2.8, 0.05, { bus: sfxBus, cut: 2600, a: 0.05 });
+        [[0, 74], [0.3, 69], [0.45, 74], [0.6, 76], [0.9, 77]].forEach(([dt, m]) => bell(h + 0.2 + dt, m + 12, 0.07, sfxBus, 1.6));
       }),
       whoosh: () => fx((t) => noise({ t, dur: 0.55, v: 0.12, ft: "bandpass", ff: 300, ffTo: 3200, q: 1.2, a: 0.2, bus: sfxBus, wet: 0.3 })),
-      plate: (i) => fx((t) => tone({ t, dur: 0.35, f: mtof(69 + [0, 3, 7, 12][i % 4] + level), v: 0.08, type: "triangle", cut: 4000, bus: sfxBus, wet: 0.3 })),
+      plate: (i) => fx((t) => tone({ t, dur: 0.35, f: mtof(69 + [0, 3, 7, 12][i % 4] + level), v: 0.08, type: "triangle", cut: 4000, bus: sfxBus, wet: 0.3, pan: (i - 1.5) * 0.3 })),
       select: () => fx((t) => { tone({ t, dur: 0.12, f: 660, v: 0.08, type: "square", cut: 2400, bus: sfxBus }); tone({ t: t + 0.06, dur: 0.16, f: 990, v: 0.07, type: "square", cut: 2600, bus: sfxBus }); }),
       lock: () => fx((t) => {
         kick(t, 0.55, sfxBus);
@@ -299,6 +508,7 @@
       suspense: (sec) => mus((t) => {
         const d = sec || 5;
         tone({ t, dur: d + 0.4, f: mtof(33 + level), glide: mtof(45 + level), glideT: d, v: 0.12, type: "sawtooth", detune: 14, a: 0.8, hold: d - 1.2, cut: 300, cutTo: 2200, bus: sfxBus });
+        strings(t, [57 + level, 60 + level, 64 + level], d + 0.3, 0.035, { bus: sfxBus, cut: 900, a: 1.4 });
         tone({ t, dur: d + 0.4, f: mtof(64 + level), glide: mtof(76 + level), glideT: d, v: 0.03, type: "sine", a: 1, hold: d - 1.6, cut: 5000, bus: sfxBus, wet: 0.5 });
         for (let b = 0; b < d; b++) { kick(t + b, 0.42, sfxBus); kick(t + b + 0.24, 0.3, sfxBus); }
         let x = t + 1.2, gap = 0.16;
@@ -307,6 +517,7 @@
       correct: () => fx((t) => {
         const k = 57 + level;
         brass(t, [k - 12, k - 5, k, k + 4, k + 7], 2.2, 0.26, sfxBus); kick(t, 0.5, sfxBus); crash(t, 0.08, sfxBus);
+        choir(t + 0.05, [k + 4, k + 7, k + 12], 2.2, 0.05, sfxBus);
         [0, 4, 7, 12, 16].forEach((d, i) => bell(t + 0.1 + i * 0.07, k + 12 + d, 0.07, sfxBus));
       }),
       wrong: () => fx((t) => {
@@ -316,13 +527,19 @@
       }),
       join: () => fx((t) => { tone({ t, dur: 0.25, f: 520, glide: 1040, glideT: 0.12, v: 0.09, type: "sine", cut: 5000, bus: sfxBus }); bell(t + 0.1, 84, 0.07, sfxBus); }),
       count: (n) => fx((t) => { timp(t, n ? 40 : 45, n ? 0.3 : 0.45, sfxBus); if (!n) crash(t, 0.1, sfxBus); }),
-      pop: () => fx((t) => tone({ t, dur: 0.12, f: 880 + Math.random() * 400, glide: 1800, glideT: 0.1, v: 0.04, type: "sine", cut: 6000, bus: sfxBus })),
+      pop: () => fx((t) => tone({ t, dur: 0.12, f: 880 + Math.random() * 400, glide: 1800, glideT: 0.1, v: 0.04, type: "sine", cut: 6000, bus: sfxBus, pan: Math.random() - 0.5 })),
+      // the winner's fanfare: the theme's hook in brass, landing in F major
       fanfare: () => mus((t) => {
-        const seq = [[48, [60, 64, 67, 72]], [53, [60, 65, 69, 72]], [55, [62, 67, 71, 74]], [48, [64, 67, 72, 76]]];
+        const seq = [[38, [62, 65, 69, 74]], [34, [62, 65, 70, 74]], [36, [60, 64, 67, 72]], [41, [65, 69, 72, 77]]];
         seq.forEach(([r, ch], i) => {
-          const at = t + i * 0.42, len = i === 3 ? 3 : 0.5;
-          brass(at, [r].concat(ch), len, i === 3 ? 0.3 : 0.22, sfxBus); timp(at, r - 12, 0.3, sfxBus);
-          if (i === 3) { crash(at, 0.14, sfxBus); [72, 76, 79, 84, 88].forEach((m, j) => bell(at + 0.1 + j * 0.08, m, 0.07, sfxBus, 2)); }
+          const at = t + i * 0.42, len = i === 3 ? 3.2 : 0.5;
+          brass(at, [r].concat(ch), len, i === 3 ? 0.3 : 0.22, sfxBus); timp(at, r - 12 + (r < 36 ? 12 : 0), 0.3, sfxBus);
+          if (i === 3) {
+            crash(at, 0.14, sfxBus);
+            strings(at, [53, 60, 65, 69, 72], 3.4, 0.05, { bus: sfxBus, cut: 3000, a: 0.08 });
+            choir(at, [65, 69, 72], 3.2, 0.06, sfxBus);
+            [77, 81, 84, 89, 93].forEach((m, j) => bell(at + 0.1 + j * 0.08, m, 0.07, sfxBus, 2));
+          }
         });
       }),
     };
@@ -373,7 +590,12 @@
     me: { sel: -1, locked: false, fifty: null, qi: -1 },
     net: { seen: {}, tick: null, lastPut: 0, joinAt: 0, joining: null, hostSeen: 0 },
     aiTimers: [], overlay: null, mounted: false, lastPhase: "",
+    talking: false, talkStart: 0, talkEnd: 0, allInAt: 0, autoNext: null,
   };
+  // AI vs AI: every seat is an AI contestant and nobody at the screen plays.
+  const isAuto = () => !!(S.g && S.g.auto);
+  // The seat played at this screen: 0 in solo, none when hosting or watching AIs.
+  const meSeat = () => (S.role === "solo" && !isAuto() ? 0 : -1);
 
   function blankPlayer(i) { return { name: "", ownerId: null, icon: "", color: SEAT_COLORS[i], vacant: true, score: 0, ms: 0, fifty: false, away: false, isAI: false }; }
 
@@ -431,7 +653,7 @@
     g.paused = true; g.pz = (g.pz || 0) + 1;
     clearAI();
     SA.stopCountdown(); SA.setMode("off");
-    if (CG.Narrate) CG.Narrate.stop();
+    hush();
     SA.select();
     publish();
     paintPause();
@@ -491,6 +713,7 @@
     g.qs[qi] = { g: d.g, t: d.t, q: d.q, a: d.a };
     g.locked = g.players.map(() => false);
     S.picks[qi] = S.picks[qi] || {};
+    S.allInAt = 0;
     document.querySelectorAll(".ag-pod.score-pop").forEach((n) => n.classList.remove("score-pop"));
     saveDeck();
     setPhase("question", INTRO_MS + g.timer * 1000);
@@ -523,11 +746,12 @@
     const g = S.g;
     g.over = true;
     setPhase("final", 0);
-    if (S.role === "solo") recordSolo();
+    if (S.role === "solo" && !g.auto) recordSolo();
     if (S.role === "host") ls("cg_agenda_deck_" + g.id, null);
   }
   function playAgain() {
     const g = S.g;
+    stopAutoNext();
     closeOverlay();
     g.players.forEach((p) => { p.score = 0; p.ms = 0; p.fifty = false; });
     g.qi = -1; g.answers = []; g.locked = []; g.show = (g.show || 1) + 1;
@@ -549,10 +773,16 @@
       // in, the host may choose to reveal early (see revealNow).
       if (t >= g.phaseLen) toSuspense();
       else if (allLocked(g) !== S.allIn) { S.allIn = allLocked(g); updateBoard(); }
+      // AI vs AI: once every AI is in and the host has read the question, go on.
+      if (g.phase === "question" && isAuto() && allLocked(g) && talkOver()) {
+        if (!S.allInAt) S.allInAt = now();
+        else if (now() - S.allInAt > 1200) toSuspense();
+      }
     } else if (g.phase === "suspense") {
       if (t >= g.phaseLen) toReveal();
     } else if (g.phase === "reveal") {
-      if (t >= g.phaseLen) { if (g.qi + 1 < QCOUNT) startQuestion(g.qi + 1); else toFinal(); }
+      // The show waits for the host to finish explaining the answer.
+      if (t >= g.phaseLen && talkOver()) { if (g.qi + 1 < QCOUNT) startQuestion(g.qi + 1); else toFinal(); }
     }
   }
 
@@ -576,11 +806,15 @@
     g.players.forEach((p, i) => {
       if (!p.isAI || g.locked[i]) return;
       // After a pause, an AI still to answer does so within the time left.
+      // In AI vs AI they answer a little quicker, so the show keeps moving.
       const wait = leftMs != null ? randInt(600, Math.max(900, leftMs - 1200))
-        : INTRO_MS + randInt(1800, Math.max(2500, g.timer * 1000 - 1200));
+        : INTRO_MS + (g.auto ? randInt(2500, 15000) : randInt(1800, Math.max(2500, g.timer * 1000 - 1200)));
       S.aiTimers.push(setTimeout(() => {
         if (S.g !== g || g.phase !== "question" || g.qi !== qi) return;
-        const right = Math.random() < lv.acc[d.t - 1] + (p.skill || 0);
+        // When watching AIs, one may spend their 50:50 on a hard question.
+        let boost = 0;
+        if (g.auto && !p.fifty && d.t >= 2 && Math.random() < (d.t === 3 ? 0.45 : 0.15)) { p.fifty = true; boost = 0.22; toast(`${p.name} plays the 50:50`); }
+        const right = Math.random() < lv.acc[d.t - 1] + (p.skill || 0) + boost;
         const c = right ? d.c : rand([0, 1, 2, 3].filter((k) => k !== d.c));
         if (recordPick(qi, i, c, Math.max(0, elapsed() - INTRO_MS), false)) { SA.pop(); paintPods(); updateBoard(); }
       }, wait));
@@ -716,6 +950,7 @@
   // =======================================================================
   function teardown() {
     clearAI();
+    stopAutoNext();
     stopList();
     if (S.loop) { clearInterval(S.loop); S.loop = null; }
     if (S.net.tick) { clearInterval(S.net.tick); S.net.tick = null; }
@@ -724,7 +959,7 @@
     closeOverlay(true);
     SA.setMode("off");
     S.mounted = false; S.role = null; S.g = null; S.deck = null; S.picks = {}; S.net.joining = null;
-    if (CG.Narrate) CG.Narrate.stop();
+    hush(); S.talking = false;
     window.removeEventListener("resize", fitStage);
   }
   function setQuery(key, val) {
@@ -825,6 +1060,7 @@
     card("📺", "Host a show", "Put this screen on the wall. Players scan the QR code with their phones and the show starts when every seat is taken.", "hero", renderHostSetup);
     card("📱", "Join a show", "Got a code, or a show on the big screen? Join from your phone and answer in secret.", "", () => renderJoin(""));
     card("🤖", "Play solo", "You against up to four AI contestants, right here.", "", renderSoloSetup);
+    card("🎬", "AI vs AI", "Sit back and watch two to five AI contestants play the show on their own. Good for a screen in the hall.", "", renderAutoSetup);
     w.appendChild(modes);
 
     const tg = el("div", "ag-toggles");
@@ -911,6 +1147,35 @@
       const names = shuffle(CG.AGENT_NAMES || ["Amara", "Diego", "Mei", "Kofi", "Leila"]).filter((n) => n.toLowerCase() !== nm.toLowerCase());
       const icons = shuffle(AVATARS.filter((a) => a !== icon));
       for (let i = 1; i <= rivals; i++) Object.assign(g.players[i], { name: names[i - 1], icon: icons[i - 1], vacant: false, isAI: true, skill: (Math.random() - 0.5) * 0.12 });
+      enterSolo(g);
+    };
+    w.appendChild(go);
+  }
+  // AI vs AI: pick how many contestants and how good; the show runs itself.
+  function renderAutoSetup() {
+    teardown();
+    const w = screen("ag-setup");
+    w.appendChild(backBtn("← Back", renderTitle));
+    w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
+    w.appendChild(el("h1", "ag-h2", "AI vs AI"));
+    w.appendChild(el("p", "ag-tag", "Watch the AI contestants play the whole show, with the host, the music and the facts. When it ends, the next show starts by itself."));
+    let count = Math.max(2, Math.min(5, settings.autoSeats || 4)), level = settings.level;
+    w.appendChild(el("p", "ag-label", "How many AI contestants?"));
+    w.appendChild(seg([2, 3, 4, 5], count, (v) => { count = v; }));
+    w.appendChild(el("p", "ag-label", "How good are they?"));
+    const note = el("p", "ag-note", LEVELS[level].blurb);
+    w.appendChild(seg(Object.keys(LEVELS), level, (v) => { level = v; note.textContent = LEVELS[v].blurb; }, (v) => LEVELS[v].label));
+    w.appendChild(note);
+    w.appendChild(el("p", "ag-note", "Press the space bar to pause at any time."));
+    const go = el("button", "ag-btn gold big", "Roll the show ▸");
+    go.onclick = () => {
+      Object.assign(settings, { autoSeats: count, level }); saveSettings();
+      SA.unlock();
+      const g = newShow({ mode: "solo", seats: count, level });
+      g.auto = true;
+      const names = shuffle(CG.AGENT_NAMES || ["Amara", "Diego", "Mei", "Kofi", "Leila"]);
+      const icons = shuffle(AVATARS);
+      g.players.forEach((p, i) => Object.assign(p, { name: names[i] || "AI " + (i + 1), icon: icons[i], vacant: false, isAI: true, skill: (Math.random() - 0.5) * 0.14 }));
       enterSolo(g);
     };
     w.appendChild(go);
@@ -1106,6 +1371,7 @@
         `<div class="ag-top-c" id="ag-prog"></div>` +
         `<div class="ag-top-r">` +
           (S.role === "host" ? `<span class="ag-codechip" id="ag-codechip"></span>` : "") +
+          (isAuto() ? `<span class="ag-codechip">🤖 <b>AI vs AI</b></span>` : "") +
           `<button class="ag-ic ag-pause" id="ag-pause" title="Pause the show (space)">⏸</button>` +
           `<button class="ag-ic${settings.music ? " on" : ""}" id="ag-music" title="Music">🎵</button>` +
           `<button class="ag-ic${settings.voice ? " on" : ""}" id="ag-voice" title="Host voice">🎙️</button>` +
@@ -1131,7 +1397,7 @@
       });
     }
     $("ag-music").onclick = (e) => { settings.music = !settings.music; saveSettings(); SA.setMusic(settings.music); e.currentTarget.classList.toggle("on", settings.music); if (settings.music) musicForPhase(); };
-    $("ag-voice").onclick = (e) => { settings.voice = !settings.voice; saveSettings(); if (CG.Narrate) { CG.Narrate.setEnabled(settings.voice); if (!settings.voice) CG.Narrate.stop(); } e.currentTarget.classList.toggle("on", settings.voice); };
+    $("ag-voice").onclick = (e) => { settings.voice = !settings.voice; saveSettings(); if (CG.Narrate) { CG.Narrate.setEnabled(settings.voice); } if (!settings.voice) hush(); e.currentTarget.classList.toggle("on", settings.voice); };
     if (CG.Narrate) CG.Narrate.setEnabled(settings.voice);
     SA.setMusic(settings.music); SA.setSfx(settings.sfx);
     window.addEventListener("resize", fitStage);
@@ -1146,6 +1412,7 @@
     const lvl = Math.max(0, g.qi);
     if (g.phase === "lobby" || g.phase === "final") SA.setMode("theme");
     else if (g.phase === "question") SA.setMode(S.cdStarted ? "off" : "question", lvl);
+    else if (g.phase === "reveal") SA.setMode("reveal", lvl);
     else SA.setMode("off", lvl);
   }
 
@@ -1219,7 +1486,7 @@
           `<button class="ag-plate" id="ag-plate${i}" style="--d:${i}"><span class="ag-pl-l">${LETTERS[i]}</span><span class="ag-pl-t">${esc(a)}</span><span class="ag-pl-who" id="ag-who${i}"></span></button>`).join("")}</div>` +
         `<div class="ag-under" id="ag-under"></div>` +
       `</div>`;
-    if (S.role === "solo") {
+    if (meSeat() === 0) {
       d.a.forEach((_, i) => { $("ag-plate" + i).onclick = () => soloSelect(i); });
     } else d.a.forEach((_, i) => { $("ag-plate" + i).tabIndex = -1; });
     void key;
@@ -1231,7 +1498,7 @@
     const g = S.g, d = g.qs[g.qi];
     if (!d) return;
     const reveal = g.phase === "reveal" && d.c != null;
-    const mine = S.role === "solo" ? 0 : -1;
+    const mine = meSeat();
     for (let i = 0; i < 4; i++) {
       const p = $("ag-plate" + i);
       if (!p) continue;
@@ -1242,10 +1509,10 @@
       p.classList.toggle("right", reveal && d.c === i);
       p.classList.toggle("wrong", reveal && d.c !== i && mine >= 0 && g.answers[g.qi] && g.answers[g.qi][mine] === i);
       p.classList.toggle("dim", reveal && d.c !== i);
-      p.disabled = S.role !== "solo" || g.phase !== "question" || S.me.locked || !!gone;
+      p.disabled = mine < 0 || g.phase !== "question" || S.me.locked || !!gone;
       const who = $("ag-who" + i);
       if (who) who.innerHTML = reveal && g.answers[g.qi]
-        ? g.players.map((pl, k) => (g.answers[g.qi][k] === i ? `<i style="--c:${pl.color}" title="${esc(pl.name)}">${pl.icon}</i>` : "")).join("")
+        ? g.players.map((pl, k) => (g.answers[g.qi][k] === i ? `<i style="--c:${pl.color}"><span>${pl.icon}</span><em>${esc(pl.name)}</em></i>` : "")).join("")
         : "";
     }
     const u = $("ag-under");
@@ -1259,7 +1526,7 @@
         `<small>${right} of ${n} got it right${d.s ? ` · <a href="${esc(d.s)}" target="_blank" rel="noopener">source</a>` : ""}</small></div>`;
     } else if (g.phase === "suspense") {
       u.innerHTML = `<div class="ag-status hush">Final answers are in…</div>`;
-    } else if (S.role === "solo" && g.phase === "question") {
+    } else if (mine === 0 && g.phase === "question") {
       const me = g.players[0];
       u.innerHTML = "";
       const row = el("div", "ag-actions");
@@ -1278,6 +1545,9 @@
         row.appendChild(fin);
       } else row.appendChild(el("div", "ag-status", "Choose an answer"));
       u.appendChild(row);
+    } else if (g.phase === "question" && isAuto()) {
+      const n = active(g).length, k = g.players.filter((p, i) => !p.vacant && g.locked[i]).length;
+      u.innerHTML = `<div class="ag-status">🤖 AI vs AI · <b>${k}</b> of ${n} locked in</div>`;
     } else if (g.phase === "question") {
       const n = active(g).length, k = g.players.filter((p, i) => !p.vacant && g.locked[i]).length;
       u.innerHTML = `<div class="ag-status">Answer on your phones · <b>${k}</b> of ${n} locked in</div>`;
@@ -1330,7 +1600,7 @@
       if (!pod) { pod = el("div", "ag-pod"); f.appendChild(pod); }
       pod.id = "ag-pod" + i;
       pod.style.setProperty("--c", p.color);
-      const cls = "ag-pod" + (p.vacant ? " empty" : "") + (p.away ? " away" : "") + (S.role === "solo" && i === 0 ? " me" : "") +
+      const cls = "ag-pod" + (p.vacant ? " empty" : "") + (p.away ? " away" : "") + (meSeat() === i ? " me" : "") +
         (!p.vacant && g.phase === "question" && g.locked[i] ? " is-locked" : "") +
         (!p.vacant && g.phase === "reveal" && g.answers[g.qi] && g.answers[g.qi][i] === d.c ? " is-right" : "") +
         (pod.classList.contains("score-pop") ? " score-pop" : "");
@@ -1506,7 +1776,7 @@
   // ---- solo: choosing and locking ----------------------------------------
   function soloSelect(i) {
     const g = S.g;
-    if (S.role !== "solo" || g.phase !== "question" || S.me.locked || g.paused) return;
+    if (meSeat() !== 0 || g.phase !== "question" || S.me.locked || g.paused) return;
     if (S.me.fifty && S.me.fifty.indexOf(i) >= 0) return;
     if (elapsed() < INTRO_MS - 400) return;
     S.me.sel = i; SA.select(); updateBoard();
@@ -1521,7 +1791,7 @@
   }
   function useFifty() {
     const g = S.g;
-    if (S.role !== "solo" || g.players[0].fifty || S.me.locked) return;
+    if (meSeat() !== 0 || g.players[0].fifty || S.me.locked) return;
     const d = S.deck[g.qi];
     S.me.fifty = shuffle([0, 1, 2, 3].filter((k) => k !== d.c)).slice(0, 2);
     g.players[0].fifty = true;
@@ -1584,7 +1854,7 @@
     const plate = $("ag-plate" + d.c);
     const st = $("ag-stage");
     if (st) { st.classList.remove("flash"); void st.offsetWidth; st.classList.add("flash"); }
-    if (S.role === "solo") {
+    if (meSeat() === 0) {
       const mine = g.answers[g.qi] ? g.answers[g.qi][0] : -1;
       if (mine === d.c) { SA.correct(); if (plate) burst(plate, "#7cf29c", 34); }
       else SA.wrong();
@@ -1636,8 +1906,29 @@
     const out = el("button", "ag-btn ghost", S.role === "host" ? "Close the show" : "Leave");
     out.onclick = () => leave(true);
     acts.appendChild(out);
+    if (g.auto) {
+      // AI vs AI runs on its own: the next show starts after a short break.
+      const note = el("p", "ag-final-next");
+      c.appendChild(note);
+      const stop = el("button", "ag-btn ghost", "Stop auto play");
+      stop.onclick = () => { stopAutoNext(); note.textContent = "Auto play stopped. Press Play again for another show."; stop.remove(); };
+      acts.appendChild(stop);
+      let left = AUTO_NEXT_S;
+      const paint = () => { note.innerHTML = `Next show starts in <b>${left}</b> s`; };
+      paint();
+      S.autoNext = setInterval(() => {
+        if (S.g !== g || g.phase !== "final") return stopAutoNext();
+        if (g.paused) return;
+        if (S.talking && left <= 1) return;   // let the host finish the send-off
+        left--; paint();
+        if (left <= 0) { stopAutoNext(); playAgain(); }
+      }, 1000);
+    }
     say(top ? (tie ? `What a finish… it's a dead heat, at ${top.score} out of ten!` : `Ladies and gentlemen… the winner of tonight's show is… ${top.name}! With ${top.score} out of ten. Congratulations!`) : "");
   }
+
+  const AUTO_NEXT_S = 25;
+  function stopAutoNext() { if (S.autoNext) { clearInterval(S.autoNext); S.autoNext = null; } }
 
   function share(g) {
     const order = rank(g);
@@ -1774,6 +2065,7 @@
       if (seat >= 0 && body.dataset.buzzed !== g.pk + "") {
         body.dataset.buzzed = g.pk + "";
         if (my === d.c) { SA.correct(); buzz([30, 50, 30]); burst($("ag-pad" + d.c), "#7cf29c", 24); } else { SA.wrong(); buzz(200); }
+        phoneSplash(my < 0 ? "miss" : right ? "ok" : "no", me, d);
       }
       return;
     }
@@ -1789,6 +2081,24 @@
       p.onclick = () => phoneSelect(i);
     }
     phoneLight();
+  }
+  // The verdict, full screen for a moment so nobody misses it: a big green
+  // tick and the new score, or the right letter. A tap closes it early.
+  function phoneSplash(kind, me, d) {
+    const ph = $("ag-phone");
+    if (!ph) return;
+    const old = $("ag-ph-splash"); if (old) old.remove();
+    const sp = el("div", "ag-ph-splash " + kind);
+    sp.id = "ag-ph-splash";
+    sp.innerHTML = kind === "ok"
+      ? `<div class="ag-sp-ic">✓</div><h2>Correct!</h2><p><b>+1</b> · ${me ? `${me.score} right so far` : ""}</p>`
+      : kind === "no"
+        ? `<div class="ag-sp-ic">✗</div><h2>Not this time</h2><p>The answer was <b>${LETTERS[d.c]}</b>: ${esc(d.a[d.c])}</p>`
+        : `<div class="ag-sp-ic">⏱</div><h2>No answer</h2><p>The answer was <b>${LETTERS[d.c]}</b>: ${esc(d.a[d.c])}</p>`;
+    sp.onclick = () => sp.remove();
+    ph.appendChild(sp);
+    if (kind === "ok") confettiRain([me ? me.color : "#7cf29c", "#7cf29c"]);
+    setTimeout(() => { sp.classList.add("out"); setTimeout(() => sp.remove(), 400); }, kind === "ok" ? 3200 : 2800);
   }
   // Repaint just the pads and the action row (no flicker while answering).
   function phoneLight() {

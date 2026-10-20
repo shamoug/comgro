@@ -8,6 +8,18 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v7, agenda.css v7, boot.js v9 on every page): a new
+REM              original score, synthesised live: a 16-bar anthem in D minor that lifts
+REM              to F major and builds pass by pass (piano and strings, then bass and
+REM              drums, then brass melody and choir), a 30-second answer clock in strict
+REM              time at 120 bpm that lifts a semitone for the last ten seconds, a soft
+REM              reveal bed, stereo strings, and music that ducks under the host. The show
+REM              waits for the host to finish explaining an answer before moving on. Phones
+REM              flash a full-screen verdict (green tick and new score, or the right
+REM              answer) and show it above the pads. Names are never cut short: own row on
+REM              the podiums, names on the answer chips, bigger names everywhere. New AI vs
+REM              AI mode: 2 to 5 AI contestants play on their own, AIs may play the 50:50,
+REM              and the next show starts by itself after 25 seconds.
 REM  2026-10-20  AGENDA 2030: players always get the full 30 seconds (no early end when all
 REM              have locked in; the host may press "Reveal now"), with the countdown score
 REM              building over the whole 30. Contestant pills are built once and patched in
