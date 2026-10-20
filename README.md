@@ -71,7 +71,7 @@ a **Scout** 🧭 (bishop) and three **Volunteers** 🙋 (pawns).
 
 A quiz show on the Sustainable Development Goals, in the spirit of *Who Wants to
 Be a Millionaire?*. **Ten questions a show**, each harder than the last (four
-warm-up, three harder, three for the brave), drawn from a bank of several hundred
+warm-up, three harder, three for the brave), drawn from a bank of almost 700
 questions across all 17 Goals and the 2030 Agenda itself. Every question has four
 answers, A to D, with exactly one right, and **every one was checked against the
 official source it cites** (sdgs.un.org target texts, unstats.un.org, UN
@@ -96,7 +96,12 @@ resolutions and agency sites). The answers are shuffled every show.
 
 It is a static website. No build step, no accounts, no external media. The only
 backend is optional: online play (The Long Road theatres and the Situation Report, Parley
-and Agenda 2030 rooms) rides a free public MQTT broker, and everything else works offline.
+and Agenda 2030 rooms) rides free public MQTT brokers, and everything else works offline.
+Several brokers are used **at once** (shiftr.io on port 443, plus EMQX, HiveMQ and
+Mosquitto): each browser connects to every one it can reach and sends each message
+to all of them, so play carries on if a broker goes down, and it still works on
+networks that block every port but 443. The list is `BROKERS` at the top of
+`src/net.js`.
 
 **Live:** https://shamoug.github.io/comgro/
 

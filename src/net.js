@@ -2,7 +2,8 @@
  * COMMON GROUND, net.js
  * The multiplayer backbone. GitHub Pages serves only static files, so the
  * shared state that lets browsers see and join each other's games travels over
- * a free, no-account public MQTT broker (EMQX) via secure WebSockets.
+ * free, no-account public MQTT brokers (several at once, see BROKERS) via
+ * secure WebSockets.
  *
  *   MQTT is a pub/sub message bus built for constant, high-frequency traffic,
  *   so unlike the small JSON stores it does not throttle our writes. We use
@@ -24,7 +25,16 @@
 (function () {
   const CG = (window.CG = window.CG || {});
 
-  const BROKER = "wss://broker.emqx.io:8084/mqtt";
+  // Free, no-account public brokers, all over secure WebSockets. Every one
+  // is used at once (see connect()). shiftr.io answers on port 443, which
+  // gets through networks that block the others' ports; it asks for the
+  // published public/public login. To add or swap a broker, edit this list.
+  const BROKERS = [
+    { url: "wss://public.cloud.shiftr.io", auth: { username: "public", password: "public" } },
+    { url: "wss://broker.emqx.io:8084/mqtt" },
+    { url: "wss://broker.hivemq.com:8884/mqtt" },
+    { url: "wss://test.mosquitto.org:8081/mqtt" },
+  ];
   const PREFIX = "commonground/v1";
   const lobbyTopic = (id) => PREFIX + "/lobby/" + id;
   const gameTopic = (id) => PREFIX + "/game/" + id;
@@ -51,8 +61,7 @@
   let activePoll = { id: null, cb: null };
   let chatSub = { id: null, cb: null };   // live table-chat subscription
 
-  function onMessage(topic, buf) {
-    const payload = buf ? buf.toString() : "";
+  function onMessage(topic, payload) {
     if (topic.indexOf(PREFIX + "/x/") === 0) return onRoomMessage(topic, payload);
     if (topic.indexOf(PREFIX + "/chat/") === 0) {
       if (!payload) return;
@@ -76,36 +85,84 @@
     }
   }
 
-  // ---- connection (made once, on demand) ---------------------------------
-  let client = null, connectPromise = null;
+  // ---- connection: several brokers at once ------------------------------
+  // Public brokers come and go, and some networks (UN and corporate ones
+  // among them) block every port but 443. So a browser connects to EVERY
+  // broker in BROKERS it can reach, publishes each message to all of them,
+  // and drops the copies that arrive twice. Two players always meet on any
+  // broker they can both reach, and losing one broker changes nothing.
+  // connect() resolves as soon as the first broker answers; the rest join
+  // in the background and are handed every subscription when they do.
+  const DEDUPE_MS = 2000;
+  const seenMsg = new Map();            // topic + payload -> time first seen
+  function fresh(topic, payload) {
+    const t = now(), key = topic + "|" + payload;
+    if (seenMsg.size > 400) seenMsg.forEach((at, k) => { if (t - at > DEDUPE_MS) seenMsg.delete(k); });
+    const at = seenMsg.get(key);
+    if (at && t - at < DEDUPE_MS) return false;
+    seenMsg.set(key, t);
+    return true;
+  }
+
+  const subs = new Set();               // every topic we want, on every broker
+  let conns = [];                       // one mqtt.js client per broker
+  // The facade the rest of this file talks to, shaped like one mqtt.js client.
+  const client = {
+    get connected() { return conns.some((c) => c.connected); },
+    subscribe(t) { subs.add(t); conns.forEach((c) => { if (c.connected) { try { c.subscribe(t); } catch (e) {} } }); },
+    unsubscribe(t) { subs.delete(t); conns.forEach((c) => { try { c.unsubscribe(t); } catch (e) {} }); },
+    // Publish everywhere. The callback fires on the first broker's ack, or
+    // after a short wait if none is up, so nothing awaits forever.
+    publish(t, payload, opts, cb) {
+      let done = false;
+      const finish = () => { if (!done) { done = true; if (cb) cb(); } };
+      const up = conns.filter((c) => c.connected);
+      (up.length ? up : conns).forEach((c) => { try { c.publish(t, payload, opts || {}, finish); } catch (e) {} });
+      setTimeout(finish, up.length ? 2500 : 600);
+    },
+  };
+
+  let connectPromise = null;
   function connect() {
     if (connectPromise) return connectPromise;
     connectPromise = new Promise((resolve, reject) => {
       if (typeof mqtt === "undefined" || !mqtt.connect) return reject(new Error("mqtt.js not loaded"));
-      try {
-        client = mqtt.connect(BROKER, {
-          clientId: "cg_" + clientId + "_" + Math.random().toString(16).slice(2, 8),
-          clean: true, reconnectPeriod: 3000, connectTimeout: 8000, keepalive: 30,
+      let settled = false, failed = 0;
+      subs.add(lobbyTopic("+"));          // watch every open theatre
+      conns = BROKERS.map((b) => {
+        let c;
+        try {
+          c = mqtt.connect(b.url, Object.assign({
+            clientId: "cg_" + clientId + "_" + Math.random().toString(16).slice(2, 8),
+            clean: true, reconnectPeriod: 4000, connectTimeout: 8000, keepalive: 30,
+          }, b.auth || {}));
+        } catch (e) { failed++; return null; }
+        c.on("message", (topic, buf) => {
+          const payload = buf ? buf.toString() : "";
+          if (fresh(topic, payload)) onMessage(topic, payload);
         });
-      } catch (e) { return reject(e); }
-      let settled = false;
-      client.on("message", onMessage);
-      client.on("connect", () => {
-        client.subscribe(lobbyTopic("+"));      // watch every open theatre
-        if (!settled) { settled = true; resolve(client); }
-      });
-      client.on("error", (e) => { if (!settled) { settled = true; reject(e); } });
-      setTimeout(() => { if (!settled) { settled = true; reject(new Error("broker timeout")); } }, 9000);
+        c.on("connect", () => {
+          subs.forEach((t) => { try { c.subscribe(t); } catch (e) {} });
+          if (!settled) { settled = true; resolve(client); }
+        });
+        // An unreachable broker keeps retrying quietly in the background.
+        c.on("error", () => {});
+        return c;
+      }).filter(Boolean);
+      if (!conns.length) { settled = true; return reject(new Error("no broker")); }
+      setTimeout(() => { if (!settled) { settled = true; reject(new Error("no broker reachable")); } }, 9000);
     });
     // A failed attempt is not remembered: the next call tries again, so a
     // network blip does not leave online play off until the page reloads.
     connectPromise.catch(() => {
       connectPromise = null;
-      try { if (client) client.end(true); } catch (e) {}
-      client = null;
+      conns.forEach((c) => { try { c.end(true); } catch (e) {} });
+      conns = [];
     });
     return connectPromise;
   }
+  // Which brokers this browser is on right now (for the curious, and tests).
+  function brokers() { return conns.map((c, i) => ({ url: BROKERS[i] && BROKERS[i].url, up: !!c.connected })); }
 
   function pub(topic, obj) {
     return new Promise((res) => {
@@ -366,6 +423,6 @@
     upsertSummary, dropSummary, summaryOf,
     poll, stopPoll,
     onChat, stopChat, sendChat,
-    connect,
+    connect, brokers,
   };
 })();

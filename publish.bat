@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  ONLINE PLAY ON SEVERAL BROKERS AT ONCE (net.js v9), for every game. The
+REM              single EMQX broker went unreachable (port 8084 blocked on some networks,
+REM              UN ones included). Now each browser connects to every broker in BROKERS
+REM              it can reach (shiftr.io on 443, EMQX, HiveMQ, Mosquitto), publishes to all,
+REM              re-subscribes each one as it connects, and drops duplicate messages. Two
+REM              players meet on any broker they share; one going down changes nothing. A
+REM              failed connect is retried on the next call. AGENDA 2030: 120 lighter,
+REM              still-sourced questions (693 in all). boot.js v4 on every page.
 REM  2026-10-20  NEW GAME: AGENDA 2030 (agenda.js v1). A fifth game, at /agenda/: a quiz
 REM              show on the SDGs in the spirit of Who Wants to Be a Millionaire. Ten
 REM              questions a show (4 warm-up, 3 harder, 3 for the brave) from a bank of
