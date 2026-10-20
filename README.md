@@ -91,6 +91,8 @@ resolutions and agency sites). The answers are shuffled every show.
   answers. Everyone has one **50:50** per show.
 - **Come in late.** A small QR code stays in the corner of the stage during the
   show: scan it to watch on your phone, or take a seat if one is open.
+- **Pause** (⏸ or the space bar) freezes the show on every screen; resume picks up
+  with exactly the time that was left.
 - Phones can fire emoji reactions that float up on the big screen.
 - **Play solo** against one to four AI contestants (Casual, Sharp or Expert).
 

@@ -413,12 +413,70 @@
 
   function setPhase(phase, len) {
     const g = S.g;
+    g.paused = false; g.left = 0;
     g.phase = phase; g.phaseLen = len || 0; g.pk = (g.pk || 0) + 1;
     S.t0 = now(); S.pk = g.pk;
     publish({ summary: phase === "lobby" || phase === "countdown" || phase === "final" });
     onPhase(true);
   }
-  function elapsed() { return now() - S.t0; }
+  // While the host has paused the show, the clock stands still at the time
+  // that was left; on resume every screen restarts it from there.
+  function elapsed() { const g = S.g; return g && g.paused ? Math.max(0, g.phaseLen - (g.left || 0)) : now() - S.t0; }
+  const canPause = (g) => !!g && ["question", "suspense", "reveal"].indexOf(g.phase) >= 0;
+
+  function pauseShow() {
+    const g = S.g;
+    if (!isStage() || !canPause(g) || g.paused) return;
+    g.left = Math.max(0, g.phaseLen - elapsed());
+    g.paused = true; g.pz = (g.pz || 0) + 1;
+    clearAI();
+    SA.stopCountdown(); SA.setMode("off");
+    if (CG.Narrate) CG.Narrate.stop();
+    SA.select();
+    publish();
+    paintPause();
+  }
+  function resumeShow() {
+    const g = S.g;
+    if (!isStage() || !g || !g.paused) return;
+    const left = g.left || 0;
+    g.paused = false; g.pz = (g.pz || 0) + 1;
+    S.t0 = now() - (g.phaseLen - left);
+    S.cdStarted = false; S.lastTick = -1;
+    if (g.phase === "question" && S.role === "solo") scheduleAI(g.qi, left);
+    SA.select();
+    publish();
+    musicForPhase();
+    paintPause();
+  }
+  function togglePause() { const g = S.g; if (g && g.paused) resumeShow(); else pauseShow(); }
+  // The pause button in the top bar and the curtain over the stage.
+  function paintPause() {
+    const g = S.g, btn = $("ag-pause");
+    if (btn) {
+      btn.disabled = !canPause(g);
+      btn.classList.toggle("on", !!(g && g.paused));
+      btn.textContent = g && g.paused ? "▶" : "⏸";
+      btn.title = g && g.paused ? "Resume the show (space)" : "Pause the show (space)";
+    }
+    const st = $("ag-stage");
+    if (!st) return;
+    let cur = $("ag-paused");
+    if (g && g.paused) {
+      if (!cur) {
+        cur = el("div", "ag-paused");
+        cur.id = "ag-paused";
+        const card = el("div", "ag-paused-card", '<div class="ag-paused-ic">⏸</div><h3>Show paused</h3><p>The clock has stopped. Every phone is waiting.</p>');
+        const go = el("button", "ag-btn gold big", "Resume the show ▸");
+        go.onclick = resumeShow;
+        card.appendChild(go);
+        card.appendChild(el("small", "", "or press the space bar"));
+        cur.appendChild(card);
+        st.appendChild(cur);
+      }
+    } else if (cur) cur.remove();
+    st.classList.toggle("is-paused", !!(g && g.paused));
+  }
 
   function startCountdown() {
     const g = S.g;
@@ -439,7 +497,7 @@
   }
   function recordPick(qi, p, c, ms, fifty) {
     const g = S.g;
-    if (g.phase !== "question" || g.qi !== qi || !g.players[p] || g.locked[p]) return false;
+    if (g.phase !== "question" || g.paused || g.qi !== qi || !g.players[p] || g.locked[p]) return false;
     S.picks[qi][p] = { c, ms: Math.max(0, Math.min(ms | 0, g.timer * 1000)) };
     if (fifty) g.players[p].fifty = true;
     g.locked[p] = true;
@@ -479,7 +537,7 @@
   // Runs four times a second on the stage: moves the show along.
   function hostLoop() {
     const g = S.g;
-    if (!g || !isStage()) return;
+    if (!g || !isStage() || g.paused) return;
     const t = elapsed();
     if (g.phase === "lobby") {
       if (filled(g).length === g.seats) startCountdown();
@@ -498,17 +556,19 @@
 
   // ---- AI contestants (solo) ---------------------------------------------
   function clearAI() { S.aiTimers.forEach(clearTimeout); S.aiTimers = []; }
-  function scheduleAI(qi) {
+  function scheduleAI(qi, leftMs) {
     clearAI();
     const g = S.g, d = S.deck[qi], lv = LEVELS[g.level] || LEVELS.sharp;
     g.players.forEach((p, i) => {
-      if (!p.isAI) return;
-      const wait = INTRO_MS + randInt(1800, Math.max(2500, g.timer * 1000 - 1200));
+      if (!p.isAI || g.locked[i]) return;
+      // After a pause, an AI still to answer does so within the time left.
+      const wait = leftMs != null ? randInt(600, Math.max(900, leftMs - 1200))
+        : INTRO_MS + randInt(1800, Math.max(2500, g.timer * 1000 - 1200));
       S.aiTimers.push(setTimeout(() => {
         if (S.g !== g || g.phase !== "question" || g.qi !== qi) return;
         const right = Math.random() < lv.acc[d.t - 1] + (p.skill || 0);
         const c = right ? d.c : rand([0, 1, 2, 3].filter((k) => k !== d.c));
-        if (recordPick(qi, i, c, wait - INTRO_MS, false)) { SA.pop(); paintPods(); }
+        if (recordPick(qi, i, c, Math.max(0, elapsed() - INTRO_MS), false)) { SA.pop(); paintPods(); }
       }, wait));
     });
   }
@@ -615,8 +675,14 @@
     S.net.hostSeen = now();
     const seat = mySeat();
     if (S.net.joining && seat >= 0) { S.net.joining = null; S.role = "phone"; SA.join(); buzz(30); }
-    if (!was || ng.pk !== S.pk) { S.pk = ng.pk; S.t0 = now(); onPhase(false); }
+    if (!was || ng.pk !== S.pk) { S.pk = ng.pk; S.t0 = now(); S.pz = ng.pz; onPhase(false); }
     else paintPhone(false);
+    if (ng.pz !== S.pz) {
+      S.pz = ng.pz;
+      if (!ng.paused) S.t0 = now() - (ng.phaseLen - (ng.left || 0));
+      buzz(25);
+    }
+    paintPhonePause();
   }
 
   // =======================================================================
@@ -1026,6 +1092,7 @@
         `<div class="ag-top-c" id="ag-prog"></div>` +
         `<div class="ag-top-r">` +
           (S.role === "host" ? `<span class="ag-codechip" id="ag-codechip"></span>` : "") +
+          `<button class="ag-ic ag-pause" id="ag-pause" title="Pause the show (space)">⏸</button>` +
           `<button class="ag-ic${settings.music ? " on" : ""}" id="ag-music" title="Music">🎵</button>` +
           `<button class="ag-ic${settings.voice ? " on" : ""}" id="ag-voice" title="Host voice">🎙️</button>` +
         `</div>` +
@@ -1040,6 +1107,15 @@
     root.appendChild(st);
     S.mounted = true;
     $("ag-quit").onclick = confirmLeave;
+    $("ag-pause").onclick = togglePause;
+    if (!keyHooked) {
+      keyHooked = true;
+      document.addEventListener("keydown", (e) => {
+        if (!isStage() || !S.mounted || !$("ag-stage")) return;
+        if (e.target && /input|textarea|select|button/i.test(e.target.tagName)) return;
+        if (e.code === "Space" || e.key === "p" || e.key === "P") { e.preventDefault(); togglePause(); }
+      });
+    }
     $("ag-music").onclick = (e) => { settings.music = !settings.music; saveSettings(); SA.setMusic(settings.music); e.currentTarget.classList.toggle("on", settings.music); if (settings.music) musicForPhase(); };
     $("ag-voice").onclick = (e) => { settings.voice = !settings.voice; saveSettings(); if (CG.Narrate) { CG.Narrate.setEnabled(settings.voice); if (!settings.voice) CG.Narrate.stop(); } e.currentTarget.classList.toggle("on", settings.voice); };
     if (CG.Narrate) CG.Narrate.setEnabled(settings.voice);
@@ -1047,6 +1123,7 @@
     window.addEventListener("resize", fitStage);
     startRaf();
   }
+  let keyHooked = false;
   function fitStage() { /* layout is pure CSS; kept for symmetry with other games */ }
 
   function musicForPhase() {
@@ -1101,6 +1178,7 @@
     const cc = $("ag-codechip");
     if (cc) cc.innerHTML = `Join · <b>${esc(g.id)}</b>`;
     paintMiniQR();
+    paintPause();
   }
 
   function paintCentre() {
@@ -1388,7 +1466,7 @@
   // ---- solo: choosing and locking ----------------------------------------
   function soloSelect(i) {
     const g = S.g;
-    if (S.role !== "solo" || g.phase !== "question" || S.me.locked) return;
+    if (S.role !== "solo" || g.phase !== "question" || S.me.locked || g.paused) return;
     if (S.me.fifty && S.me.fifty.indexOf(i) >= 0) return;
     if (elapsed() < INTRO_MS - 400) return;
     S.me.sel = i; SA.select(); updateBoard();
@@ -1430,8 +1508,8 @@
       if (s && elapsed() > INTRO_MS) { s.textContent = secs; const lb = $("ag-em-lab"); if (lb) lb.textContent = "SECS"; }
       const ps = $("ag-ph-secs"); if (ps) ps.textContent = secs;
       // The question bed runs first; the countdown score takes the last ten seconds.
-      if (isStage() && !S.cdStarted && elapsed() > INTRO_MS && left <= FINAL_S * 1000) { S.cdStarted = true; SA.countdown(Math.max(1, left / 1000)); }
-      if (secs !== S.lastTick && elapsed() > INTRO_MS) {
+      if (isStage() && !g.paused && !S.cdStarted && elapsed() > INTRO_MS && left <= FINAL_S * 1000) { S.cdStarted = true; SA.countdown(Math.max(1, left / 1000)); }
+      if (secs !== S.lastTick && elapsed() > INTRO_MS && !g.paused) {
         S.lastTick = secs;
         if (secs > 0 && (S.role === "phone" ? !S.me.locked && secs <= 5 : !settings.music)) SA.tick(secs <= 3);
       }
@@ -1708,14 +1786,27 @@
     row.appendChild(lock);
     act.appendChild(row);
   }
+  // On a phone: a curtain while the host has paused; the pads hold still.
+  function paintPhonePause() {
+    const ph = $("ag-phone"), g = S.g;
+    if (!ph || !g) return;
+    let cur = $("ag-ph-paused");
+    if (g.paused) {
+      if (!cur) {
+        cur = el("div", "ag-paused ph", '<div class="ag-paused-card"><div class="ag-paused-ic">⏸</div><h3>Paused by the host</h3><p>Hold that thought. Your time is saved.</p></div>');
+        cur.id = "ag-ph-paused";
+        ph.appendChild(cur);
+      }
+    } else if (cur) cur.remove();
+  }
   function phoneSelect(i) {
-    if (S.me.locked || mySeat() < 0 || S.g.phase !== "question") return;
+    if (S.me.locked || mySeat() < 0 || S.g.phase !== "question" || S.g.paused) return;
     if (S.me.fifty && S.me.fifty.indexOf(i) >= 0) return;
     S.me.sel = i; SA.select(); buzz(8); phoneLight();
   }
   function phoneLock() {
     const g = S.g;
-    if (S.me.sel < 0 || S.me.locked || g.phase !== "question") return;
+    if (S.me.sel < 0 || S.me.locked || g.phase !== "question" || g.paused) return;
     S.me.locked = true; S.me.qi = g.qi;
     S.me.ms = Math.max(0, now() - S.t0 - INTRO_MS);
     SA.lock(); buzz(40);

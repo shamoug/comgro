@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030: a PAUSE button for the host (and solo), also on the space
+REM              bar. It freezes the clock in any phase, stops music, countdown, narrator
+REM              and AI contestants; phones show "Paused by the host" and hold their pads;
+REM              on resume every screen continues with exactly the time that was left.
+REM              Podiums no longer wobble: fixed columns, fixed-width thinking dots, no jump
+REM              on lock-in.
 REM  2026-10-20  A MORE HUMAN NARRATOR (narrate.js v5, every game). Scores every voice the
 REM              device has and picks the most natural English one (Edge Natural, Google,
 REM              Apple Enhanced/Premium) unless the player chose one; speaks a phrase at a

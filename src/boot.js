@@ -23,7 +23,7 @@
     "styles/styles.css?v=45",
     "styles/sitrep.css?v=2",
     "styles/parley.css?v=1",
-    "styles/agenda.css?v=4",
+    "styles/agenda.css?v=5",
   ];
   var JS = [
     // DATA: all flavour text, board layout, decks and the dictionary
@@ -47,7 +47,7 @@
     "src/td.js?v=11",
     "src/sitrep.js?v=2",
     "src/parley.js?v=1",
-    "src/agenda.js?v=4",
+    "src/agenda.js?v=5",
     "src/platform.js?v=17",
   ];
 
