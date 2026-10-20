@@ -703,7 +703,7 @@
   // The seat played at this screen: 0 in solo, none when hosting or watching AIs.
   const meSeat = () => (S.role === "solo" && !isAuto() ? 0 : -1);
 
-  function blankPlayer(i) { return { name: "", ownerId: null, icon: "", color: SEAT_COLORS[i], vacant: true, score: 0, ms: 0, fifty: false, away: false, isAI: false }; }
+  function blankPlayer(i) { return { name: "", ownerId: null, icon: "", color: SEAT_COLORS[i], vacant: true, score: 0, ms: 0, streak: 0, fifty: false, away: false, isAI: false }; }
 
   function newShow(opts) {
     const g = {
@@ -843,9 +843,13 @@
     const g = S.g, qi = g.qi, d = S.deck[qi];
     const picks = S.picks[qi] || {};
     g.answers[qi] = g.players.map((p, i) => (picks[i] ? picks[i].c : -1));
+    const before = leader(g);
     g.players.forEach((p, i) => {
-      if (picks[i] && picks[i].c === d.c) { p.score++; p.ms += picks[i].ms; }
+      if (picks[i] && picks[i].c === d.c) { p.score++; p.ms += picks[i].ms; p.streak = (p.streak || 0) + 1; }
+      else if (!p.vacant) p.streak = 0;
     });
+    const after = leader(g);
+    g.newLead = after >= 0 && after !== before && filled(g).length > 1 ? after : -1;
     g.qs[qi] = Object.assign({}, g.qs[qi], { c: d.c, f: d.f, s: d.s });
     setPhase("reveal", REVEAL_MS);
   }
@@ -860,7 +864,8 @@
     const g = S.g;
     stopAutoNext();
     closeOverlay();
-    g.players.forEach((p) => { p.score = 0; p.ms = 0; p.fifty = false; });
+    g.players.forEach((p) => { p.score = 0; p.ms = 0; p.streak = 0; p.fifty = false; });
+    g.newLead = -1;
     g.qi = -1; g.answers = []; g.locked = []; g.show = (g.show || 1) + 1;
     S.deck = null; S.picks = {};
     startCountdown();
@@ -1757,13 +1762,23 @@
       else if (g.phase === "suspense") st = g.locked[i] ? "🔒 locked in" : "no answer";
       else if (reveal && g.phase === "reveal") {
         const a = g.answers[g.qi] && g.answers[g.qi][i] != null ? g.answers[g.qi][i] : -1;
-        st = a < 0 ? "no answer" : a === d.c ? `<b class="ok">${LETTERS[a]} ✓ right</b>` : `<b class="no">${LETTERS[a]} ✗</b>`;
+        st = (a < 0 ? "no answer" : a === d.c ? `<b class="ok">${LETTERS[a]} ✓ right</b>` : `<b class="no">${LETTERS[a]} ✗</b>`) +
+          ` <span class="ag-pod-rk">#${ranks.indexOf(i) + 1}</span>`;
       } else if (g.phase === "final") st = `#${ranks.indexOf(i) + 1}`;
-      podPart(pod, "ag-pod-av", p.icon + (p.fifty ? '<i class="ag-pod-life" title="50:50 used">½</i>' : ""));
+      const lead = g.phase !== "lobby" && leader(g) === i;
+      podPart(pod, "ag-pod-av", p.icon + (p.fifty ? '<i class="ag-pod-life" title="50:50 used">½</i>' : "") + (lead ? '<i class="ag-pod-crown">👑</i>' : "") +
+        ((p.streak || 0) >= 2 && g.phase !== "lobby" ? `<i class="ag-pod-streak">🔥${p.streak}</i>` : ""));
       podPart(pod, "ag-pod-nm", esc(p.name) + (p.isAI ? " <small>AI</small>" : ""));
       podPart(pod, "ag-pod-sc", `<b>${p.score}</b><small>right</small>`);
       podPart(pod, "ag-pod-st", st);
     });
+  }
+  // The seat out in front, or -1 when nobody has scored or it is level.
+  function leader(g) {
+    const o = rank(g);
+    if (!o.length || !g.players[o[0]].score) return -1;
+    if (o.length > 1 && g.players[o[1]].score === g.players[o[0]].score) return -1;
+    return o[0];
   }
   // Seats in finishing order: most right, then quickest on those.
   function rank(g) {
@@ -2005,7 +2020,13 @@
     });
     const right = g.answers[g.qi] ? g.answers[g.qi].filter((x) => x === d.c).length : 0;
     const n = filled(g).length;
-    const crowd = n < 2 ? "" : right === n ? " Everybody got that one!" : right === 0 ? " Ooh, nobody got that one." : right === 1 ? " Just one of you got it." : "";
+    let crowd = n < 2 ? "" : right === n ? " Everybody got that one!" : right === 0 ? " Ooh, nobody got that one." : right === 1 ? " Just one of you got it." : "";
+    const hot = g.players.filter((p) => !p.vacant && (p.streak || 0) >= 3).sort((a, b) => b.streak - a.streak)[0];
+    if (hot) crowd += ` ${hot.name} is on fire, ${ORD[hot.streak - 1] || hot.streak} in a row!`;
+    if (g.newLead >= 0 && g.qi < QCOUNT - 1) {
+      crowd += ` ${rand(["And", "Oh, and"])} ${g.players[g.newLead].name} ${rand(["takes the lead!", "moves into first place!", "is out in front!"])}`;
+      const pod = $("ag-pod" + g.newLead); if (pod) setTimeout(() => burst(pod, "#f5c542", 30), 600);
+    }
     say(`${rand(["The right answer is…", "And the answer is…", "It's…"])} ${LETTERS[d.c]}! ${d.a[d.c]}.${crowd} ${d.f}`);
   }
 
@@ -2228,6 +2249,13 @@
   }
   // The verdict, full screen for a moment so nobody misses it: a big green
   // tick and the new score, or the right letter. A tap closes it early.
+  // Private to each phone: where you stand right now.
+  function standing(me) {
+    const g = S.g;
+    if (!me || !g || filled(g).length < 2) return "";
+    const o = rank(g), place = o.indexOf(g.players.indexOf(me)) + 1;
+    return `<p class="ag-sp-rank">${place === 1 ? "👑 You're in the lead" : `You're <b>#${place}</b> of ${o.length}`}</p>`;
+  }
   function phoneSplash(kind, me, d) {
     const ph = $("ag-phone");
     if (!ph) return;
@@ -2235,10 +2263,11 @@
     const sp = el("div", "ag-ph-splash " + kind);
     sp.id = "ag-ph-splash";
     sp.innerHTML = kind === "ok"
-      ? `<div class="ag-sp-ic">✓</div><h2>Correct!</h2><p><b>+1</b> · ${me ? `${me.score} right so far` : ""}</p>`
+      ? `<div class="ag-sp-ic">✓</div><h2>Correct!</h2><p><b>+1</b> · ${me ? `${me.score} right so far` : ""}</p>${me && me.streak >= 2 ? `<p class="ag-sp-streak">🔥 ${me.streak} in a row</p>` : ""}${standing(me)}`
       : kind === "no"
         ? `<div class="ag-sp-ic">✗</div><h2>Not this time</h2><p>The answer was <b>${LETTERS[d.c]}</b>: ${esc(d.a[d.c])}</p>`
         : `<div class="ag-sp-ic">⏱</div><h2>No answer</h2><p>The answer was <b>${LETTERS[d.c]}</b>: ${esc(d.a[d.c])}</p>`;
+    if (kind !== "ok") sp.innerHTML += standing(me);
     sp.onclick = () => sp.remove();
     ph.appendChild(sp);
     if (kind === "ok") confettiRain([me ? me.color : "#7cf29c", "#7cf29c"]);

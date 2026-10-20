@@ -90,6 +90,9 @@ resolutions and agency sites). The answers are shuffled every show.
   source. The show never moves on while the host is still explaining the answer.
 - **Every phone shows its verdict** in a big card: a green tick and the new
   score, or the right answer. The question and all four answers stay in view.
+- **Standings all the way**: the leader wears a crown, every podium shows its
+  rank, a fire badge counts answers right in a row, the host calls out streaks
+  and lead changes, and each phone privately shows where you stand.
 - **Most right answers wins**; a tie goes to whoever was quicker on their right
   answers. Everyone has one **50:50** per show.
 - **Come in late.** A small QR code stays in the corner of the stage during the

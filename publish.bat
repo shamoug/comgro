@@ -8,6 +8,13 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v10, agenda.css v9, boot.js v12): STANDINGS AND STREAKS.
+REM              The leader wears a crown on the podiums, every podium shows its rank on
+REM              the reveal, and 2 or more right in a row shows a fire streak. The host
+REM              calls out a streak of three or more and every lead change. Each phone's
+REM              verdict card adds its private standing ("You're #2 of 5", or in the lead)
+REM              and its streak. A spotlight on the board in the suspense, faster light
+REM              beams on the reveal.
 REM  2026-10-20  AGENDA 2030 (agenda.js v9, boot.js v11): A RELOAD NEVER COSTS A SEAT. A phone
 REM              that refreshes goes straight back to its seat (no join form), with its
 REM              locked-in answer and 50:50 for the current question restored. A quiet

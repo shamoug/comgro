@@ -574,3 +574,14 @@
 .ag-over-final .ag-step.s1 .ag-step-av { box-shadow: 0 0 0 4px var(--ag-gold), 0 0 50px rgba(255, 210, 90, .9); animation: agWinPulse 1.94s ease-in-out infinite; }
 .ag-over-final .ag-final-next { color: #fff; }
 @media (prefers-reduced-motion: reduce) { .ag-over.ag-over-final::before, .ag-over-final .ag-final-h, .ag-over-final .ag-step.s1 .ag-step-av { animation: none; } }
+
+/* ---- standings on the podiums: the leader's crown, streaks, rank ---------- */
+.ag-pod-crown { position: absolute; top: -17px; left: 0; right: 0; text-align: center; font-style: normal; font-size: 18px; animation: agFloat 2s ease-in-out infinite; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .5)); }
+.ag-pod-streak { position: absolute; left: -8px; bottom: -6px; font: 800 10.5px var(--ag-mono); font-style: normal; color: #fff; padding: 1px 5px; border-radius: 999px;
+  background: linear-gradient(180deg, #ff9a1f, #e0420f); box-shadow: 0 2px 8px rgba(255, 110, 30, .6); white-space: nowrap; animation: agPop .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ag-pod-rk { font: 700 12px var(--ag-mono); color: var(--ag-gold); }
+.ag-sp-streak { font-weight: 800 !important; font-size: 20px !important; }
+.ag-sp-rank { margin-top: 4px !important; padding: 4px 12px; border-radius: 999px; background: rgba(0, 0, 0, .22); font-weight: 700 !important; }
+/* lights: a spotlight on the board while the answers are in, a light show on the reveal */
+.ag-stage[data-phase="suspense"] .ag-board { filter: drop-shadow(0 0 40px rgba(255, 220, 140, .35)); transition: filter .8s ease; }
+.ag-stage[data-phase="reveal"] .ag-beam { animation-duration: 3s; opacity: 1; }
