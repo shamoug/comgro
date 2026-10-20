@@ -132,7 +132,11 @@
     const t = clean(text);
     if (!t) { fire(); return; }
     const my = ++gen;
-    try { window.speechSynthesis.cancel(); } catch (e) {}
+    const ss = window.speechSynthesis;
+    // Chrome drops an utterance spoken straight after cancel(), so only
+    // cancel when something is actually playing, and give it a moment.
+    let busy = false;
+    try { busy = ss.speaking || ss.pending; if (busy) ss.cancel(); } catch (e) {}
     if (!chosen) loadVoices();
     const list = phrases(t);
     const baseRate = (opts && opts.rate) || (natural() ? 1.0 : 0.95);
@@ -162,13 +166,27 @@
         };
         u.onend = after;
         u.onerror = after;
-        window.speechSynthesis.speak(u);
-        // Safety net: some engines never fire onend; move on after a fair wait.
-        setTimeout(after, 2500 + ph.t.length * 110);
+        live.push(u);   // Chrome forgets an utterance nobody holds, and its onend never fires
+        if (live.length > 8) live.shift();
+        ss.speak(u);
+        // Safety net for engines that never fire onend: once the phrase has had
+        // a fair time, move on only when the voice has really gone quiet, so a
+        // slow voice is never cut off. A hard ceiling stops a stuck engine.
+        const t0 = Date.now(), fair = 1500 + ph.t.length * 90;
+        const watch = () => {
+          if (done || my !== gen) return;
+          const quiet = !ss.speaking && !ss.pending;
+          if ((Date.now() - t0 > fair && quiet) || Date.now() - t0 > 45000) after();
+          else setTimeout(watch, 400);
+        };
+        setTimeout(watch, fair);
       } catch (e) { fire(); }
     };
-    next();
+    if (busy) setTimeout(next, 80); else next();
   };
+  const live = [];
+  // True while a line is still being spoken (for callers that must wait).
+  N.speaking = function () { try { return supported && (window.speechSynthesis.speaking || window.speechSynthesis.pending); } catch (e) { return false; } };
 
   // Speak only when narration is enabled (story beats, card reveals).
   // When narration is off, the line is silent but onend still fires so any

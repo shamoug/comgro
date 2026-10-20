@@ -88,8 +88,8 @@ resolutions and agency sites). The answers are shuffled every show.
 - **Five seconds of suspense**, lights down, then the right answer lights up, the
   avatars and names show who picked what, and a fact appears with its official
   source. The show never moves on while the host is still explaining the answer.
-- **Every phone shows its verdict** full screen for a moment: a big green tick and
-  the new score, or the right answer.
+- **Every phone shows its verdict** in a big card: a green tick and the new
+  score, or the right answer. The question and all four answers stay in view.
 - **Most right answers wins**; a tie goes to whoever was quicker on their right
   answers. Everyone has one **50:50** per show.
 - **Come in late.** A small QR code stays in the corner of the stage during the
@@ -98,12 +98,16 @@ resolutions and agency sites). The answers are shuffled every show.
   with exactly the time that was left.
 - Phones can fire emoji reactions that float up on the big screen.
 - **Play solo** against one to four AI contestants (Casual, Sharp or Expert).
-- **AI vs AI**: watch two to five AI contestants play on their own; when a show
-  ends the next one starts by itself (good for a screen in a hall).
-- **An original score**, synthesised live: a theme that builds pass by pass with
-  strings, piano, brass, choir and drums, a 30-second answer clock in strict time
-  that lifts a key for the last ten seconds, and a soft bed under each fact. The
-  music ducks whenever the host speaks.
+- **AI vs AI**: watch two to five AI contestants play on their own, just like
+  normal contestants; when a show ends the next one starts by itself (good for a
+  screen in a hall).
+- **The host is never interrupted.** Lines queue up, and the show waits for the
+  host to finish before every step.
+- **An original score that never stops**, synthesised live: a theme with strings,
+  piano, brass, choir and drums, a "let's play" sting for each question, a
+  30-second answer clock that lifts a key for the last ten seconds, a pulsing
+  studio bed after every answer, applause, and a celebration anthem for the
+  winner. The music drops low while the host speaks and comes back up after.
 
 It is a static website. No build step, no accounts, no external media. The only
 backend is optional: online play (The Long Road theatres and the Situation Report, Parley

@@ -8,6 +8,22 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v8, agenda.css v8, narrate.js v6, boot.js v10): THE HOST
+REM              IS NEVER INTERRUPTED. Lines queue instead of cancelling each other, and
+REM              the show waits for the host before every step (intro, question, suspense,
+REM              reveal, results); late picks after the buzzer are refused. narrate.js: no
+REM              cancel() unless something is playing (Chrome dropped the next line), held
+REM              utterances (Chrome lost their onend), and the safety net waits until the
+REM              voice is really quiet. MUSIC ALL THE TIME, low under the host and full
+REM              otherwise: a livelier theme (110 bpm), a quiz-show "let's play" sting for
+REM              each question, a studio bed after every answer (dark pad, pulsing synth
+REM              sequence, heartbeat, a key higher each question), a suspense loop, applause
+REM              on right answers, and a winner's celebration anthem at 124 bpm with a
+REM              fanfare, applause, light rays, a pulsing name and confetti that keeps
+REM              falling. AI vs AI contestants play exactly like normal ones (full 30 s, no
+REM              early reveal). PHONE: bigger, brighter answer pads with gold letters; the
+REM              question and all four answers always stay in view; the verdict is a card
+REM              at the bottom.
 REM  2026-10-20  AGENDA 2030 (agenda.js v7, agenda.css v7, boot.js v9 on every page): a new
 REM              original score, synthesised live: a 16-bar anthem in D minor that lifts
 REM              to F major and builds pass by pass (piano and strings, then bass and
