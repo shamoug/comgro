@@ -127,7 +127,7 @@ button { font-family: inherit; cursor: pointer; }
 .seat-list { display: flex; flex-direction: column; gap: 10px; width: min(480px, 92vw); margin: 14px 0 4px; }
 .seat-row {
   display: flex; align-items: center; gap: 12px;
-  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--tok);
+  background: #fff; border: 1.5px solid color-mix(in srgb, var(--tok) 45%, var(--line));
   border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow-sm);
   animation: dealIn .4s cubic-bezier(.2,.8,.2,1) both;
 }

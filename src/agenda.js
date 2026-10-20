@@ -69,7 +69,7 @@
   const LETTERS = ["A", "B", "C", "D"];
   const INTRO_MS = 2200;       // the question and its answers land
   const ANSWER_S = 30;         // seconds to answer, the same for every question
-  const FINAL_S = 10;          // the countdown score takes over for the last ten
+  const FINAL_S = ANSWER_S;    // the countdown score runs the whole answer time
   const SUSPENSE_MS = 5000;    // lights down, final answers are in
   const REVEAL_MS = 7500;      // the right answer and the fact
   const COUNTDOWN_MS = 6500;   // “tonight's contestants”, then 3, 2, 1
@@ -256,9 +256,9 @@
         // the clock: tick on the second, tock on the half, louder as it goes
         tone({ t: at, dur: 0.07, f: 1568, v: 0.05 + p * 0.07, type: "sine", cut: 7000, bus });
         tone({ t: at + 0.5, dur: 0.06, f: 1175, v: 0.03 + p * 0.05, type: "sine", cut: 6000, bus });
-        timp(at, 33 + (s % 2 ? 7 : 0) + level, 0.14 + p * 0.3, bus);
+        if (left <= 15 || s % 2 === 0) timp(at, 33 + (s % 2 ? 7 : 0) + level, 0.1 + p * 0.34, bus);
         // stabs: two, then three, then four a second
-        const per = left <= 3 ? 4 : left <= 6 ? 3 : 2;
+        const per = left <= 3 ? 4 : left <= 6 ? 3 : left <= 15 ? 2 : 1;
         for (let j = 0; j < per; j++) {
           const st = at + j / per;
           [k, k + 3, k + 7].forEach((m) => tone({ t: st, dur: 0.16, f: mtof(m + (left <= 3 ? 12 : 0)), v: 0.022 + p * 0.02, type: "sawtooth", a: 0.004, cut: 2600, bus }));
@@ -491,6 +491,7 @@
     g.qs[qi] = { g: d.g, t: d.t, q: d.q, a: d.a };
     g.locked = g.players.map(() => false);
     S.picks[qi] = S.picks[qi] || {};
+    document.querySelectorAll(".ag-pod.score-pop").forEach((n) => n.classList.remove("score-pop"));
     saveDeck();
     setPhase("question", INTRO_MS + g.timer * 1000);
     if (S.role === "solo") scheduleAI(qi);
@@ -544,14 +545,27 @@
     } else if (g.phase === "countdown") {
       if (t >= g.phaseLen) startQuestion(0);
     } else if (g.phase === "question") {
-      const act = g.players.map((p, i) => i).filter((i) => !g.players[i].vacant && !g.players[i].away);
-      const all = act.length > 0 && act.every((i) => g.locked[i]);
-      if (t >= g.phaseLen || (all && t >= INTRO_MS + 600)) toSuspense();
+      // Players always get the full answer time. When everyone has locked
+      // in, the host may choose to reveal early (see revealNow).
+      if (t >= g.phaseLen) toSuspense();
+      else if (allLocked(g) !== S.allIn) { S.allIn = allLocked(g); updateBoard(); }
     } else if (g.phase === "suspense") {
       if (t >= g.phaseLen) toReveal();
     } else if (g.phase === "reveal") {
       if (t >= g.phaseLen) { if (g.qi + 1 < QCOUNT) startQuestion(g.qi + 1); else toFinal(); }
     }
+  }
+
+  function allLocked(g) {
+    const act = g.players.map((p, i) => i).filter((i) => !g.players[i].vacant && !g.players[i].away);
+    return act.length > 0 && act.every((i) => g.locked[i]);
+  }
+  // The host's choice, once every answer is in: skip the rest of the clock.
+  function revealNow() {
+    const g = S.g;
+    if (!isStage() || !g || g.phase !== "question" || g.paused || !allLocked(g)) return;
+    SA.select();
+    toSuspense();
   }
 
   // ---- AI contestants (solo) ---------------------------------------------
@@ -568,7 +582,7 @@
         if (S.g !== g || g.phase !== "question" || g.qi !== qi) return;
         const right = Math.random() < lv.acc[d.t - 1] + (p.skill || 0);
         const c = right ? d.c : rand([0, 1, 2, 3].filter((k) => k !== d.c));
-        if (recordPick(qi, i, c, Math.max(0, elapsed() - INTRO_MS), false)) { SA.pop(); paintPods(); }
+        if (recordPick(qi, i, c, Math.max(0, elapsed() - INTRO_MS), false)) { SA.pop(); paintPods(); updateBoard(); }
       }, wait));
     });
   }
@@ -582,7 +596,7 @@
     if (idx >= 0 && g.players[idx].away) { g.players[idx].away = false; publish(); paintPods(); }
     if (m.t === "join") hostJoin(m);
     else if (m.t === "pick" && idx >= 0) {
-      if (recordPick(m.qi, idx, m.c | 0, m.ms, !!m.f)) { SA.pop(); publish(); paintPods(); }
+      if (recordPick(m.qi, idx, m.c | 0, m.ms, !!m.f)) { SA.pop(); publish(); paintPods(); updateBoard(); }
       else if (g.locked[idx] && g.qi === m.qi) publish();   // they missed the confirmation
     } else if (m.t === "react") floatReact(idx, String(m.e || "").slice(0, 4));
     else if (m.t === "leave" && idx >= 0) {
@@ -885,7 +899,7 @@
     const note = el("p", "ag-note", LEVELS[level].blurb);
     w.appendChild(seg(Object.keys(LEVELS), level, (v) => { level = v; note.textContent = LEVELS[v].blurb; }, (v) => LEVELS[v].label));
     w.appendChild(note);
-    w.appendChild(el("p", "ag-note", `${ANSWER_S} seconds a question, with a countdown for the last ${FINAL_S}.`));
+    w.appendChild(el("p", "ag-note", `${ANSWER_S} seconds on the clock for every question.`));
     const go = el("button", "ag-btn gold big", "Lights, camera ▸");
     go.onclick = () => {
       const nm = clean(name.value);
@@ -1253,7 +1267,11 @@
       fifty.disabled = me.fifty || S.me.locked;
       fifty.onclick = () => useFifty();
       row.appendChild(fifty);
-      if (S.me.locked) row.appendChild(el("div", "ag-status", `🔒 Locked in: <b>${LETTERS[S.me.sel]}</b>. Waiting for the others…`));
+      if (S.me.locked && allLocked(g)) {
+        const now_ = el("button", "ag-btn gold", "Everyone's in · Reveal now ▸");
+        now_.onclick = revealNow;
+        row.appendChild(now_);
+      } else if (S.me.locked) row.appendChild(el("div", "ag-status", `🔒 Locked in: <b>${LETTERS[S.me.sel]}</b>. Waiting for the others…`));
       else if (S.me.sel >= 0) {
         const fin = el("button", "ag-btn gold final", `Final answer: ${LETTERS[S.me.sel]} ▸`);
         fin.onclick = soloLock;
@@ -1263,6 +1281,15 @@
     } else if (g.phase === "question") {
       const n = active(g).length, k = g.players.filter((p, i) => !p.vacant && g.locked[i]).length;
       u.innerHTML = `<div class="ag-status">Answer on your phones · <b>${k}</b> of ${n} locked in</div>`;
+      if (allLocked(g)) {
+        u.innerHTML = "";
+        const row = el("div", "ag-actions");
+        row.appendChild(el("div", "ag-status", `All <b>${n}</b> locked in`));
+        const go = el("button", "ag-btn gold", "Reveal now ▸");
+        go.onclick = revealNow;
+        row.appendChild(go);
+        u.appendChild(row);
+      }
     } else u.innerHTML = "";
   }
 
@@ -1283,38 +1310,51 @@
     lad.innerHTML = html;
   }
 
+  // The podiums are built once per seat and then only patched: a part's
+  // HTML is replaced only when it actually changed, so nothing re-renders,
+  // the thinking dots never restart and the names never move.
+  function podPart(pod, cls, html) {
+    let n = pod.querySelector(":scope > ." + cls);
+    if (!n) { n = el("div", cls); pod.appendChild(n); }
+    if (n.__html !== html) { n.innerHTML = html; n.__html = html; }
+  }
   function paintPods() {
     const g = S.g, f = $("ag-pods");
     if (!f) return;
     const reveal = g.phase === "reveal" || g.phase === "final";
     const d = g.qs[g.qi] || {};
     const ranks = rank(g);
-    f.innerHTML = "";
+    while (f.children.length > g.players.length) f.lastChild.remove();
     g.players.forEach((p, i) => {
-      const pod = el("div", "ag-pod" + (p.vacant ? " empty" : "") + (p.away ? " away" : "") + (S.role === "solo" && i === 0 ? " me" : ""));
+      let pod = f.children[i];
+      if (!pod) { pod = el("div", "ag-pod"); f.appendChild(pod); }
       pod.id = "ag-pod" + i;
       pod.style.setProperty("--c", p.color);
+      const cls = "ag-pod" + (p.vacant ? " empty" : "") + (p.away ? " away" : "") + (S.role === "solo" && i === 0 ? " me" : "") +
+        (!p.vacant && g.phase === "question" && g.locked[i] ? " is-locked" : "") +
+        (!p.vacant && g.phase === "reveal" && g.answers[g.qi] && g.answers[g.qi][i] === d.c ? " is-right" : "") +
+        (pod.classList.contains("score-pop") ? " score-pop" : "");
+      if (pod.className !== cls) pod.className = cls;
       if (p.vacant) {
-        pod.innerHTML = `<div class="ag-pod-av">＋</div><div class="ag-pod-nm">Seat ${i + 1}</div><div class="ag-pod-st">waiting…</div>`;
-      } else {
-        let st = "";
-        if (g.phase === "lobby") st = "ready ✓";
-        else if (g.phase === "countdown") st = "here we go";
-        else if (g.phase === "question") st = g.locked[i] ? "🔒 locked in" : p.away ? "away" : `<span class="ag-dots">thinking</span>`;
-        else if (g.phase === "suspense") st = g.locked[i] ? "🔒" : "no answer";
-        else if (reveal && g.phase === "reveal") {
-          const a = g.answers[g.qi] && g.answers[g.qi][i] != null ? g.answers[g.qi][i] : -1;
-          st = a < 0 ? "no answer" : a === d.c ? `<b class="ok">${LETTERS[a]} ✓</b>` : `<b class="no">${LETTERS[a]} ✗</b>`;
-        } else if (g.phase === "final") st = `#${ranks.indexOf(i) + 1}`;
-        pod.innerHTML =
-          `<div class="ag-pod-av">${p.icon}${p.fifty ? `<i class="ag-pod-life" title="50:50 used">½</i>` : ""}</div>` +
-          `<div class="ag-pod-nm">${esc(p.name)}${p.isAI ? ` <small>AI</small>` : ""}</div>` +
-          `<div class="ag-pod-sc"><b>${p.score}</b><small>right</small></div>` +
-          `<div class="ag-pod-st">${st}</div>`;
-        if (g.phase === "question" && g.locked[i]) pod.classList.add("is-locked");
-        if (g.phase === "reveal" && g.answers[g.qi] && g.answers[g.qi][i] === d.c) pod.classList.add("is-right");
+        podPart(pod, "ag-pod-av", "＋");
+        podPart(pod, "ag-pod-nm", `Seat ${i + 1}`);
+        podPart(pod, "ag-pod-sc", "");
+        podPart(pod, "ag-pod-st", "waiting…");
+        return;
       }
-      f.appendChild(pod);
+      let st = "";
+      if (g.phase === "lobby") st = "ready ✓";
+      else if (g.phase === "countdown") st = "here we go";
+      else if (g.phase === "question") st = g.locked[i] ? "🔒 locked in" : p.away ? "away" : '<span class="ag-dots">thinking</span>';
+      else if (g.phase === "suspense") st = g.locked[i] ? "🔒 locked in" : "no answer";
+      else if (reveal && g.phase === "reveal") {
+        const a = g.answers[g.qi] && g.answers[g.qi][i] != null ? g.answers[g.qi][i] : -1;
+        st = a < 0 ? "no answer" : a === d.c ? `<b class="ok">${LETTERS[a]} ✓ right</b>` : `<b class="no">${LETTERS[a]} ✗</b>`;
+      } else if (g.phase === "final") st = `#${ranks.indexOf(i) + 1}`;
+      podPart(pod, "ag-pod-av", p.icon + (p.fifty ? '<i class="ag-pod-life" title="50:50 used">½</i>' : ""));
+      podPart(pod, "ag-pod-nm", esc(p.name) + (p.isAI ? " <small>AI</small>" : ""));
+      podPart(pod, "ag-pod-sc", `<b>${p.score}</b><small>right</small>`);
+      podPart(pod, "ag-pod-st", st);
     });
   }
   // Seats in finishing order: most right, then quickest on those.
@@ -1529,7 +1569,7 @@
     openOverlay(c, "ag-over-count");
     const names = filled(g).map((p) => p.name);
     const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
-    say(`Good evening, and welcome to Agenda 2030! Tonight's contestants are… ${list}. Ten questions, thirty seconds each. Let's play!`);
+    say(`Good evening, and welcome to Agenda 2030! Tonight's contestants are… ${list}. Ten questions, thirty seconds on the clock for each. Let's play!`);
     const nEl = $("ag-count-n");
     [3, 2, 1, 0].forEach((k, j) => setTimeout(() => {
       if (!nEl.isConnected) return;

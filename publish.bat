@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030: players always get the full 30 seconds (no early end when all
+REM              have locked in; the host may press "Reveal now"), with the countdown score
+REM              building over the whole 30. Contestant pills are built once and patched in
+REM              place (no flicker, no restarting dots) with one even border, glow on lock.
+REM              ALL GAMES: no card or row has a left-side-only coloured border any more
+REM              (seat rows, Situation Report names and clues, Parley goal box).
 REM  2026-10-20  AGENDA 2030: a PAUSE button for the host (and solo), also on the space
 REM              bar. It freezes the clock in any phase, stops music, countdown, narrator
 REM              and AI contestants; phones show "Paused by the host" and hold their pads;

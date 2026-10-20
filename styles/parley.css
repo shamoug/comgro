@@ -167,7 +167,7 @@
 .pl-legend-btn { display: none; }
 
 /* ---- side panel ------------------------------------------------------- */
-.pl-goal { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #fffaf0; border: 1px solid var(--line); border-left: 4px solid var(--pl-gold); }
+.pl-goal { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #fffaf0; border: 1.5px solid var(--pl-gold); }
 .pl-goal p { margin: 0; font-size: 13.5px; line-height: 1.5; }
 .pl-goal p.sm { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .pl-sh { margin-top: 14px; }
