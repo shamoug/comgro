@@ -89,6 +89,7 @@
     if (CG.Narrate) CG.Narrate.stop();
     S.talking = false; S.talkEnd = now(); SA.duck(false);
   }
+  const ALLIN_BEAT = 900;    // everyone is in: this long, then on to the reveal
   const TALK_GAP = 1400;     // a breath after the host finishes, before the show moves on
   const TALK_CAP = 75000;    // never wait longer than this for a voice that went quiet
   const talkOver = () => {
@@ -960,7 +961,7 @@
     g.qs[qi] = { g: d.g, t: d.t, q: d.q, a: d.a };
     g.locked = g.players.map(() => false);
     S.picks[qi] = S.picks[qi] || {};
-    S.revealAsked = false;
+    S.revealAsked = false; S.allInAt = 0;
     document.querySelectorAll(".ag-pod.score-pop").forEach((n) => n.classList.remove("score-pop"));
     saveDeck();
     // The 30 seconds start only once the host has read the question out.
@@ -1025,11 +1026,13 @@
     } else if (g.phase === "question" && g.reading) {
       if (t >= INTRO_MS - 1 && talkOver()) startClock();
     } else if (g.phase === "question") {
-      // Players always get the full answer time. When everyone has locked
-      // in, the host may choose to reveal early (see revealNow).
-      // Time up (or the host chose to reveal early): go on once the host
-      // has finished speaking, never in the middle of a line.
-      if ((t >= g.phaseLen || S.revealAsked) && talkOver()) toSuspense();
+      // The moment everyone has locked in, the show goes straight on to the
+      // reveal: no button to press and no waiting for the host to finish a
+      // line (a beat first, so the last lock-in sound lands).
+      if (allLocked(g) && !S.allInAt) S.allInAt = now();
+      if (S.allInAt && now() - S.allInAt >= ALLIN_BEAT) { if (S.talking) hush(); toSuspense(); }
+      // Time up: go on once the host has finished speaking.
+      else if (t >= g.phaseLen && talkOver()) toSuspense();
       else if (t >= g.phaseLen + 1500 && SA.mode() !== "suspense") SA.setMode("suspense", Math.max(0, g.qi));   // the host is still talking: keep the music going
       else if (allLocked(g) !== S.allIn) { S.allIn = allLocked(g); updateBoard(); }
     } else if (g.phase === "suspense") {
@@ -1054,14 +1057,6 @@
   function allLocked(g) {
     const act = g.players.map((p, i) => i).filter((i) => !g.players[i].vacant && !g.players[i].away);
     return act.length > 0 && act.every((i) => g.locked[i]);
-  }
-  // The host's choice, once every answer is in: skip the rest of the clock.
-  function revealNow() {
-    const g = S.g;
-    if (!isStage() || !g || g.phase !== "question" || g.paused || !allLocked(g)) return;
-    SA.select();
-    S.revealAsked = true;   // the host loop reveals as soon as the host stops talking
-    hostLoop();
   }
 
   // ---- AI contestants (solo) ---------------------------------------------
@@ -1860,11 +1855,8 @@
       fifty.disabled = me.fifty || S.me.locked;
       fifty.onclick = () => useFifty();
       row.appendChild(fifty);
-      if (S.me.locked && allLocked(g)) {
-        const now_ = el("button", "ag-btn gold", "Everyone's in · Reveal now ▸");
-        now_.onclick = revealNow;
-        row.appendChild(now_);
-      } else if (S.me.locked) row.appendChild(el("div", "ag-status", `🔒 Locked in: <b>${LETTERS[S.me.sel]}</b>. Waiting for the others…`));
+      if (S.me.locked && allLocked(g)) row.appendChild(el("div", "ag-status", "Everyone's in · revealing…"));
+      else if (S.me.locked) row.appendChild(el("div", "ag-status", `🔒 Locked in: <b>${LETTERS[S.me.sel]}</b>. Waiting for the others…`));
       else if (S.me.sel >= 0) {
         const fin = el("button", "ag-btn gold final", `Final answer: ${LETTERS[S.me.sel]} ▸`);
         fin.onclick = soloLock;
@@ -1880,10 +1872,7 @@
       if (allLocked(g)) {
         u.innerHTML = "";
         const row = el("div", "ag-actions");
-        row.appendChild(el("div", "ag-status", `All <b>${n}</b> locked in`));
-        const go = el("button", "ag-btn gold", "Reveal now ▸");
-        go.onclick = revealNow;
-        row.appendChild(go);
+        row.appendChild(el("div", "ag-status", `All <b>${n}</b> locked in · revealing…`));
         u.appendChild(row);
       }
     } else u.innerHTML = "";

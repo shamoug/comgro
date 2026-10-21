@@ -8,6 +8,10 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v18, boot.js v20): EVERYONE'S IN, ON WE GO. The moment
+REM              every contestant has locked in, the show goes straight to the reveal (a
+REM              beat for the last lock-in sound): no "Reveal now" button to press and no
+REM              waiting for the host's voice to finish.
 REM  2026-10-20  AGENDA 2030 (agenda.js v17, data/agenda.js v4, boot.js v19): BIG-MONEY QUIZ-SHOW
 REM              MUSIC, IN OUR OWN NOTES. A new opening (a dark pulse that swells, a rising
 REM              sweep, three hits that come faster, one huge minor slam with choir), a
