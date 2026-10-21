@@ -151,7 +151,7 @@
   const FINAL_S = ANSWER_S;    // the countdown score runs the whole answer time
   const SUSPENSE_MS = 5000;    // lights down, final answers are in
   const REVEAL_MS = 7500;      // the right answer and the fact
-  const POP_OUT_MS = 900;      // the result popup fades, a beat on the board, then the next question
+  const POP_OUT_MS = 1150;     // the popup fades, the board slides away, then the next question
   const COUNTDOWN_MS = 6500;   // “tonight's contestants”, then 3, 2, 1
   const QUIET_MS = 25000;      // a phone silent this long is “away”
   const SEAT_COLORS = ["#f5c542", "#3fd0ff", "#ff5d8f", "#7cf29c", "#b48cff"];
@@ -838,7 +838,7 @@
   // The seat played at this screen: 0 in solo, none when hosting or watching AIs.
   const meSeat = () => (S.role === "solo" && !isAuto() ? 0 : -1);
 
-  function blankPlayer(i) { return { name: "", ownerId: null, icon: "", color: SEAT_COLORS[i], vacant: true, score: 0, ms: 0, streak: 0, fifty: false, away: false, isAI: false }; }
+  function blankPlayer(i) { return { name: "", ownerId: null, icon: "", color: SEAT_COLORS[i], vacant: true, score: 0, ms: 0, tt: 0, times: [], streak: 0, fifty: false, away: false, isAI: false }; }
 
   function newShow(opts) {
     const g = {
@@ -990,6 +990,12 @@
     g.players.forEach((p, i) => {
       if (picks[i] && picks[i].c === d.c) { p.score++; p.ms += picks[i].ms; p.streak = (p.streak || 0) + 1; }
       else if (!p.vacant) p.streak = 0;
+      // Every answer's time counts towards the total; no answer costs the full clock.
+      if (!p.vacant) {
+        p.times = p.times || [];
+        p.times[qi] = picks[i] ? picks[i].ms : -1;
+        p.tt = (p.tt || 0) + (picks[i] ? picks[i].ms : g.timer * 1000);
+      }
     });
     const after = leader(g);
     g.newLead = after >= 0 && after !== before && filled(g).length > 1 ? after : -1;
@@ -1007,7 +1013,7 @@
     const g = S.g;
     stopAutoNext();
     closeOverlay();
-    g.players.forEach((p) => { p.score = 0; p.ms = 0; p.streak = 0; p.fifty = false; });
+    g.players.forEach((p) => { p.score = 0; p.ms = 0; p.tt = 0; p.times = []; p.streak = 0; p.fifty = false; });
     g.newLead = -1;
     g.qi = -1; g.answers = []; g.locked = []; g.show = (g.show || 1) + 1;
     S.deck = null; S.picks = {};
@@ -1128,7 +1134,7 @@
       if (taken.indexOf(name.toLowerCase()) >= 0) name = name.slice(0, 15) + " " + (idx + 1);
       const icons = filled(g).map((p) => p.icon);
       const icon = AVATARS.indexOf(m.icon) >= 0 && icons.indexOf(m.icon) < 0 ? m.icon : rand(AVATARS.filter((a) => icons.indexOf(a) < 0));
-      Object.assign(g.players[idx], { name, ownerId: m.by, icon, vacant: false, away: false, score: 0, ms: 0, fifty: false });
+      Object.assign(g.players[idx], { name, ownerId: m.by, icon, vacant: false, away: false, score: 0, ms: 0, tt: 0, times: [], fifty: false });
       SA.join();
       if (g.phase !== "lobby") toast(`${name} joins the show`);
       say(g.phase === "lobby" ? `Welcome, ${name}!` : `And joining us now, ${name}!`);
@@ -1941,7 +1947,7 @@
         const a = g.answers[g.qi] && g.answers[g.qi][i] != null ? g.answers[g.qi][i] : -1;
         st = (a < 0 ? "no answer" : a === d.c ? `<b class="ok">${LETTERS[a]} ✓ right</b>` : `<b class="no">${LETTERS[a]} ✗</b>`) +
           ` <span class="ag-pod-rk">#${ranks.indexOf(i) + 1}</span>`;
-      } else if (g.phase === "final") st = `#${ranks.indexOf(i) + 1}`;
+      } else if (g.phase === "final") st = `#${ranks.indexOf(i) + 1} · ⏱ ${fmtTime(p.tt)}`;
       const lead = g.phase !== "lobby" && leader(g) === i;
       podPart(pod, "ag-pod-av", p.icon + (p.fifty ? '<i class="ag-pod-life" title="50:50 used">½</i>' : "") + (lead ? '<i class="ag-pod-crown">👑</i>' : "") +
         ((p.streak || 0) >= 2 && g.phase !== "lobby" ? `<i class="ag-pod-streak">🔥${p.streak}</i>` : ""));
@@ -1957,10 +1963,15 @@
     if (o.length > 1 && g.players[o[1]].score === g.players[o[0]].score) return -1;
     return o[0];
   }
-  // Seats in finishing order: most right, then quickest on those.
+  // Seats in finishing order: most right, then the lowest total time.
   function rank(g) {
     return g.players.map((p, i) => i).filter((i) => !g.players[i].vacant)
-      .sort((a, b) => (g.players[b].score - g.players[a].score) || (g.players[a].ms - g.players[b].ms));
+      .sort((a, b) => (g.players[b].score - g.players[a].score) || ((g.players[a].tt || 0) - (g.players[b].tt || 0)));
+  }
+  // 4.2s, or 1m 12.3s for a total.
+  function fmtTime(ms) {
+    const s = Math.max(0, ms || 0) / 1000;
+    return s < 60 ? s.toFixed(1) + "s" : Math.floor(s / 60) + "m " + (s % 60).toFixed(1).padStart(4, "0") + "s";
   }
 
   // ---- the lobby: the QR code wall ---------------------------------------
@@ -2227,8 +2238,9 @@
       : mine === d.c ? "Correct!" : mine < 0 ? "Time's up" : "Not this time";
     const tone = mine === -2 ? (right ? "ok" : "no") : mine === d.c ? "ok" : "no";
     const chips = seats.map((i) => {
-      const p = g.players[i], ok = ans[i] === d.c;
-      return `<i class="${ok ? "ok" : "no"}" style="--c:${p.color}"><span>${p.icon}</span><em>${esc(p.name)}</em><b>${ok ? "✓" : ans[i] >= 0 ? LETTERS[ans[i]] : "–"}</b></i>`;
+      const p = g.players[i], ok = ans[i] === d.c, t = p.times ? p.times[g.qi] : -1;
+      return `<i class="${ok ? "ok" : "no"}" style="--c:${p.color}"><span>${p.icon}</span><em>${esc(p.name)}</em>` +
+        `<u>${t >= 0 ? fmtTime(t) : "no answer"}</u><b>${ok ? "✓" : ans[i] >= 0 ? LETTERS[ans[i]] : "–"}</b></i>`;
     }).join("");
     pop = el("div", "ag-pop");
     pop.id = "ag-pop";
@@ -2243,14 +2255,28 @@
       `</div>`;
     st.appendChild(pop);
   }
-  function closePop() { const pop = $("ag-pop"); if (pop) pop.classList.add("out"); }
+  // The popup fades, then the board slides off and a light sweeps the
+  // stage, so the next question arrives on a clean set.
+  function closePop() {
+    const pop = $("ag-pop");
+    if (pop) pop.classList.add("out");
+    setTimeout(() => {
+      const b = document.querySelector(".ag-board"), st = $("ag-stage");
+      if (!b || !st || S.g.phase !== "reveal") return;
+      b.classList.add("leaving");
+      const w = el("i", "ag-wipe");
+      st.appendChild(w);
+      setTimeout(() => w.remove(), 1200);
+    }, 420);
+  }
   function removePop() { const pop = $("ag-pop"); if (pop) pop.remove(); }
 
   function showFinal() {
     const g = S.g;
     const order = rank(g);
     const top = order.length ? g.players[order[0]] : null;
-    const tie = order.length > 1 && g.players[order[0]].score === g.players[order[1]].score && g.players[order[0]].ms === g.players[order[1]].ms;
+    const tie = order.length > 1 && g.players[order[0]].score === g.players[order[1]].score && (g.players[order[0]].tt || 0) === (g.players[order[1]].tt || 0);
+    const onTime = !tie && top && g.players.filter((p) => !p.vacant && p.score === top.score).length > 1;
     // The winner's moment is loud and bright: a fanfare into the celebration
     // anthem (see musicForPhase), the studio audience, and confetti that keeps
     // falling for as long as the results are up.
@@ -2266,15 +2292,16 @@
     const podium = [1, 0, 2].filter((k) => order[k] != null).map((k) => {
       const p = g.players[order[k]];
       return `<div class="ag-step s${k + 1}" style="--c:${p.color};--i:${k}"><div class="ag-step-av">${k === 0 ? `<i class="ag-crown">👑</i>` : ""}${p.icon}</div>` +
-        `<b>${esc(p.name)}</b><small>${p.score}/10</small><div class="ag-step-block">${k + 1}</div></div>`;
+        `<b>${esc(p.name)}</b><small>${p.score}/10</small><em>⏱ ${fmtTime(p.tt)}</em><div class="ag-step-block">${k + 1}</div></div>`;
     }).join("");
-    const rest = order.slice(3).map((i, k) => `<li><span>#${k + 4}</span>${g.players[i].icon} ${esc(g.players[i].name)}<b>${g.players[i].score}/10</b></li>`).join("");
     c.innerHTML =
-      `<div class="ag-final-k">${tie ? "A dead heat" : "The winner"}</div>` +
-      `<div class="ag-final-h">${top ? esc(top.name) : "Nobody"}${tie ? " and friends" : ""}</div>` +
-      `<div class="ag-final-sub">${top ? `${top.score} of 10 right${tie ? "" : g.players.filter((p) => !p.vacant && p.score === top.score).length > 1 ? " · quickest on the buzzer" : ""}` : ""}</div>` +
-      `<div class="ag-podium">${podium}</div>` +
-      (rest ? `<ol class="ag-rest">${rest}</ol>` : "") +
+      `<div class="ag-final-top">` +
+        `<div class="ag-final-k">${tie ? "A dead heat" : "The winner"}</div>` +
+        `<div class="ag-final-h">${top ? esc(top.name) : "Nobody"}${tie ? " and friends" : ""}</div>` +
+        `<div class="ag-final-sub">${top ? `${top.score} of 10 right · ${fmtTime(top.tt)} in total${onTime ? " · won on time" : ""}` : ""}</div>` +
+        `<div class="ag-podium">${podium}</div>` +
+      `</div>` +
+      resultsTable(g, order) +
       `<div class="ag-final-acts" id="ag-final-acts"></div>`;
     openOverlay(c, "ag-over-final");
     const acts = $("ag-final-acts");
@@ -2308,12 +2335,37 @@
     say(top ? (tie ? `What a finish… it's a dead heat, at ${top.score} out of ten!` : `Ladies and gentlemen… the winner of tonight's show is… ${top.name}! With ${top.score} out of ten. Congratulations!`) : "");
   }
 
+  // Every player's answer to every question, with the time it took and the
+  // total. Players on the same score are split by the lower total time.
+  function resultsTable(g, order) {
+    const n = g.qs.length || QCOUNT;
+    const same = (i) => order.some((j) => j !== i && g.players[j].score === g.players[i].score);
+    const anyTie = order.some(same);
+    const head = `<tr><th class="rk">#</th><th class="nm">Player</th>` +
+      Array.from({ length: n }, (_, q) => `<th class="q" style="--goal:${GOAL(g.qs[q] && g.qs[q].g).color}">Q${q + 1}</th>`).join("") +
+      `<th class="sc">Right</th><th class="tt">Total time</th></tr>`;
+    const rows = order.map((i, k) => {
+      const p = g.players[i];
+      const cells = Array.from({ length: n }, (_, q) => {
+        const a = g.answers[q] ? g.answers[q][i] : -1, c = g.qs[q] ? g.qs[q].c : null, t = p.times ? p.times[q] : -1;
+        const cls = a == null || a < 0 ? "none" : a === c ? "ok" : "no";
+        return `<td class="q ${cls}" title="${cls === "ok" ? "Right" : cls === "no" ? "Wrong" : "No answer"}">${t != null && t >= 0 ? (t / 1000).toFixed(1) : "–"}</td>`;
+      }).join("");
+      return `<tr class="${k === 0 ? "win" : ""}" style="--c:${p.color};--i:${k}"><td class="rk">${k + 1}</td>` +
+        `<td class="nm"><span>${p.icon}</span>${esc(p.name)}</td>${cells}` +
+        `<td class="sc">${p.score}</td><td class="tt${same(i) ? " tb" : ""}">${fmtTime(p.tt)}</td></tr>`;
+    }).join("");
+    return `<div class="ag-results"><div class="ag-results-scroll"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div>` +
+      `<p class="ag-results-key"><i class="ok"></i>right <i class="no"></i>wrong <i class="none"></i>no answer · seconds to answer` +
+      (anyTie ? ` · <b>Same score? The lower total time ranks higher.</b>` : "") + `</p></div>`;
+  }
+
   const AUTO_NEXT_S = 25;
   function stopAutoNext() { if (S.autoNext) { stopEvery(S.autoNext); S.autoNext = null; } }
 
   function share(g) {
     const order = rank(g);
-    const lines = order.map((i, k) => `${k + 1}. ${g.players[i].icon} ${g.players[i].name}: ${g.players[i].score}/10`).join("\n");
+    const lines = order.map((i, k) => `${k + 1}. ${g.players[i].icon} ${g.players[i].name}: ${g.players[i].score}/10, ${fmtTime(g.players[i].tt)}`).join("\n");
     const text = `Agenda 2030, the Global Goals quiz show 🌍\n${lines}\nPlay: ${CG.Platform && CG.Platform.gameUrl ? CG.Platform.gameUrl("agenda") : location.href}`;
     if (navigator.share) navigator.share({ text }).catch(() => {});
     else { copyText(text); toast("Results copied ✓"); }
@@ -2404,9 +2456,9 @@
     if (g.phase === "question" || g.phase === "suspense" || g.phase === "reveal") return phoneQuestion(body, seat, me);
     if (g.phase === "final") {
       const order = rank(g), place = order.indexOf(seat);
-      const top3 = order.slice(0, 5).map((i, k) => `<li style="--c:${g.players[i].color}"><span>${k + 1}</span>${g.players[i].icon} ${esc(g.players[i].name)}<b>${g.players[i].score}</b></li>`).join("");
+      const top3 = order.slice(0, 5).map((i, k) => `<li style="--c:${g.players[i].color}"><span>${k + 1}</span>${g.players[i].icon} ${esc(g.players[i].name)}<small>⏱ ${fmtTime(g.players[i].tt)}</small><b>${g.players[i].score}</b></li>`).join("");
       body.innerHTML = `<div class="ag-ph-card final">` +
-        (me ? `<div class="ag-ph-place">${place === 0 ? "🏆" : place === 1 ? "🥈" : place === 2 ? "🥉" : "🎗️"}</div><h2>${place === 0 ? "You won the show!" : `You finished #${place + 1}`}</h2><p>${me.score} of 10 right</p>` : `<h2>The results</h2>`) +
+        (me ? `<div class="ag-ph-place">${place === 0 ? "🏆" : place === 1 ? "🥈" : place === 2 ? "🥉" : "🎗️"}</div><h2>${place === 0 ? "You won the show!" : `You finished #${place + 1}`}</h2><p>${me.score} of 10 right · ⏱ ${fmtTime(me.tt)} in total</p>` : `<h2>The results</h2>`) +
         `<ol class="ag-ph-rank">${top3}</ol><p class="ag-ph-small">If the host plays again, you're already in.</p></div>`;
       body.appendChild(reactBar());
       if (me && place === 0) { confettiRain([me.color]); buzz([40, 60, 40, 60, 120]); }

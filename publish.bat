@@ -8,6 +8,13 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  AGENDA 2030 (agenda.js v22, agenda.css v19, boot.js v24): TIME COUNTS. Every
+REM              answer's time is recorded (no answer costs the full 30 seconds). The popup
+REM              shows each player's time; players on the same score are ranked by the lower
+REM              total time. The winning board gets a results table: every question, right
+REM              or wrong, seconds taken, score and total time. Smoother motion between
+REM              questions: the board slides away under a light sweep, the new question
+REM              glides in and the answers come in from their own side.
 REM  2026-10-21  AGENDA 2030 (agenda.js v21, agenda.css v18, boot.js v23): THE RESULT POPUP.
 REM              After the green plate lands, the result opens in a popup over the board:
 REM              Correct or Not this time, the right answer, the host's comment, who got
