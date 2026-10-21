@@ -1654,7 +1654,7 @@
         `<div class="ag-top-r">` +
           (S.role === "host" ? `<span class="ag-codechip" id="ag-codechip"></span>` : "") +
           (isAuto() ? `<span class="ag-codechip">🤖 <b>AI vs AI</b></span>` : "") +
-          `<button class="ag-sound" id="ag-sound" title="The browser is holding the sound back">🔊 Tap for sound</button>` +
+          `<button class="ag-sound" id="ag-sound" title="The browser is holding the sound back">🔊<span> Tap for sound</span></button>` +
           `<button class="ag-ic ag-pause" id="ag-pause" title="Pause the show (space)">⏸</button>` +
           `<button class="ag-ic${settings.music ? " on" : ""}" id="ag-music" title="Music">🎵</button>` +
           `<button class="ag-ic${settings.voice ? " on" : ""}" id="ag-voice" title="Host voice">🎙️</button>` +

@@ -23,7 +23,7 @@
     "styles/styles.css?v=46",
     "styles/sitrep.css?v=3",
     "styles/parley.css?v=2",
-    "styles/agenda.css?v=12",
+    "styles/agenda.css?v=14",
   ];
   var JS = [
     // DATA: all flavour text, board layout, decks and the dictionary
@@ -31,7 +31,7 @@
     "data/sitrep.js?v=1",
     "data/words5.js?v=1",
     "data/parley.js?v=1",
-    "data/agenda.js?v=2",
+    "data/agenda.js?v=3",
     // Multiplayer transport: mqtt.js over secure WebSockets to a public
     // broker. Loads online; if it is unavailable, the lobbies fall back to
     // solo play.
@@ -47,7 +47,7 @@
     "src/td.js?v=11",
     "src/sitrep.js?v=2",
     "src/parley.js?v=1",
-    "src/agenda.js?v=15",
+    "src/agenda.js?v=16",
     "src/platform.js?v=17",
   ];
 

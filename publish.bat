@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (data/agenda.js v3, agenda.js v16, agenda.css v14, boot.js v18): FACT
+REM              CHECK. All 693 questions checked twice, the second time online against
+REM              official sources. No keyed answer was wrong; about 45 questions, facts and
+REM              sources made precise (ITU 1865 wording, IEA, loss and damage fund, 4.6.1,
+REM              UDHR adopted, 666 million without power, UNODC, TFM, HLPF and more). No en
+REM              dashes left. The top bar never runs off the screen: the side columns can
+REM              shrink, the brand name hides under 1100px, and "Tap for sound" becomes a
+REM              compact speaker button.
 REM  2026-10-20  AGENDA 2030 (agenda.js v15, boot.js v17): A CLEANER, CALMER SOUND. No square-wave
 REM              buzz (soft triangle plucks instead), hats a whisper, a lighter snare and
 REM              cymbal, warmer strings and brass (lower filters), no hiss swells or buzzy

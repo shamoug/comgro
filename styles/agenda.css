@@ -155,10 +155,14 @@
 
 /* ---- the stage layout ---------------------------------------------------- */
 .ag-stage { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
-.ag-top { position: relative; z-index: 3; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+.ag-top { position: relative; z-index: 3; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px;
   padding: calc(12px + env(safe-area-inset-top)) clamp(12px, 2vw, 24px) 8px; }
 .ag-top-l, .ag-top-r { display: flex; align-items: center; gap: 10px; }
 .ag-top-r { justify-content: flex-end; }
+/* Neither side may push the bar past the screen edge: the right side spills
+   inwards, never off the screen, and gives up its widest bits first. */
+.ag-top-l, .ag-top-r { min-width: 0; }
+.ag-top-r > * { flex-shrink: 0; white-space: nowrap; }
 .ag-brand { display: flex; align-items: center; gap: 8px; font: 800 17px var(--ag-display); }
 .ag-brand-wheel { width: 28px; height: 28px; }
 .ag-top-c { display: flex; align-items: center; gap: 10px; font: 600 14px "Inter", sans-serif; color: var(--ag-dim); }
@@ -513,11 +517,14 @@
   .ag-modes { grid-template-columns: repeat(2, minmax(0, 280px)); }
   .ag-main { grid-template-columns: 1fr; }
   .ag-ladder { display: none; }
+  .ag-brand b { display: none; }
+  .ag-sound { padding: 9px 12px; }
+  .ag-sound span { display: none; }
 }
 @media (max-width: 820px) {
   .ag-modes { grid-template-columns: minmax(0, 420px); }
   .ag-lobby { grid-template-columns: 1fr; }
-  .ag-top { grid-template-columns: auto 1fr auto; }
+  .ag-top { grid-template-columns: auto minmax(0, 1fr) auto; }
   .ag-brand b { display: none; }
   .ag-codechip { display: none; }
 }
