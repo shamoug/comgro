@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v19, boot.js v21): STRAIGHT TO THE ANSWER. Once everyone
+REM              has locked in, the answer is revealed a beat later: no suspense pause, no
+REM              button, no waiting on the host. The host is never cut off: a line still
+REM              being read finishes and the explanation follows it. Out of time still
+REM              gets the five seconds of suspense.
 REM  2026-10-20  AGENDA 2030 (agenda.js v18, boot.js v20): EVERYONE'S IN, ON WE GO. The moment
 REM              every contestant has locked in, the show goes straight to the reveal (a
 REM              beat for the last lock-in sound): no "Reveal now" button to press and no

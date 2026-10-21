@@ -47,7 +47,7 @@
     "src/td.js?v=11",
     "src/sitrep.js?v=2",
     "src/parley.js?v=1",
-    "src/agenda.js?v=18",
+    "src/agenda.js?v=19",
     "src/platform.js?v=17",
   ];
 

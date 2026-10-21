@@ -1026,11 +1026,13 @@
     } else if (g.phase === "question" && g.reading) {
       if (t >= INTRO_MS - 1 && talkOver()) startClock();
     } else if (g.phase === "question") {
-      // The moment everyone has locked in, the show goes straight on to the
-      // reveal: no button to press and no waiting for the host to finish a
-      // line (a beat first, so the last lock-in sound lands).
+      // The moment everyone has locked in, the show goes straight to the
+      // answer: no button, no suspense pause, no waiting on the host. The
+      // host is never cut off either: a line still being read finishes, and
+      // the explanation queues up behind it (a beat first, so the last
+      // lock-in sound lands).
       if (allLocked(g) && !S.allInAt) S.allInAt = now();
-      if (S.allInAt && now() - S.allInAt >= ALLIN_BEAT) { if (S.talking) hush(); toSuspense(); }
+      if (S.allInAt && now() - S.allInAt >= ALLIN_BEAT) { clearAI(); toReveal(); }
       // Time up: go on once the host has finished speaking.
       else if (t >= g.phaseLen && talkOver()) toSuspense();
       else if (t >= g.phaseLen + 1500 && SA.mode() !== "suspense") SA.setMode("suspense", Math.max(0, g.qi));   // the host is still talking: keep the music going
