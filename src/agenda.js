@@ -187,7 +187,9 @@
   //              that lift to F major. It builds pass by pass (piano and
   //              strings, then bass and drums, then the full band with a
   //              brass melody and choir) and breathes every third pass.
-  //   question   the question landing: a low string pulse that climbs a
+  //   question   under the question, in the big-money quiz-show style (our
+  //              own notes, nothing borrowed): a throbbing sixteenth synth
+  //              bass, a held high string and a heartbeat; it climbs a
   //              semitone with every question
   //   countdown  the 30-second answer clock, in time at 120 bpm (see below)
   //   reveal     a soft piano and strings bed under the host's explanation
@@ -438,17 +440,21 @@
     }
 
     // ---- the question landing ------------------------------------------
-    // A 3-3-2 pulse on the root under a minor pad that leans to the flat
-    // sixth, a ticking clock. Every question climbs a semitone.
-    const PULSE = [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0];
+    // The big-money quiz-show feel, in our own notes: a synth bass that
+    // throbs on every sixteenth (accented on the beat), a thin high string
+    // held above it like a held breath, a dark minor pad, and a heartbeat.
+    // Every question climbs a semitone and the filter opens a little wider.
     function questionStep(t, s) {
-      const bar = Math.floor(s / 16), i = s % 16, k = 45 + level, flat6 = bar % 4 >= 2;
-      if (i === 0 && bar % 2 === 0) strings(t, [k, k + 3, k + 7 + (flat6 ? 1 : 0)], stepDur() * 32 * 1.02, 0.035, { cut: 700 + level * 90, a: 0.6 });
-      if (PULSE[i]) bassNote(t, k - 12 + (flat6 && i >= 8 ? 1 : 0), 0.22, 0.1);
-      if (i % 4 === 0) tone({ t, dur: 0.05, f: i % 8 === 0 ? 1560 : 1170, v: 0.03, type: "sine", cut: 5000, pan: i % 8 ? 0.3 : -0.3 });
-      if (i === 0) kick(t, 0.25);
-      if (i === 10) kick(t, 0.16);
-      if (i % 2 === 1) hat(t, 0.012 + level * 0.002);
+      const sd = stepDur(), bar = Math.floor(s / 16), i = s % 16, k = 45 + level, lean = bar % 4 === 3 ? 1 : 0;
+      if (i === 0 && bar % 2 === 0) {
+        strings(t, [k, k + 3, k + 7], sd * 32 * 1.02, 0.03, { cut: 700 + level * 90, a: 0.8 });
+        tone({ t, dur: sd * 32 * 1.02, f: mtof(k + 31), v: 0.018, type: "sawtooth", dets: [-6, 6], a: 1.2, hold: sd * 24, cut: 3000, vib: 14, vibR: 6.5, wet: 0.6 });
+      }
+      const acc = i % 4 === 0;
+      tone({ t, dur: sd * 0.85, f: mtof(k - 12 + lean), v: acc ? 0.11 : 0.06, type: "sawtooth", dets: [-5, 5], a: 0.004,
+        cut: (acc ? 900 : 600) + level * 60, cutTo: 160, pan: i % 2 ? 0.2 : -0.2 });
+      if (i === 0 || i === 3) kick(t, i ? 0.18 : 0.28);
+      if (i % 4 === 2) hat(t, 0.012 + level * 0.002);
     }
 
     // ---- after each question: the studio bed -----------------------------
@@ -671,13 +677,25 @@
 
     return {
       unlock, setMode, setMusic, setSfx, duck, blocked, mode: () => mode, countdown, stopCountdown,
-      // the opening sting: a timpani roll into the theme's first phrase
+      // The opening, big-quiz-show style in our own notes: a dark sixteenth
+      // pulse that swells out of nothing, a rising sweep, three hits that
+      // come faster and faster, then one huge minor slam with choir that
+      // rings out under falling sparkles.
       intro: () => mus((t) => {
-        for (let i = 0; i < 14; i++) timp(t + i * (0.11 - i * 0.004), 33, 0.08 + i * 0.016, sfxBus);
-        const h = t + 1.3;
-        brass(h, [38, 50, 57, 62, 65], 2.6, 0.22, sfxBus); kick(h, 0.6, sfxBus); crash(h, 0.14, sfxBus);
-        strings(h, [50, 57, 62, 65, 69], 2.8, 0.05, { bus: sfxBus, cut: 2600, a: 0.05 });
-        [[0, 74], [0.3, 69], [0.45, 74], [0.6, 76], [0.9, 77]].forEach(([dt, m]) => bell(h + 0.2 + dt, m + 12, 0.07, sfxBus, 1.6));
+        const B = 2.4, sd = 0.1;
+        for (let x = 0, n = 0; x < B - 0.01; x += sd, n++) {
+          const p = x / B;
+          tone({ t: t + x, dur: sd * 0.9, f: mtof(n % 4 === 3 ? 34 : 33), v: 0.03 + p * 0.09, type: "sawtooth", dets: [-6, 6], a: 0.004, cut: 300 + p * 2200, cutTo: 150, bus: sfxBus, pan: n % 2 ? 0.25 : -0.25 });
+          if (n % 4 === 0) kick(t + x, 0.15 + p * 0.3, sfxBus);
+        }
+        noise({ t, dur: B, v: 0.06, ft: "bandpass", ff: 200, ffTo: 5000, q: 1.4, a: B * 0.9, bus: sfxBus, wet: 0.4 });
+        tone({ t, dur: B, f: mtof(33), glide: mtof(69), glideT: B, v: 0.05, type: "sawtooth", dets: [-12, 12], a: B * 0.8, cut: 400, cutTo: 4000, bus: sfxBus, wet: 0.3 });
+        [[1.2, [45, 52, 57, 60]], [1.75, [46, 53, 58, 61]], [2.1, [47, 54, 59, 62]]].forEach(([dt, ch]) => { brass(t + dt, ch, 0.28, 0.16, sfxBus); kick(t + dt, 0.45, sfxBus); timp(t + dt, ch[0] - 12, 0.25, sfxBus); });
+        const h = t + B;
+        brass(h, [33, 45, 52, 57, 60, 64], 2.8, 0.3, sfxBus); kick(h, 0.75, sfxBus); crash(h, 0.16, sfxBus); timp(h, 33, 0.5, sfxBus);
+        strings(h, [45, 52, 57, 60, 64, 69], 3, 0.055, { bus: sfxBus, cut: 3000, a: 0.04 });
+        choir(h + 0.02, [57, 60, 64], 2.8, 0.06, sfxBus);
+        [93, 88, 84, 81, 76, 72].forEach((m, j) => bell(h + 0.3 + j * 0.12, m, 0.06, sfxBus, 1.8));
       }),
       // A studio audience: hundreds of claps that swell and fade, a cheer under them
       // A studio audience. The claps are rendered once into a stereo buffer
@@ -697,19 +715,24 @@
       // "Let's play": a rising sweep into a big minor chord for each new question
       letsPlay: () => mus((t) => {
         const k = 45 + Math.min(level, 9), h = t + 1.1;
-        noise({ t, dur: 1.15, v: 0.04, ft: "bandpass", ff: 250, ffTo: 2500, q: 1.6, a: 0.9, bus: sfxBus, wet: 0.4 });
-        tone({ t, dur: 1.15, f: mtof(k - 12), glide: mtof(k + 12), glideT: 1.1, v: 0.06, type: "sawtooth", dets: [-10, 10], a: 0.8, cut: 600, cutTo: 3000, bus: sfxBus });
-        brass(h, [k - 12, k, k + 3, k + 7, k + 12], 1.8, 0.24, sfxBus); kick(h, 0.6, sfxBus); crash(h, 0.12, sfxBus); timp(h, 33 + ((k - 33) % 12), 0.4, sfxBus);
-        strings(h, [k, k + 3, k + 7, k + 12], 2, 0.045, { bus: sfxBus, cut: 2800, a: 0.04 });
+        noise({ t, dur: 1.15, v: 0.06, ft: "bandpass", ff: 200, ffTo: 4500, q: 1.6, a: 1, bus: sfxBus, wet: 0.4 });
+        tone({ t, dur: 1.15, f: mtof(k - 24), glide: mtof(k + 12), glideT: 1.1, v: 0.07, type: "sawtooth", dets: [-12, 12], a: 0.9, cut: 400, cutTo: 4000, bus: sfxBus });
+        for (let x = 0; x < 1.05; x += 0.1) tone({ t: t + x, dur: 0.08, f: mtof(k - 12), v: 0.02 + x * 0.06, type: "sawtooth", a: 0.004, cut: 400 + x * 1500, cutTo: 150, bus: sfxBus });
+        brass(h, [k - 24, k - 12, k, k + 3, k + 7, k + 12], 2, 0.28, sfxBus); kick(h, 0.7, sfxBus); crash(h, 0.14, sfxBus); timp(h, 33 + ((k - 33) % 12), 0.45, sfxBus);
+        strings(h, [k, k + 3, k + 7, k + 12], 2.2, 0.05, { bus: sfxBus, cut: 3000, a: 0.04 });
+        choir(h + 0.02, [k + 12, k + 15, k + 19], 1.8, 0.04, sfxBus);
         bell(h + 0.05, k + 31, 0.06, sfxBus, 1.8);
       }),
       whoosh: () => fx((t) => noise({ t, dur: 0.55, v: 0.06, ft: "bandpass", ff: 300, ffTo: 3200, q: 1.2, a: 0.2, bus: sfxBus, wet: 0.3 })),
       plate: (i) => fx((t) => tone({ t, dur: 0.35, f: mtof(69 + [0, 3, 7, 12][i % 4] + level), v: 0.08, type: "triangle", cut: 4000, bus: sfxBus, wet: 0.3, pan: (i - 1.5) * 0.3 })),
       select: () => fx((t) => { tone({ t, dur: 0.12, f: 660, v: 0.08, type: "triangle", cut: 3000, bus: sfxBus }); tone({ t: t + 0.06, dur: 0.16, f: 990, v: 0.07, type: "triangle", cut: 3000, bus: sfxBus }); }),
+      // Locking in: the "final answer" moment. A low slam, a deep drone that
+      // holds, and two heartbeats under it.
       lock: () => fx((t) => {
-        kick(t, 0.55, sfxBus);
-        [45, 52, 57, 64].forEach((m) => tone({ t, dur: 1.3, f: mtof(m + level), v: 0.07, type: "sawtooth", detune: 8, a: 0.008, cut: 1800, cutTo: 300, bus: sfxBus, wet: 0.5 }));
-        bell(t + 0.02, 88 + level, 0.06, sfxBus, 1.2);
+        kick(t, 0.6, sfxBus); timp(t, 33 + level % 12, 0.3, sfxBus);
+        [33, 45, 52, 57].forEach((m) => tone({ t, dur: 2.2, f: mtof(m + level), v: 0.07, type: "sawtooth", detune: 9, a: 0.008, hold: 0.6, cut: 1600, cutTo: 260, bus: sfxBus, wet: 0.5 }));
+        kick(t + 0.75, 0.32, sfxBus); kick(t + 0.98, 0.22, sfxBus);
+        bell(t + 0.02, 88 + level, 0.05, sfxBus, 1.4);
       }),
       tick: (last) => fx((t) => tone({ t, dur: 0.06, f: last ? 1760 : 1320, v: last ? 0.1 : 0.06, type: "sine", cut: 6000, bus: sfxBus })),
       // lights down: one deep hit and a rising drone (the suspense loop carries on)
@@ -727,8 +750,11 @@
         let x = t + 1.2, gap = 0.16;
         while (x < t + d) { noise({ t: x, dur: 0.07, v: 0.02 + 0.05 * ((x - t) / d), ft: "bandpass", ff: 2200, q: 0.6, bus: sfxBus }); gap = Math.max(0.035, gap * 0.94); x += gap; }
       }),
-      correct: () => fx((t) => {
+      // Right: three quick rising brass stabs into a bright major chord.
+      correct: () => fx((t0) => {
         const k = 57 + level;
+        [0, 4, 7].forEach((d, i) => brass(t0 + i * 0.09, [k - 12 + d, k + d], 0.12, 0.14, sfxBus));
+        const t = t0 + 0.27;
         brass(t, [k - 12, k - 5, k, k + 4, k + 7], 2.2, 0.26, sfxBus); kick(t, 0.5, sfxBus); crash(t, 0.08, sfxBus);
         choir(t + 0.05, [k + 4, k + 7, k + 12], 2.2, 0.05, sfxBus);
         [0, 4, 7, 12, 16].forEach((d, i) => bell(t + 0.1 + i * 0.07, k + 12 + d, 0.07, sfxBus));

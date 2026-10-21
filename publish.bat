@@ -8,6 +8,14 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-20  AGENDA 2030 (agenda.js v17, data/agenda.js v4, boot.js v19): BIG-MONEY QUIZ-SHOW
+REM              MUSIC, IN OUR OWN NOTES. A new opening (a dark pulse that swells, a rising
+REM              sweep, three hits that come faster, one huge minor slam with choir), a
+REM              sharper "let's play" hit for each question, a throbbing sixteenth synth
+REM              bass with a held high string under the question, a "final answer" drone
+REM              and heartbeat on lock-in, and rising brass stabs into the correct chord.
+REM              Nothing copied from any real show. Two more fact fixes (Pact for the
+REM              Future Action 53 wording; the 2027 SDG Summit no longer goes stale).
 REM  2026-10-20  AGENDA 2030 (data/agenda.js v3, agenda.js v16, agenda.css v14, boot.js v18): FACT
 REM              CHECK. All 693 questions checked twice, the second time online against
 REM              official sources. No keyed answer was wrong; about 45 questions, facts and
