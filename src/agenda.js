@@ -1797,12 +1797,15 @@
     c.dataset.key = g.qi + "";
     c.innerHTML =
       `<div class="ag-board">` +
+        `<div class="ag-head">` +
         `<div class="ag-emblem" style="--goal:${goal.color}">` +
           `<svg class="ag-timer" viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" class="ag-timer-bg"/><circle cx="60" cy="60" r="56" class="ag-timer-fg" id="ag-timer-fg"/></svg>` +
           wheelSvg("ag-em-wheel", `<circle cx="60" cy="60" r="28" class="ag-em-hub"/><text x="60" y="58" class="ag-em-goal" id="ag-em-lab">${d.g ? "SDG" : "2030"}</text><text x="60" y="76" class="ag-em-num" id="ag-secs">${d.g || "★"}</text>`) +
         `</div>` +
+        `<div class="ag-head-r">` +
         `<div class="ag-goal-tag" style="--goal:${goal.color}">${d.g ? `SDG ${d.g} · ` : ""}${esc(goal.name)}</div>` +
         `<div class="ag-q"><span>${esc(d.q)}</span></div>` +
+        `</div></div>` +
         `<div class="ag-plates" id="ag-plates">${d.a.map((a, i) =>
           `<button class="ag-plate" id="ag-plate${i}" style="--d:${i}"><span class="ag-pl-l">${LETTERS[i]}</span><span class="ag-pl-t">${esc(a)}</span><span class="ag-pl-who" id="ag-who${i}"></span></button>`).join("")}</div>` +
         `<div class="ag-under" id="ag-under"></div>` +

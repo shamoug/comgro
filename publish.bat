@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  AGENDA 2030 (agenda.js v20, agenda.css v17, boot.js v22): THE CLOCK MOVES
+REM              LEFT. The timer wheel now sits beside the question instead of above it,
+REM              so the board needs less height and everything fits without scrolling.
+REM              On phones the answers, name chips, fact card and player cards are more
+REM              compact, so the reveal fits on screen too.
 REM  2026-10-20  AGENDA 2030 (agenda.js v19, boot.js v21): STRAIGHT TO THE ANSWER. Once everyone
 REM              has locked in, the answer is revealed a beat later: no suspense pause, no
 REM              button, no waiting on the host. The host is never cut off: a line still

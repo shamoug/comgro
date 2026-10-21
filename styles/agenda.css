@@ -181,8 +181,13 @@
 .ag-centre { min-height: 0; max-height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; align-items: safe center; justify-content: center; padding: 6px 0; }
 .ag-board { width: 100%; max-width: 1100px; display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.6vh, 16px); }
 
+/* the head row: the clock on the left, the Goal tag and question beside it,
+   so the clock costs no height of its own */
+.ag-head { width: 100%; display: flex; align-items: center; gap: clamp(10px, 1.6vw, 22px); }
+.ag-head-r { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: clamp(6px, 1.2vh, 12px); }
+
 /* the emblem: SDG wheel, timer ring and the Goal number */
-.ag-emblem { position: relative; width: clamp(96px, 15vh, 150px); aspect-ratio: 1; animation: agDrop .7s cubic-bezier(.2, .9, .3, 1.2) both; }
+.ag-emblem { position: relative; flex: none; width: clamp(84px, 14vh, 140px); aspect-ratio: 1; animation: agDrop .7s cubic-bezier(.2, .9, .3, 1.2) both; }
 .ag-emblem.big { width: clamp(180px, 34vh, 320px); filter: drop-shadow(0 20px 60px rgba(90, 130, 255, .5)); }
 .ag-emblem svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .ag-em-wheel { transform: scale(.82); }
@@ -533,15 +538,33 @@
   .ag-plates::before, .ag-plates::after { display: none; }
   .ag-plate { padding: 8px 28px; clip-path: polygon(4% 0, 96% 0, 100% 50%, 96% 100%, 4% 100%, 0 50%); }
   .ag-q { padding: 12px 26px; clip-path: polygon(5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%, 0 50%); }
-  .ag-pod { width: calc(50% - 6px); padding: 8px; }
-  .ag-pod-av { width: 38px; height: 38px; font-size: 20px; }
-  .ag-pod-sc b { font-size: 20px; }
+  .ag-pod { width: calc(50% - 3px); }
+  .ag-pod-av { width: 30px; height: 30px; font-size: 17px; }
   .ag-stage { overflow-y: auto; }
   .ag-avatars { grid-template-columns: repeat(8, 38px); gap: 5px; }
   .ag-avatars button { width: 38px; height: 38px; font-size: 20px; border-radius: 12px; }
   .ag-centre { align-items: flex-start; padding-top: 8px; }
   .ag-top-c .ag-tier { display: none; }
-  .ag-emblem { width: 84px; }
+  .ag-emblem { width: 62px; }
+  .ag-q { min-height: 0; }
+  .ag-q span { font-size: 18px; }
+  .ag-plate { min-height: 44px; }
+  .ag-pl-t { font-size: 16px; }
+  .ag-under { min-height: 40px; }
+  .ag-status { padding: 8px 12px; }
+  .ag-pl-who { flex-wrap: nowrap; }
+  .ag-pl-who i { padding: 2px; }
+  .ag-pl-who i em { display: none; }
+  .ag-fact { padding: 8px 12px; }
+  .ag-fact b { font-size: 15px; }
+  .ag-fact span { font-size: 13.5px; line-height: 1.35; }
+  .ag-pods { padding-top: 6px; gap: 6px; }
+  .ag-pod { grid-template-columns: 30px minmax(0, 1fr) auto; column-gap: 6px; row-gap: 2px; padding: 5px 8px; border-radius: 14px; }
+  .ag-pod-nm { font-size: 14px; }
+  .ag-pod-sc b { font-size: 18px; }
+  .ag-pod-sc small { display: none; }
+  .ag-head { gap: 8px; }
+  .ag-goal-tag { font-size: 10px; letter-spacing: .1em; padding: 5px 10px; text-align: center; }
 }
 @media (max-height: 760px) and (min-width: 641px) {
   .ag-pod { padding: 6px 10px; }
