@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  AGENDA 2030 (agenda.js v21, agenda.css v18, boot.js v23): THE RESULT POPUP.
+REM              After the green plate lands, the result opens in a popup over the board:
+REM              Correct or Not this time, the right answer, the host's comment, who got
+REM              it, and the source. It stays while the host reads, then fades, the board
+REM              is back for a beat, and the next question comes.
 REM  2026-10-21  AGENDA 2030 (agenda.js v20, agenda.css v17, boot.js v22): THE CLOCK MOVES
 REM              LEFT. The timer wheel now sits beside the question instead of above it,
 REM              so the board needs less height and everything fits without scrolling.

@@ -275,6 +275,39 @@
 .ag-fact small { color: var(--ag-faint); font-size: 12px; }
 .ag-fact a { color: var(--ag-gold); }
 
+/* ---- the result popup ---------------------------------------------------- */
+.ag-pop { position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px;
+  background: rgba(4, 7, 26, .62); backdrop-filter: blur(3px); animation: agPopIn .45s 1.3s ease both; }
+.ag-stage:has(.ag-pop) .ag-top { z-index: 26; }  /* pause and close stay in reach */
+.ag-pop.out { animation: agPopOut .5s ease both; pointer-events: none; }
+.ag-pop-card { width: min(720px, 100%); max-height: calc(100% - 32px); overflow: auto; text-align: center; padding: clamp(18px, 3vh, 32px) clamp(18px, 3vw, 40px);
+  border-radius: 22px; background: linear-gradient(180deg, #16206a, #0a0f38); border: 2px solid var(--ag-line); border-top: 5px solid var(--goal);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(255, 255, 255, .04) inset; display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 1.6vh, 16px);
+  animation: agCardIn .5s 1.3s cubic-bezier(.2, 1.4, .4, 1) both; }
+.ag-pop-h { font: 800 clamp(26px, 4.2vh, 42px)/1.1 var(--ag-display); color: var(--ag-gold); }
+.ag-pop-card.ok .ag-pop-h { color: var(--ag-green); text-shadow: 0 0 24px rgba(61, 220, 132, .45); }
+.ag-pop-card.no .ag-pop-h { color: var(--ag-red); }
+.ag-pop-ans { display: inline-flex; align-items: center; gap: 12px; padding: 10px 22px 10px 10px; border-radius: 999px;
+  background: linear-gradient(180deg, #7ad88a, #2f9e55); color: #fff; font: 700 clamp(18px, 2.6vh, 26px) "Inter", sans-serif; box-shadow: 0 0 30px rgba(61, 220, 132, .4); }
+.ag-pop-ans span { display: grid; place-items: center; width: 1.7em; height: 1.7em; border-radius: 50%; background: rgba(0, 0, 0, .25); font-family: var(--ag-mono); }
+.ag-pop-f { margin: 0; color: var(--ag-ink); font-size: clamp(16px, 2.2vh, 21px); line-height: 1.5; }
+.ag-pop-who { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.ag-pop-who i { font-style: normal; display: inline-flex; align-items: center; gap: 5px; padding: 3px 4px 3px 4px; border-radius: 999px;
+  background: rgba(8, 12, 40, .8); border: 2px solid var(--c); }
+.ag-pop-who i.no { opacity: .55; }
+.ag-pop-who i span { font-size: 17px; line-height: 22px; }
+.ag-pop-who i em { font: 700 14px/1 "Inter", sans-serif; font-style: normal; color: #fff; }
+.ag-pop-who i b { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 999px; font: 800 12px var(--ag-mono); color: #fff; background: rgba(255, 255, 255, .15); }
+.ag-pop-who i.ok b { background: var(--ag-green); color: #062b14; }
+.ag-pop-card small { color: var(--ag-faint); font-size: 13px; }
+.ag-pop-card a { color: var(--ag-gold); }
+@keyframes agPopIn { from { opacity: 0; } }
+@keyframes agPopOut { to { opacity: 0; } }
+@keyframes agCardIn { from { opacity: 0; transform: translateY(24px) scale(.9); } }
+.ag-pop.out .ag-pop-card { animation: agCardOut .5s ease both; }
+@keyframes agCardOut { to { opacity: 0; transform: translateY(-16px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .ag-pop, .ag-pop-card { animation-duration: .01s !important; } }
+
 /* ---- the ladder ---------------------------------------------------------- */
 .ag-ladder { align-self: center; display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 18px;
   background: rgba(8, 12, 40, .82); border: 1px solid var(--ag-line); }

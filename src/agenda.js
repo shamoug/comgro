@@ -151,6 +151,7 @@
   const FINAL_S = ANSWER_S;    // the countdown score runs the whole answer time
   const SUSPENSE_MS = 5000;    // lights down, final answers are in
   const REVEAL_MS = 7500;      // the right answer and the fact
+  const POP_OUT_MS = 900;      // the result popup fades, a beat on the board, then the next question
   const COUNTDOWN_MS = 6500;   // “tonight's contestants”, then 3, 2, 1
   const QUIET_MS = 25000;      // a phone silent this long is “away”
   const SEAT_COLORS = ["#f5c542", "#3fd0ff", "#ff5d8f", "#7cf29c", "#b48cff"];
@@ -877,7 +878,7 @@
     const g = S.g;
     g.paused = false; g.left = 0; g.reading = !!reading;
     g.phase = phase; g.phaseLen = len || 0; g.pk = (g.pk || 0) + 1;
-    S.t0 = now(); S.pk = g.pk;
+    S.t0 = now(); S.pk = g.pk; S.popOut = 0;
     publish({ summary: phase === "lobby" || phase === "countdown" || phase === "final" });
     onPhase(true);
   }
@@ -1040,8 +1041,10 @@
     } else if (g.phase === "suspense") {
       if (t >= g.phaseLen && talkOver()) toReveal();
     } else if (g.phase === "reveal") {
-      // The show waits for the host to finish explaining the answer.
-      if (t >= g.phaseLen && talkOver()) { if (g.qi + 1 < QCOUNT) startQuestion(g.qi + 1); else toFinal(); }
+      // The show waits for the host to finish explaining the answer, then
+      // the result popup fades and the board is back for a beat.
+      if (t >= g.phaseLen && talkOver() && !S.popOut) { S.popOut = now(); closePop(); }
+      else if (S.popOut && now() - S.popOut >= POP_OUT_MS) { if (g.qi + 1 < QCOUNT) startQuestion(g.qi + 1); else toFinal(); }
     }
   }
 
@@ -1786,6 +1789,7 @@
   function paintCentre() {
     const g = S.g, c = $("ag-centre");
     if (!c) return;
+    if (g.phase !== "reveal") removePop();
     if (g.phase === "lobby") return paintLobby(c);
     if (g.phase === "countdown") { c.innerHTML = ""; c.dataset.key = ""; return; }
     if (g.phase === "final") { c.innerHTML = ""; c.dataset.key = ""; return; }
@@ -1842,12 +1846,8 @@
     const u = $("ag-under");
     if (!u) return;
     if (reveal) {
-      const goal = GOAL(d.g);
-      const right = g.answers[g.qi] ? g.answers[g.qi].filter((x) => x === d.c).length : 0;
-      const n = filled(g).length;
-      u.innerHTML = `<div class="ag-fact" style="--goal:${goal.color}"><b>${LETTERS[d.c]}: ${esc(d.a[d.c])}</b>` +
-        `<span>${esc(d.f)}</span>` +
-        `<small>${right} of ${n} got it right${d.s ? ` · <a href="${esc(d.s)}" target="_blank" rel="noopener">source</a>` : ""}</small></div>`;
+      u.innerHTML = "";
+      showPop(g, d);
     } else if (g.phase === "suspense") {
       u.innerHTML = `<div class="ag-status hush">Final answers are in…</div>`;
     } else if (g.phase === "question" && g.reading) {
@@ -2206,6 +2206,45 @@
     }
     say(`${rand(["The right answer is…", "And the answer is…", "It's…"])} ${LETTERS[d.c]}! ${d.a[d.c]}.${crowd} ${d.f}`);
   }
+
+  // The result popup: the right answer, who got it, and the host's comment.
+  // It opens over the board once the green plate has landed, stays while the
+  // host explains, then fades so the board is back before the next question.
+  function showPop(g, d) {
+    const st = $("ag-stage");
+    if (!st) return;
+    const key = g.qi + ":" + g.pk;
+    let pop = $("ag-pop");
+    if (pop && pop.dataset.key === key) return;
+    if (pop) pop.remove();
+    const goal = GOAL(d.g);
+    const ans = g.answers[g.qi] || [];
+    const seats = g.players.map((p, i) => i).filter((i) => !g.players[i].vacant);
+    const right = seats.filter((i) => ans[i] === d.c).length;
+    const n = seats.length;
+    const mine = meSeat() === 0 ? ans[0] : -2;
+    const head = mine === -2 ? (right === n && n > 1 ? "Everybody got it!" : right === 0 ? "Nobody got that one" : "The answer is…")
+      : mine === d.c ? "Correct!" : mine < 0 ? "Time's up" : "Not this time";
+    const tone = mine === -2 ? (right ? "ok" : "no") : mine === d.c ? "ok" : "no";
+    const chips = seats.map((i) => {
+      const p = g.players[i], ok = ans[i] === d.c;
+      return `<i class="${ok ? "ok" : "no"}" style="--c:${p.color}"><span>${p.icon}</span><em>${esc(p.name)}</em><b>${ok ? "✓" : ans[i] >= 0 ? LETTERS[ans[i]] : "–"}</b></i>`;
+    }).join("");
+    pop = el("div", "ag-pop");
+    pop.id = "ag-pop";
+    pop.dataset.key = key;
+    pop.innerHTML =
+      `<div class="ag-pop-card ${tone}" style="--goal:${goal.color}" role="dialog" aria-live="polite">` +
+        `<div class="ag-pop-h">${head}</div>` +
+        `<div class="ag-pop-ans"><span>${LETTERS[d.c]}</span>${esc(d.a[d.c])}</div>` +
+        `<p class="ag-pop-f">${esc(d.f)}</p>` +
+        (n > 1 || mine === -2 ? `<div class="ag-pop-who">${chips}</div>` : "") +
+        `<small>${right} of ${n} got it right${d.s ? ` · <a href="${esc(d.s)}" target="_blank" rel="noopener">source</a>` : ""}</small>` +
+      `</div>`;
+    st.appendChild(pop);
+  }
+  function closePop() { const pop = $("ag-pop"); if (pop) pop.classList.add("out"); }
+  function removePop() { const pop = $("ag-pop"); if (pop) pop.remove(); }
 
   function showFinal() {
     const g = S.g;
