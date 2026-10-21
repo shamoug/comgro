@@ -8,6 +8,13 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  AGENDA 2030 (data/agenda.js v5, boot.js v25): SECOND FULL FACT CHECK. All 693
+REM              questions checked online against UN primary sources. 33 fixes: one ambiguous
+REM              question (2012 energy year), facts that overstated or misquoted (target 14.6,
+REM              resolution 1325, Agenda para 51, indicators 1.b.1, 4.6.1, 5.5.1), an outdated
+REM              fact (UNESCO Creative Cities added architecture in 2025), a fact that could
+REM              not be sourced (Year of Cooperatives closing), and sources that were dead or
+REM              did not support the claim.
 REM  2026-10-21  AGENDA 2030 (agenda.js v22, agenda.css v19, boot.js v24): TIME COUNTS. Every
 REM              answer's time is recorded (no answer costs the full 30 seconds). The popup
 REM              shows each player's time; players on the same score are ranked by the lower
