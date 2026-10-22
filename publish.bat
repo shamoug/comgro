@@ -8,6 +8,10 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-22  AGENDA 2030 (data/agenda.js v7, boot.js v30): OFF-TOPIC QUESTIONS REMOVED.
+REM              57 trivia questions with no link to any SDG are gone (UN Headquarters
+REM              lore, horses in Mongolia, space flight, chess, mascots and the like).
+REM              636 questions remain, every one tied to a Goal, target or indicator.
 REM  2026-10-22  AGENDA 2030 (src/agenda.js v26, boot.js v29): 10 QUESTIONS BY DEFAULT, ALWAYS.
 REM              Every setup screen now opens on 10 questions instead of the last length
 REM              picked on this device; 5, 15 or 20 are still one tap away.
