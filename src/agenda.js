@@ -2208,14 +2208,29 @@
     });
     const right = g.answers[g.qi] ? g.answers[g.qi].filter((x) => x === d.c).length : 0;
     const n = filled(g).length;
-    let crowd = n < 2 ? "" : right === n ? " Everybody got that one!" : right === 0 ? " Ooh, nobody got that one." : right === 1 ? " Just one of you got it." : "";
+    let crowd = n < 2 ? "" : right === n ? " Everybody got that one!" : right === 0 ? " Ooh, nobody got that one." : right === 1 ? ` Only ${g.players[g.answers[g.qi].indexOf(d.c)].name} got it, well done!` : "";
     const hot = g.players.filter((p) => !p.vacant && (p.streak || 0) >= 3).sort((a, b) => b.streak - a.streak)[0];
+    const quick = fastestRight(g, d);
+    if (quick >= 0 && right > 1) crowd += ` ${rand(["Fastest of all,", "Quickest on the buzzer,", "First to get it right,"])} ${g.players[quick].name}, ${rand(["well played!", "brilliant!", "lightning quick!"])}`;
     if (hot) crowd += ` ${hot.name} is on fire, ${ORD[hot.streak - 1] || hot.streak} in a row!`;
     if (g.newLead >= 0 && g.qi < QCOUNT - 1) {
       crowd += ` ${rand(["And", "Oh, and"])} ${g.players[g.newLead].name} ${rand(["takes the lead!", "moves into first place!", "is out in front!"])}`;
       const pod = $("ag-pod" + g.newLead); if (pod) setTimeout(() => burst(pod, "#f5c542", 30), 600);
     }
     say(`${rand(["The right answer is…", "And the answer is…", "It's…"])} ${LETTERS[d.c]}! ${d.a[d.c]}.${crowd} ${d.f}`);
+  }
+
+  // With two or more players, the quickest right answer this question earns
+  // a word of praise; returns that seat, or -1.
+  function fastestRight(g, d) {
+    const ans = g.answers[g.qi] || [];
+    if (filled(g).length < 2) return -1;
+    let best = -1;
+    g.players.forEach((p, i) => {
+      const t = p.times ? p.times[g.qi] : -1;
+      if (!p.vacant && ans[i] === d.c && t >= 0 && (best < 0 || t < g.players[best].times[g.qi])) best = i;
+    });
+    return best;
   }
 
   // The result popup: the right answer, who got it, and the host's comment.
@@ -2237,9 +2252,10 @@
     const head = mine === -2 ? (right === n && n > 1 ? "Everybody got it!" : right === 0 ? "Nobody got that one" : "The answer is…")
       : mine === d.c ? "Correct!" : mine < 0 ? "Time's up" : "Not this time";
     const tone = mine === -2 ? (right ? "ok" : "no") : mine === d.c ? "ok" : "no";
+    const quick = right > 1 ? fastestRight(g, d) : -1;
     const chips = seats.map((i) => {
       const p = g.players[i], ok = ans[i] === d.c, t = p.times ? p.times[g.qi] : -1;
-      return `<i class="${ok ? "ok" : "no"}" style="--c:${p.color}"><span>${p.icon}</span><em>${esc(p.name)}</em>` +
+      return `<i class="${ok ? "ok" : "no"}${i === quick ? " quick" : ""}" style="--c:${p.color}"><span>${p.icon}</span><em>${esc(p.name)}${i === quick ? " ⚡" : ""}</em>` +
         `<u>${t >= 0 ? fmtTime(t) : "no answer"}</u><b>${ok ? "✓" : ans[i] >= 0 ? LETTERS[ans[i]] : "–"}</b></i>`;
     }).join("");
     pop = el("div", "ag-pop");
@@ -2250,6 +2266,7 @@
         `<div class="ag-pop-h">${head}</div>` +
         `<div class="ag-pop-ans"><span>${LETTERS[d.c]}</span>${esc(d.a[d.c])}</div>` +
         `<p class="ag-pop-f">${esc(d.f)}</p>` +
+        (quick >= 0 ? `<div class="ag-pop-quick">⚡ Fastest right answer: <b>${esc(g.players[quick].name)}</b>, ${fmtTime(g.players[quick].times[g.qi])}</div>` : "") +
         (n > 1 || mine === -2 ? `<div class="ag-pop-who">${chips}</div>` : "") +
         `<small>${right} of ${n} got it right${d.s ? ` · <a href="${esc(d.s)}" target="_blank" rel="noopener">source</a>` : ""}</small>` +
       `</div>`;

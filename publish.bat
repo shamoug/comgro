@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  AGENDA 2030 (data/agenda.js v6, src/agenda.js v23, styles/agenda.css v20,
+REM              boot.js v26): NO JOKE OPTIONS, PRAISE FOR THE QUICKEST. Every wrong option
+REM              reviewed; 139 joke or impossible ones in 77 questions (a pizza menu, 31
+REM              February, glitter, lawnmowers...) replaced with believable answers. After each
+REM              reveal the host names the fastest right answer, and the popup shows it with a
+REM              gold line and a lightning mark; a lone right answer is named too.
 REM  2026-10-21  AGENDA 2030 (data/agenda.js v5, boot.js v25): SECOND FULL FACT CHECK. All 693
 REM              questions checked online against UN primary sources. 33 fixes: one ambiguous
 REM              question (2012 energy year), facts that overstated or misquoted (target 14.6,

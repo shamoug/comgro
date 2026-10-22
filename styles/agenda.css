@@ -318,6 +318,10 @@
 .ag-pop-who i em { font: 700 14px/1 "Inter", sans-serif; font-style: normal; color: #fff; }
 .ag-pop-who i b { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 999px; font: 800 12px var(--ag-mono); color: #fff; background: rgba(255, 255, 255, .15); }
 .ag-pop-who i.ok b { background: var(--ag-green); color: #062b14; }
+.ag-pop-who i.quick { border-color: var(--ag-gold); box-shadow: 0 0 14px rgba(245, 197, 66, .55); }
+.ag-pop-quick { padding: 6px 16px; border-radius: 999px; background: rgba(245, 197, 66, .14); border: 1px solid rgba(245, 197, 66, .5);
+  color: var(--ag-gold); font: 600 clamp(14px, 1.9vh, 18px) "Inter", sans-serif; }
+.ag-pop-quick b { color: #fff; }
 .ag-pop-card small { color: var(--ag-faint); font-size: 13px; }
 .ag-pop-card a { color: var(--ag-gold); }
 @keyframes agPopIn { from { opacity: 0; } }
