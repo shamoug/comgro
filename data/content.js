@@ -86,6 +86,23 @@
     "Nodin", "Sakari", "Aslak", "Nanook", "Jarrah", "Kirra", "Lowanna", "Yindi",
   ];
 
+  // A fresh AI name: never one in `taken`, and never one an AI played in the
+  // last few games on this device, so each new game brings new characters.
+  CG.freshAgentName = function (taken) {
+    const KEY = "cg_recent_ai", KEEP = 60;
+    const avoid = (taken || []).map((n) => String(n).toLowerCase());
+    let recent = [];
+    try { recent = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { /* private window */ }
+    const free = (list) => CG.AGENT_NAMES.filter((n) => list.indexOf(n.toLowerCase()) < 0);
+    let pool = free(avoid.concat(recent));
+    if (!pool.length) pool = free(avoid);
+    if (!pool.length) pool = CG.AGENT_NAMES;
+    const name = pool[Math.floor(Math.random() * pool.length)];
+    recent = [name.toLowerCase()].concat(recent.filter((n) => n !== name.toLowerCase())).slice(0, KEEP);
+    try { localStorage.setItem(KEY, JSON.stringify(recent)); } catch (e) { /* not saved */ }
+    return name;
+  };
+
   /* ----------------------------------------------------------------------
    * THE UN 2.0 QUINTET OF CHANGE,  five capabilities every team carries.
    * They travel with you all game: ladders (momentum) strengthen one, holes

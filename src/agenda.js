@@ -1009,10 +1009,26 @@
     if (S.role === "solo" && !g.auto) recordSolo();
     if (S.role === "host") ls("cg_agenda_deck_" + g.id, null);
   }
+  // Give every AI contestant a new name, avatar and form, unlike the people
+  // at the screen and unlike the cast of the last show.
+  function castAI(g) {
+    const ai = g.players.filter((p) => p.isAI && !p.ownerId);
+    const keep = g.players.filter((p) => !p.vacant && ai.indexOf(p) < 0);
+    const taken = keep.map((p) => p.name).concat(ai.map((p) => p.name).filter(Boolean));
+    const old = ai.map((p) => p.icon);
+    let icons = shuffle(AVATARS.filter((a) => keep.every((p) => p.icon !== a)));
+    icons = icons.filter((a) => old.indexOf(a) < 0).concat(icons.filter((a) => old.indexOf(a) >= 0));
+    ai.forEach((p, i) => {
+      const name = CG.freshAgentName ? CG.freshAgentName(taken) : rand((CG.AGENT_NAMES || ["Amara", "Diego", "Mei", "Kofi", "Leila"]).filter((n) => taken.indexOf(n) < 0));
+      taken.push(name);
+      Object.assign(p, { name, icon: icons[i] || rand(AVATARS), skill: (Math.random() - 0.5) * (g.auto ? 0.14 : 0.12) });
+    });
+  }
   function playAgain() {
     const g = S.g;
     stopAutoNext();
     closeOverlay();
+    if (S.role === "solo") castAI(g);
     g.players.forEach((p) => { p.score = 0; p.ms = 0; p.tt = 0; p.times = []; p.streak = 0; p.fifty = false; });
     g.newLead = -1;
     g.qi = -1; g.answers = []; g.locked = []; g.show = (g.show || 1) + 1;
@@ -1457,9 +1473,8 @@
       SA.unlock();
       const g = newShow({ mode: "solo", seats: rivals + 1, level });
       Object.assign(g.players[0], { name: nm, icon, vacant: false, ownerId: myId() });
-      const names = shuffle(CG.AGENT_NAMES || ["Amara", "Diego", "Mei", "Kofi", "Leila"]).filter((n) => n.toLowerCase() !== nm.toLowerCase());
-      const icons = shuffle(AVATARS.filter((a) => a !== icon));
-      for (let i = 1; i <= rivals; i++) Object.assign(g.players[i], { name: names[i - 1], icon: icons[i - 1], vacant: false, isAI: true, skill: (Math.random() - 0.5) * 0.12 });
+      for (let i = 1; i <= rivals; i++) Object.assign(g.players[i], { vacant: false, isAI: true });
+      castAI(g);
       enterSolo(g);
     };
     w.appendChild(go);
@@ -1486,9 +1501,8 @@
       SA.unlock();
       const g = newShow({ mode: "solo", seats: count, level });
       g.auto = true;
-      const names = shuffle(CG.AGENT_NAMES || ["Amara", "Diego", "Mei", "Kofi", "Leila"]);
-      const icons = shuffle(AVATARS);
-      g.players.forEach((p, i) => Object.assign(p, { name: names[i] || "AI " + (i + 1), icon: icons[i], vacant: false, isAI: true, skill: (Math.random() - 0.5) * 0.14 }));
+      g.players.forEach((p) => Object.assign(p, { vacant: false, isAI: true }));
+      castAI(g);
       enterSolo(g);
     };
     w.appendChild(go);

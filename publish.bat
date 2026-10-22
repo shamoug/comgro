@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  ALL GAMES (data/content.js v24, src/agenda.js v24, parley.js v2, sitrep.js v3,
+REM              setup.js v7, game.js v54, boot.js v27): NEW CHARACTERS EVERY GAME. A shared
+REM              CG.freshAgentName remembers the last 60 AI names used on this device, so each
+REM              new game casts AI rivals not seen recently. In Agenda 2030 the next show
+REM              (AI vs AI or Play again) recasts every AI contestant with a new name, avatar
+REM              and form. Parley, Situation Report and The Long Road draw fresh names too.
 REM  2026-10-21  AGENDA 2030 (data/agenda.js v6, src/agenda.js v23, styles/agenda.css v20,
 REM              boot.js v26): NO JOKE OPTIONS, PRAISE FOR THE QUICKEST. Every wrong option
 REM              reviewed; 139 joke or impossible ones in 77 questions (a pizza menu, 31

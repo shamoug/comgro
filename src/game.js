@@ -1929,7 +1929,7 @@
       if (!isAI) nm = hostName;
       else {
         const pool = names.filter((n) => taken.indexOf(n) < 0);
-        nm = (pool.length ? pool : names)[Math.floor(Math.random() * (pool.length ? pool.length : names.length))];
+        nm = CG.freshAgentName ? CG.freshAgentName(taken) : (pool.length ? pool : names)[Math.floor(Math.random() * (pool.length ? pool.length : names.length))];
       }
       taken.push(nm);
       players.push({

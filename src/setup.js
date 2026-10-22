@@ -105,6 +105,7 @@
 
   // A random name not already taken by another AI seat.
   function pickName(taken) {
+    if (CG.freshAgentName) return CG.freshAgentName(taken);
     const pool = NAMES().filter((n) => taken.indexOf(n) < 0);
     const src = pool.length ? pool : NAMES();
     return src[Math.floor(Math.random() * src.length)];

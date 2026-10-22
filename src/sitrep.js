@@ -270,6 +270,7 @@
 
   function aiName(avoid) {
     const names = (CG.AGENT_NAMES && CG.AGENT_NAMES.length) ? CG.AGENT_NAMES : ["Amara", "Diego", "Mei", "Kofi", "Leila"];
+    if (CG.freshAgentName) return CG.freshAgentName([avoid]);
     for (let i = 0; i < 30; i++) { const n = rand(names); if (n !== avoid) return n; }
     return "Kofi";
   }

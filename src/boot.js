@@ -27,7 +27,7 @@
   ];
   var JS = [
     // DATA: all flavour text, board layout, decks and the dictionary
-    "data/content.js?v=23",
+    "data/content.js?v=24",
     "data/sitrep.js?v=1",
     "data/words5.js?v=1",
     "data/parley.js?v=1",
@@ -40,14 +40,14 @@
     // then the launcher. net.js loads before the games that use it.
     "src/audio.js?v=8",
     "src/narrate.js?v=7",
-    "src/setup.js?v=6",
+    "src/setup.js?v=7",
     "src/net.js?v=9",
-    "src/game.js?v=53",
+    "src/game.js?v=54",
     "src/lobby.js?v=4",
     "src/td.js?v=11",
-    "src/sitrep.js?v=2",
-    "src/parley.js?v=1",
-    "src/agenda.js?v=23",
+    "src/sitrep.js?v=3",
+    "src/parley.js?v=2",
+    "src/agenda.js?v=24",
     "src/platform.js?v=17",
   ];
 
