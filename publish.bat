@@ -8,6 +8,11 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-21  AGENDA 2030 (src/agenda.js v25, styles/agenda.css v21, boot.js v28): CHOOSE THE
+REM              NUMBER OF QUESTIONS. Solo, AI vs AI and hosted shows offer 5, 10, 15 or 20
+REM              questions (10 by default, remembered per device). The climb scales with it
+REM              (two fifths warm-up, three tenths harder, the rest for the brave), and the
+REM              ladder, host lines, counters, results and share text follow the chosen length.
 REM  2026-10-21  ALL GAMES (data/content.js v24, src/agenda.js v24, parley.js v2, sitrep.js v3,
 REM              setup.js v7, game.js v54, boot.js v27): NEW CHARACTERS EVERY GAME. A shared
 REM              CG.freshAgentName remembers the last 60 AI names used on this device, so each

@@ -3,7 +3,7 @@
  * The fifth game: a television quiz show about the Sustainable Development
  * Goals, in the spirit of “Who Wants to Be a Millionaire?”.
  *
- * Ten questions a show, drawn from the bank in data/agenda.js: four warm-up,
+ * Ten questions a show by default (5, 10, 15 or 20), drawn from the bank in data/agenda.js: four warm-up,
  * three harder, three for the brave. Up to five contestants answer each
  * question in secret, then the lights dim for five seconds of suspense, the
  * right answer lights up, and the show moves on. Most right answers wins;
@@ -142,8 +142,15 @@
   // =======================================================================
   // THE SHOW, IN NUMBERS
   // =======================================================================
-  const QCOUNT = 10;
-  const TIERS = [1, 1, 1, 1, 2, 2, 2, 3, 3, 3];
+  const QCOUNT = 10;                     // the default length of a show
+  const QCOUNTS = [5, 10, 15, 20];        // the lengths a show can be
+  // The climb for a show of n questions: two fifths warm-up, three tenths
+  // harder, the rest for the brave (10 gives 4, 3, 3).
+  function tiersFor(n) {
+    const a = Math.round(n * 0.4), b = Math.round(n * 0.3);
+    return Array.from({ length: n }, (_, i) => (i < a ? 1 : i < a + b ? 2 : 3));
+  }
+  const qcount = (g) => (g && g.count) || QCOUNT;
   const TIER_NAMES = { 1: "Warm-up", 2: "Harder", 3: "For the brave" };
   const LETTERS = ["A", "B", "C", "D"];
   const INTRO_MS = 2200;       // the question and its answers land
@@ -789,15 +796,15 @@
   // =======================================================================
   // THE QUESTION BANK
   // =======================================================================
-  // Draw ten: four tier-1, three tier-2, three tier-3, avoiding the ones this
-  // browser has asked recently. The answers are shuffled, so a letter means
-  // nothing from one show to the next.
-  function buildDeck() {
+  // Draw n questions climbing through the tiers (ten: four tier-1, three
+  // tier-2, three tier-3), avoiding the ones this browser has asked recently.
+  // The answers are shuffled, so a letter means nothing from one show to the next.
+  function buildDeck(n) {
     const bank = CG.AGENDA_QS || [];
     const recent = new Set(ls("cg_agenda_recent") || []);
     const pick = [];
     const used = new Set();
-    TIERS.forEach((tier) => {
+    tiersFor(n || QCOUNT).forEach((tier) => {
       const fresh = [], any = [];
       bank.forEach((q, i) => { if (q[1] === tier && !used.has(i)) (recent.has(qKey(q)) ? any : fresh).push(i); });
       const pool = fresh.length ? fresh : any;
@@ -843,7 +850,7 @@
   function newShow(opts) {
     const g = {
       kind: "agenda", v: 1, id: null, hostId: myId(), seq: 1,
-      mode: opts.mode, timer: ANSWER_S, level: opts.level || "sharp",
+      mode: opts.mode, timer: ANSWER_S, level: opts.level || "sharp", count: opts.count || QCOUNT,
       seats: opts.seats, players: [],
       qs: [], qi: -1, answers: [], locked: [], phase: "lobby", phaseLen: 0, pk: 0, show: 1, over: false,
     };
@@ -951,7 +958,7 @@
 
   function startCountdown() {
     const g = S.g;
-    if (!S.deck) { S.deck = buildDeck(); S.picks = {}; saveDeck(); }
+    if (!S.deck) { S.deck = buildDeck(qcount(g)); S.picks = {}; saveDeck(); }
     g.qs = S.deck.map((d) => ({ g: d.g, t: d.t }));
     g.over = false;
     setPhase("countdown", COUNTDOWN_MS);
@@ -1066,7 +1073,7 @@
       // The show waits for the host to finish explaining the answer, then
       // the result popup fades and the board is back for a beat.
       if (t >= g.phaseLen && talkOver() && !S.popOut) { S.popOut = now(); closePop(); }
-      else if (S.popOut && now() - S.popOut >= POP_OUT_MS) { if (g.qi + 1 < QCOUNT) startQuestion(g.qi + 1); else toFinal(); }
+      else if (S.popOut && now() - S.popOut >= POP_OUT_MS) { if (g.qi + 1 < qcount(g)) startQuestion(g.qi + 1); else toFinal(); }
     }
   }
 
@@ -1281,13 +1288,14 @@
   function queryParam(k) { try { return new URL(location.href).searchParams.get(k) || ""; } catch (e) { return ""; } }
 
   // The host's patter: a different way in to each question.
-  const ORD = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const ORD = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
   function questionIntro(qi, tier) {
-    const n = ORD[qi] || String(qi + 1);
+    const n = ORD[qi] || String(qi + 1), total = qcount(S.g), tiers = tiersFor(total);
     if (qi === 0) return rand(["Here's your first question.", "Question one, for the warm-up."]);
-    if (qi === QCOUNT - 1) return rand(["The final question.", "Question ten… the last one."]);
-    if (qi === 4) return `Question five. Things get harder from here.`;
-    if (qi === 7) return `Question eight. This is for the brave.`;
+    if (qi === total - 1) return rand(["The final question.", `Question ${n}… the last one.`]);
+    if (tiers[qi] !== tiers[qi - 1]) return tiers[qi] === 2 ? `Question ${n}. Things get harder from here.` : `Question ${n}. This is for the brave.`;
     return rand([`Question ${n}.`, `Here's question ${n}.`, `On to question ${n}.`, tier === 3 ? `Question ${n}. Take a deep breath.` : `Question ${n}, coming up.`]);
   }
 
@@ -1375,7 +1383,7 @@
     w.appendChild(el("h1", "ag-h1", "Agenda 2030"));
     w.appendChild(el("p", "ag-sub", "The Global Goals quiz show"));
     w.appendChild(el("p", "ag-tag",
-      "Ten questions on the Sustainable Development Goals, each harder than the last. Up to five contestants answer in secret. " +
+      "Five to twenty questions on the Sustainable Development Goals, each harder than the last. Up to five contestants answer in secret. " +
       "Five seconds of suspense. Then the lights tell the truth."));
 
     const modes = el("div", "ag-modes");
@@ -1403,7 +1411,7 @@
     how.onclick = showHowTo;
     w.appendChild(how);
     const st = stats();
-    if (st.shows) w.appendChild(el("p", "ag-record", `<b>Your record</b> · ${st.shows} show${st.shows === 1 ? "" : "s"} · ${st.wins} won · ${st.right} of ${st.asked} right · best ${st.best}/10`));
+    if (st.shows) w.appendChild(el("p", "ag-record", `<b>Your record</b> · ${st.shows} show${st.shows === 1 ? "" : "s"} · ${st.wins} won · ${st.right} of ${st.asked} right · best ${st.best} right`));
     const n = (CG.AGENDA_QS || []).length;
     w.appendChild(el("p", "ag-credit", `${n} questions, each checked against official UN sources. Music is generated live in your browser.`));
     SA.setMusic(settings.music); SA.setSfx(settings.sfx);
@@ -1417,21 +1425,23 @@
     w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
     w.appendChild(el("h1", "ag-h2", "Host a show"));
     w.appendChild(el("p", "ag-tag", "This screen becomes the stage. Each contestant joins on their own phone by scanning the code."));
-    let seats = settings.seats;
+    let seats = settings.seats, count = settings.count || QCOUNT;
     w.appendChild(el("p", "ag-label", "How many contestants?"));
     const seatNote = el("p", "ag-note");
     const seatPaint = () => { seatNote.innerHTML = seats === 1 ? "One contestant against the clock." : `The show starts when the <b>${seats}th</b> player joins.`.replace("2th", "2nd").replace("3th", "3rd"); };
     w.appendChild(seg([1, 2, 3, 4, 5], seats, (v) => { seats = v; seatPaint(); }, (v) => `<b>${v}</b> ${v === 1 ? "player" : "players"}`));
     seatPaint(); w.appendChild(seatNote);
+    w.appendChild(el("p", "ag-label", "How many questions?"));
+    w.appendChild(seg(QCOUNTS, count, (v) => { count = v; }));
     w.appendChild(el("p", "ag-note", `Every question gives ${ANSWER_S} seconds to answer. You can still add or remove seats on the QR screen while people join, or start early.`));
     const go = el("button", "ag-btn gold big", "Open the show ▸");
     go.onclick = async () => {
       SA.unlock();
       if (!room()) return flash("Online play is unavailable here. Try solo.");
-      settings.seats = seats; saveSettings();
+      settings.seats = seats; settings.count = count; saveSettings();
       go.disabled = true; go.textContent = "Opening the studio…";
       try {
-        const g = newShow({ mode: "host", seats });
+        const g = newShow({ mode: "host", seats, count });
         let code = "";
         for (let i = 0; i < 8; i++) { code = makeCode(); if (!(await room().has(code))) break; }
         await room().create(g, { id: code });
@@ -1451,7 +1461,7 @@
     w.appendChild(backBtn("← Back", renderTitle));
     w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
     w.appendChild(el("h1", "ag-h2", "Play solo"));
-    let rivals = settings.rivals, level = settings.level, icon = settings.avatar || AVATARS[0];
+    let rivals = settings.rivals, level = settings.level, icon = settings.avatar || AVATARS[0], count = settings.count || QCOUNT;
     w.appendChild(el("p", "ag-label", "Your name"));
     const name = el("input", "ag-input"); name.maxLength = 18; name.placeholder = "Your name";
     name.value = settings.name || (CG.Net && CG.Net.getName ? CG.Net.getName() : "") || "";
@@ -1464,14 +1474,16 @@
     const note = el("p", "ag-note", LEVELS[level].blurb);
     w.appendChild(seg(Object.keys(LEVELS), level, (v) => { level = v; note.textContent = LEVELS[v].blurb; }, (v) => LEVELS[v].label));
     w.appendChild(note);
+    w.appendChild(el("p", "ag-label", "How many questions?"));
+    w.appendChild(seg(QCOUNTS, count, (v) => { count = v; }));
     w.appendChild(el("p", "ag-note", `${ANSWER_S} seconds on the clock for every question.`));
     const go = el("button", "ag-btn gold big", "Lights, camera ▸");
     go.onclick = () => {
       const nm = clean(name.value);
       if (!nm) return nudge(name);
-      Object.assign(settings, { rivals, level, avatar: icon, name: nm }); saveSettings();
+      Object.assign(settings, { rivals, level, avatar: icon, name: nm, count }); saveSettings();
       SA.unlock();
-      const g = newShow({ mode: "solo", seats: rivals + 1, level });
+      const g = newShow({ mode: "solo", seats: rivals + 1, level, count });
       Object.assign(g.players[0], { name: nm, icon, vacant: false, ownerId: myId() });
       for (let i = 1; i <= rivals; i++) Object.assign(g.players[i], { vacant: false, isAI: true });
       castAI(g);
@@ -1487,19 +1499,21 @@
     w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
     w.appendChild(el("h1", "ag-h2", "AI vs AI"));
     w.appendChild(el("p", "ag-tag", "Watch the AI contestants play the whole show, with the host, the music and the facts. When it ends, the next show starts by itself."));
-    let count = Math.max(2, Math.min(5, settings.autoSeats || 4)), level = settings.level;
+    let seats = Math.max(2, Math.min(5, settings.autoSeats || 4)), level = settings.level, count = settings.count || QCOUNT;
     w.appendChild(el("p", "ag-label", "How many AI contestants?"));
-    w.appendChild(seg([2, 3, 4, 5], count, (v) => { count = v; }));
+    w.appendChild(seg([2, 3, 4, 5], seats, (v) => { seats = v; }));
     w.appendChild(el("p", "ag-label", "How good are they?"));
     const note = el("p", "ag-note", LEVELS[level].blurb);
     w.appendChild(seg(Object.keys(LEVELS), level, (v) => { level = v; note.textContent = LEVELS[v].blurb; }, (v) => LEVELS[v].label));
     w.appendChild(note);
+    w.appendChild(el("p", "ag-label", "How many questions?"));
+    w.appendChild(seg(QCOUNTS, count, (v) => { count = v; }));
     w.appendChild(el("p", "ag-note", "Press the space bar to pause at any time."));
     const go = el("button", "ag-btn gold big", "Roll the show ▸");
     go.onclick = () => {
-      Object.assign(settings, { autoSeats: count, level }); saveSettings();
+      Object.assign(settings, { autoSeats: seats, level, count }); saveSettings();
       SA.unlock();
-      const g = newShow({ mode: "solo", seats: count, level });
+      const g = newShow({ mode: "solo", seats, level, count });
       g.auto = true;
       g.players.forEach((p) => Object.assign(p, { vacant: false, isAI: true }));
       castAI(g);
@@ -1798,7 +1812,7 @@
     else if (g.phase === "final") p.innerHTML = `<span class="ag-onair live">● THE RESULTS</span>`;
     else {
       const d = g.qs[g.qi] || {};
-      p.innerHTML = `<span class="ag-qn">Question <b>${g.qi + 1}</b> of ${QCOUNT}</span><span class="ag-tier t${d.t}">${TIER_NAMES[d.t] || ""}</span>`;
+      p.innerHTML = `<span class="ag-qn">Question <b>${g.qi + 1}</b> of ${qcount(g)}</span><span class="ag-tier t${d.t}">${TIER_NAMES[d.t] || ""}</span>`;
     }
     const cc = $("ag-codechip");
     if (cc) cc.innerHTML = `Join · <b>${esc(g.id)}</b>`;
@@ -1907,15 +1921,17 @@
     const g = S.g, lad = $("ag-ladder");
     if (!lad) return;
     let html = `<div class="ag-rung top"><span>★</span><b>2030</b></div>`;
-    for (let i = QCOUNT - 1; i >= 0; i--) {
+    const total = qcount(g), tiers = tiersFor(total);
+    lad.classList.toggle("long", total > 10);
+    for (let i = total - 1; i >= 0; i--) {
       const d = g.qs[i];
       const cls = i === g.qi && g.phase !== "final" ? " now" : i < g.qi || (i === g.qi && (g.phase === "reveal" || g.phase === "final")) ? " done" : "";
-      const ms = i === 3 || i === 6 ? " milestone" : "";
+      const ms = i < total - 1 && tiers[i] !== tiers[i + 1] ? " milestone" : "";
       const ans = g.answers[i], right = ans && d && d.c != null ? ans.filter((x) => x === d.c).length : null;
       const goal = d && (i <= g.qi) ? GOAL(d.g) : null;
       html += `<div class="ag-rung${cls}${ms}"><span class="ag-rn">${i + 1}</span>` +
         `<i class="ag-rdot" style="${goal ? `--c:${goal.color}` : ""}">${goal && d.g ? d.g : ""}</i>` +
-        `<b>${right != null ? `${right}/${filled(g).length} ✓` : TIER_NAMES[TIERS[i]]}</b></div>`;
+        `<b>${right != null ? `${right}/${filled(g).length} ✓` : TIER_NAMES[tiers[i]]}</b></div>`;
     }
     lad.innerHTML = html;
   }
@@ -2193,7 +2209,7 @@
     openOverlay(c, "ag-over-count");
     const names = filled(g).map((p) => p.name);
     const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
-    say(`Good evening, and welcome to Agenda 2030! Tonight's contestants are… ${list}. Ten questions, thirty seconds on the clock for each. Let's play!`);
+    say(`Good evening, and welcome to Agenda 2030! Tonight's contestants are… ${list}. ${cap(ORD[qcount(g) - 1] || String(qcount(g)))} questions, thirty seconds on the clock for each. Let's play!`);
     const nEl = $("ag-count-n");
     [3, 2, 1, 0].forEach((k, j) => setTimeout(() => {
       if (!nEl.isConnected) return;
@@ -2227,7 +2243,7 @@
     const quick = fastestRight(g, d);
     if (quick >= 0 && right > 1) crowd += ` ${rand(["Fastest of all,", "Quickest on the buzzer,", "First to get it right,"])} ${g.players[quick].name}, ${rand(["well played!", "brilliant!", "lightning quick!"])}`;
     if (hot) crowd += ` ${hot.name} is on fire, ${ORD[hot.streak - 1] || hot.streak} in a row!`;
-    if (g.newLead >= 0 && g.qi < QCOUNT - 1) {
+    if (g.newLead >= 0 && g.qi < qcount(g) - 1) {
       crowd += ` ${rand(["And", "Oh, and"])} ${g.players[g.newLead].name} ${rand(["takes the lead!", "moves into first place!", "is out in front!"])}`;
       const pod = $("ag-pod" + g.newLead); if (pod) setTimeout(() => burst(pod, "#f5c542", 30), 600);
     }
@@ -2323,7 +2339,7 @@
     const podium = [1, 0, 2].filter((k) => order[k] != null).map((k) => {
       const p = g.players[order[k]];
       return `<div class="ag-step s${k + 1}" style="--c:${p.color};--i:${k}"><div class="ag-step-av">${k === 0 ? `<i class="ag-crown">👑</i>` : ""}${p.icon}</div>` +
-        `<b>${esc(p.name)}</b><small>${p.score}/10</small><em>⏱ ${fmtTime(p.tt)}</em><div class="ag-step-block">${k + 1}</div></div>`;
+        `<b>${esc(p.name)}</b><small>${p.score}/${qcount(g)}</small><em>⏱ ${fmtTime(p.tt)}</em><div class="ag-step-block">${k + 1}</div></div>`;
     }).join("");
     c.innerHTML =
       `<div class="ag-final-top">` +
@@ -2363,13 +2379,14 @@
         if (left <= 0) { stopAutoNext(); playAgain(); }
       });
     }
-    say(top ? (tie ? `What a finish… it's a dead heat, at ${top.score} out of ten!` : `Ladies and gentlemen… the winner of tonight's show is… ${top.name}! With ${top.score} out of ten. Congratulations!`) : "");
+    const outOf = ORD[qcount(g) - 1] || qcount(g);
+    say(top ? (tie ? `What a finish… it's a dead heat, at ${top.score} out of ${outOf}!` : `Ladies and gentlemen… the winner of tonight's show is… ${top.name}! With ${top.score} out of ${outOf}. Congratulations!`) : "");
   }
 
   // Every player's answer to every question, with the time it took and the
   // total. Players on the same score are split by the lower total time.
   function resultsTable(g, order) {
-    const n = g.qs.length || QCOUNT;
+    const n = g.qs.length || qcount(g);
     const same = (i) => order.some((j) => j !== i && g.players[j].score === g.players[i].score);
     const anyTie = order.some(same);
     const head = `<tr><th class="rk">#</th><th class="nm">Player</th>` +
@@ -2396,7 +2413,7 @@
 
   function share(g) {
     const order = rank(g);
-    const lines = order.map((i, k) => `${k + 1}. ${g.players[i].icon} ${g.players[i].name}: ${g.players[i].score}/10, ${fmtTime(g.players[i].tt)}`).join("\n");
+    const lines = order.map((i, k) => `${k + 1}. ${g.players[i].icon} ${g.players[i].name}: ${g.players[i].score}/${qcount(g)}, ${fmtTime(g.players[i].tt)}`).join("\n");
     const text = `Agenda 2030, the Global Goals quiz show 🌍\n${lines}\nPlay: ${CG.Platform && CG.Platform.gameUrl ? CG.Platform.gameUrl("agenda") : location.href}`;
     if (navigator.share) navigator.share({ text }).catch(() => {});
     else { copyText(text); toast("Results copied ✓"); }
@@ -2406,7 +2423,7 @@
     const g = S.g, st = stats();
     const order = rank(g);
     st.shows++; if (order[0] === 0) st.wins++;
-    st.right += g.players[0].score; st.asked += QCOUNT; st.best = Math.max(st.best, g.players[0].score);
+    st.right += g.players[0].score; st.asked += qcount(g); st.best = Math.max(st.best, g.players[0].score);
     ls("cg_agenda_stats", st);
   }
 
@@ -2468,7 +2485,7 @@
       return;
     }
     if (g.phase === "countdown") {
-      body.innerHTML = `<div class="ag-ph-card"><div class="ag-spin">${wheelSvg("", "")}</div><h2>Here we go!</h2><p>Ten questions. Answer in secret. Most right wins.</p>` +
+      body.innerHTML = `<div class="ag-ph-card"><div class="ag-spin">${wheelSvg("", "")}</div><h2>Here we go!</h2><p>${cap(ORD[qcount(g) - 1] || String(qcount(g)))} questions. Answer in secret. Most right wins.</p>` +
         `<div class="ag-ph-rules"><span>🔒 Tap, then lock it in</span><span>½ One 50:50 per show</span><span>⏱ Ties go to the quickest</span></div></div>`;
       buzz([20, 60, 20]);
       return;
@@ -2505,7 +2522,7 @@
     const my = reveal && g.answers[g.qi] && seat >= 0 ? g.answers[g.qi][seat] : (S.me.locked ? S.me.sel : -1);
     body.innerHTML =
       `<div class="ag-ph-q" style="--goal:${goal.color}">` +
-        `<div class="ag-ph-qh"><span class="ag-ph-qn">Q${g.qi + 1}/${QCOUNT}</span><span class="ag-ph-goal">${d.g ? `SDG ${d.g}` : "2030 Agenda"}</span><span class="ag-ph-secs" id="ag-ph-secs"></span></div>` +
+        `<div class="ag-ph-qh"><span class="ag-ph-qn">Q${g.qi + 1}/${qcount(g)}</span><span class="ag-ph-goal">${d.g ? `SDG ${d.g}` : "2030 Agenda"}</span><span class="ag-ph-secs" id="ag-ph-secs"></span></div>` +
         `<div class="ag-ph-bar"><i id="ag-ph-bar"></i></div>` +
         `<p class="ag-ph-qt">${esc(d.q)}</p>` +
       `</div>` +
@@ -2726,7 +2743,7 @@
       `<li><i>📱</i><span><b>Everyone scans the QR code with their phone</b> (or opens the link and types the code), types a name and picks an avatar. When the last seat is taken, the show begins.</span></li>` +
       `<li><i>🤫</i><span><b>Answer in secret.</b> Each question shows on the big screen and on every phone. You have 30 seconds: tap A, B, C or D, then lock it in. Nobody sees your pick.</span></li>` +
       `<li><i>⏳</i><span><b>Five seconds of suspense,</b> then the right answer lights up, with a fact and its official source.</span></li>` +
-      `<li><i>🏆</i><span><b>Ten questions, each harder than the last.</b> Most right answers wins. A tie goes to the quickest on their right answers.</span></li>` +
+      `<li><i>🏆</i><span><b>Ten questions by default (or 5, 15 or 20), each harder than the last.</b> Most right answers wins. A tie goes to the quickest on their right answers.</span></li>` +
       `<li><i>½</i><span><b>One 50:50 each,</b> to take away two wrong answers once per show.</span></li>` +
       `<li><i>🚪</i><span><b>Late?</b> A small QR code stays in the corner during the show: scan it to watch, or to take a seat if one is open.</span></li>` +
       `</ol>`;
