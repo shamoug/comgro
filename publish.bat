@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-22  AGENDA 2030 (data/agenda.js v9, src/agenda.js v28, boot.js v32): A FITTING BANNER
+REM              FOR EVERY NON-SDG QUESTION. "Fun Fact" is kept only for the 6 truly fun
+REM              ones; the rest show UN History, UN Headquarters, Peacekeeping,
+REM              International Days, Languages and Culture, Science and Space, UN Agencies,
+REM              Human Rights or Wildlife. Non-SDG questions are 30% of a show, rounded
+REM              down: 1 of 5, 3 of 10, 4 of 15, 6 of 20.
 REM  2026-10-22  AGENDA 2030 (data/agenda.js v8, src/agenda.js v27, boot.js v31): FUN FACTS ARE BACK.
 REM              The 57 UN trivia questions return as their own "Fun Fact" category,
 REM              no longer tagged to an SDG. The board, phone and ladder say Fun Fact,

@@ -31,7 +31,7 @@
     "data/sitrep.js?v=1",
     "data/words5.js?v=1",
     "data/parley.js?v=1",
-    "data/agenda.js?v=8",
+    "data/agenda.js?v=9",
     // Multiplayer transport: mqtt.js over secure WebSockets to a public
     // broker. Loads online; if it is unavailable, the lobbies fall back to
     // solo play.
@@ -47,7 +47,7 @@
     "src/td.js?v=11",
     "src/sitrep.js?v=3",
     "src/parley.js?v=2",
-    "src/agenda.js?v=27",
+    "src/agenda.js?v=28",
     "src/platform.js?v=17",
   ];
 

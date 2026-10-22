@@ -799,22 +799,22 @@
   // Draw n questions climbing through the tiers (ten: four tier-1, three
   // tier-2, three tier-3), avoiding the ones this browser has asked recently.
   // The answers are shuffled, so a letter means nothing from one show to the next.
-  // Three of them (one in a five-question show) are fun facts about the UN
-  // that belong to no Goal, dropped in at random rungs.
-  const FUN = 18;
-  const funCount = (n) => (n < 10 ? 1 : 3);
+  // At most 30% of them, rounded down (3 of 10), are questions about the UN
+  // at large that belong to no Goal, dropped in at random rungs.
+  const EXTRA = 18;                       // goals from here up are banners, not SDGs
+  const extraCount = (n) => Math.floor(n * 0.3);
   function buildDeck(n) {
     const bank = CG.AGENDA_QS || [];
     const recent = new Set(ls("cg_agenda_recent") || []);
     const pick = [];
     const used = new Set();
     const tiers = tiersFor(n || QCOUNT);
-    const funAt = new Set(shuffle(tiers.map((t, k) => k)).slice(0, funCount(tiers.length)));
+    const extraAt = new Set(shuffle(tiers.map((t, k) => k)).slice(0, extraCount(tiers.length)));
     tiers.forEach((tier, k) => {
-      const fun = funAt.has(k);
+      const extra = extraAt.has(k);
       const fresh = [], any = [], spare = [];
       bank.forEach((q, i) => {
-        if ((q[0] === FUN) !== fun || used.has(i)) return;
+        if ((q[0] >= EXTRA) !== extra || used.has(i)) return;
         if (q[1] === tier) (recent.has(qKey(q)) ? any : fresh).push(i); else spare.push(i);
       });
       const pool = fresh.length ? fresh : any.length ? any : spare;
@@ -1848,10 +1848,10 @@
         `<div class="ag-head">` +
         `<div class="ag-emblem" style="--goal:${goal.color}">` +
           `<svg class="ag-timer" viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" class="ag-timer-bg"/><circle cx="60" cy="60" r="56" class="ag-timer-fg" id="ag-timer-fg"/></svg>` +
-          wheelSvg("ag-em-wheel", `<circle cx="60" cy="60" r="28" class="ag-em-hub"/><text x="60" y="58" class="ag-em-goal" id="ag-em-lab">${goal.fun ? "FUN" : d.g ? "SDG" : "2030"}</text><text x="60" y="76" class="ag-em-num" id="ag-secs">${goal.fun ? "★" : d.g || "★"}</text>`) +
+          wheelSvg("ag-em-wheel", `<circle cx="60" cy="60" r="28" class="ag-em-hub"/><text x="60" y="58" class="ag-em-goal" id="ag-em-lab">${goal.extra ? "UN" : d.g ? "SDG" : "2030"}</text><text x="60" y="76" class="ag-em-num" id="ag-secs">${goal.extra ? "★" : d.g || "★"}</text>`) +
         `</div>` +
         `<div class="ag-head-r">` +
-        `<div class="ag-goal-tag" style="--goal:${goal.color}">${d.g && !goal.fun ? `SDG ${d.g} · ` : ""}${esc(goal.name)}</div>` +
+        `<div class="ag-goal-tag" style="--goal:${goal.color}">${d.g && !goal.extra ? `SDG ${d.g} · ` : ""}${esc(goal.name)}</div>` +
         `<div class="ag-q"><span>${esc(d.q)}</span></div>` +
         `</div></div>` +
         `<div class="ag-plates" id="ag-plates">${d.a.map((a, i) =>
@@ -1940,7 +1940,7 @@
       const ans = g.answers[i], right = ans && d && d.c != null ? ans.filter((x) => x === d.c).length : null;
       const goal = d && (i <= g.qi) ? GOAL(d.g) : null;
       html += `<div class="ag-rung${cls}${ms}"><span class="ag-rn">${i + 1}</span>` +
-        `<i class="ag-rdot" style="${goal ? `--c:${goal.color}` : ""}">${goal && d.g ? (goal.fun ? "★" : d.g) : ""}</i>` +
+        `<i class="ag-rdot" style="${goal ? `--c:${goal.color}` : ""}">${goal && d.g ? (goal.extra ? "★" : d.g) : ""}</i>` +
         `<b>${right != null ? `${right}/${filled(g).length} ✓` : TIER_NAMES[tiers[i]]}</b></div>`;
     }
     lad.innerHTML = html;
@@ -2532,7 +2532,7 @@
     const my = reveal && g.answers[g.qi] && seat >= 0 ? g.answers[g.qi][seat] : (S.me.locked ? S.me.sel : -1);
     body.innerHTML =
       `<div class="ag-ph-q" style="--goal:${goal.color}">` +
-        `<div class="ag-ph-qh"><span class="ag-ph-qn">Q${g.qi + 1}/${qcount(g)}</span><span class="ag-ph-goal">${goal.fun ? goal.name : d.g ? `SDG ${d.g}` : "2030 Agenda"}</span><span class="ag-ph-secs" id="ag-ph-secs"></span></div>` +
+        `<div class="ag-ph-qh"><span class="ag-ph-qn">Q${g.qi + 1}/${qcount(g)}</span><span class="ag-ph-goal">${goal.extra ? goal.name : d.g ? `SDG ${d.g}` : "2030 Agenda"}</span><span class="ag-ph-secs" id="ag-ph-secs"></span></div>` +
         `<div class="ag-ph-bar"><i id="ag-ph-bar"></i></div>` +
         `<p class="ag-ph-qt">${esc(d.q)}</p>` +
       `</div>` +
