@@ -8,6 +8,12 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-22  AGENDA 2030 (data/agenda.js v8, src/agenda.js v27, boot.js v31): FUN FACTS ARE BACK.
+REM              The 57 UN trivia questions return as their own "Fun Fact" category,
+REM              no longer tagged to an SDG. The board, phone and ladder say Fun Fact,
+REM              not an SDG number. Every show has exactly three (one in a 5-question
+REM              show). All 57 re-checked against sources: 6 links or wordings fixed,
+REM              and the blue whale question now ties to the Whaling Commission.
 REM  2026-10-22  AGENDA 2030 (data/agenda.js v7, boot.js v30): OFF-TOPIC QUESTIONS REMOVED.
 REM              57 trivia questions with no link to any SDG are gone (UN Headquarters
 REM              lore, horses in Mongolia, space flight, chess, mascots and the like).
