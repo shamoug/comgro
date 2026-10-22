@@ -8,6 +8,9 @@ REM  Just double-click this file (or run it) whenever you want to
 REM  upload a new version. It uses your saved GitHub login.
 REM ============================================================
 REM  CHANGELOG (newest first):
+REM  2026-10-22  AGENDA 2030 (src/agenda.js v26, boot.js v29): 10 QUESTIONS BY DEFAULT, ALWAYS.
+REM              Every setup screen now opens on 10 questions instead of the last length
+REM              picked on this device; 5, 15 or 20 are still one tap away.
 REM  2026-10-21  AGENDA 2030 (src/agenda.js v25, styles/agenda.css v21, boot.js v28): CHOOSE THE
 REM              NUMBER OF QUESTIONS. Solo, AI vs AI and hosted shows offer 5, 10, 15 or 20
 REM              questions (10 by default, remembered per device). The climb scales with it

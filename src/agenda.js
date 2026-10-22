@@ -1425,7 +1425,7 @@
     w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
     w.appendChild(el("h1", "ag-h2", "Host a show"));
     w.appendChild(el("p", "ag-tag", "This screen becomes the stage. Each contestant joins on their own phone by scanning the code."));
-    let seats = settings.seats, count = settings.count || QCOUNT;
+    let seats = settings.seats, count = QCOUNT;
     w.appendChild(el("p", "ag-label", "How many contestants?"));
     const seatNote = el("p", "ag-note");
     const seatPaint = () => { seatNote.innerHTML = seats === 1 ? "One contestant against the clock." : `The show starts when the <b>${seats}th</b> player joins.`.replace("2th", "2nd").replace("3th", "3rd"); };
@@ -1438,7 +1438,7 @@
     go.onclick = async () => {
       SA.unlock();
       if (!room()) return flash("Online play is unavailable here. Try solo.");
-      settings.seats = seats; settings.count = count; saveSettings();
+      settings.seats = seats; saveSettings();
       go.disabled = true; go.textContent = "Opening the studio…";
       try {
         const g = newShow({ mode: "host", seats, count });
@@ -1461,7 +1461,7 @@
     w.appendChild(backBtn("← Back", renderTitle));
     w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
     w.appendChild(el("h1", "ag-h2", "Play solo"));
-    let rivals = settings.rivals, level = settings.level, icon = settings.avatar || AVATARS[0], count = settings.count || QCOUNT;
+    let rivals = settings.rivals, level = settings.level, icon = settings.avatar || AVATARS[0], count = QCOUNT;
     w.appendChild(el("p", "ag-label", "Your name"));
     const name = el("input", "ag-input"); name.maxLength = 18; name.placeholder = "Your name";
     name.value = settings.name || (CG.Net && CG.Net.getName ? CG.Net.getName() : "") || "";
@@ -1481,7 +1481,7 @@
     go.onclick = () => {
       const nm = clean(name.value);
       if (!nm) return nudge(name);
-      Object.assign(settings, { rivals, level, avatar: icon, name: nm, count }); saveSettings();
+      Object.assign(settings, { rivals, level, avatar: icon, name: nm }); saveSettings();
       SA.unlock();
       const g = newShow({ mode: "solo", seats: rivals + 1, level, count });
       Object.assign(g.players[0], { name: nm, icon, vacant: false, ownerId: myId() });
@@ -1499,7 +1499,7 @@
     w.appendChild(el("div", "ag-mini-logo", wheelSvg("", "")));
     w.appendChild(el("h1", "ag-h2", "AI vs AI"));
     w.appendChild(el("p", "ag-tag", "Watch the AI contestants play the whole show, with the host, the music and the facts. When it ends, the next show starts by itself."));
-    let seats = Math.max(2, Math.min(5, settings.autoSeats || 4)), level = settings.level, count = settings.count || QCOUNT;
+    let seats = Math.max(2, Math.min(5, settings.autoSeats || 4)), level = settings.level, count = QCOUNT;
     w.appendChild(el("p", "ag-label", "How many AI contestants?"));
     w.appendChild(seg([2, 3, 4, 5], seats, (v) => { seats = v; }));
     w.appendChild(el("p", "ag-label", "How good are they?"));
@@ -1511,7 +1511,7 @@
     w.appendChild(el("p", "ag-note", "Press the space bar to pause at any time."));
     const go = el("button", "ag-btn gold big", "Roll the show ▸");
     go.onclick = () => {
-      Object.assign(settings, { autoSeats: seats, level, count }); saveSettings();
+      Object.assign(settings, { autoSeats: seats, level }); saveSettings();
       SA.unlock();
       const g = newShow({ mode: "solo", seats, level, count });
       g.auto = true;
